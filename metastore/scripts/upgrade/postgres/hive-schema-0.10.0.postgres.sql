@@ -528,6 +528,20 @@ CREATE TABLE "PART_COL_STATS" (
  "LAST_ANALYZED" bigint NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "MASTER_KEYS"
+(
+    "KEY_ID" SERIAL,
+    "MASTER_KEY" varchar(767) NULL,
+    PRIMARY KEY ("KEY_ID")
+);
+
+CREATE TABLE IF NOT EXISTS "DELEGATION_TOKENS"
+(
+    "TOKEN_IDENT" varchar(767) NOT NULL,
+    "TOKEN" varchar(767) NULL,
+    PRIMARY KEY ("TOKEN_IDENT")
+);
+
 --
 -- Name: BUCKETING_COLS_pkey; Type: CONSTRAINT; Schema: public; Owner: hiveuser; Tablespace:
 --

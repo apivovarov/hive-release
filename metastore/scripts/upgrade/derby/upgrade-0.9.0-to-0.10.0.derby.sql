@@ -2,3 +2,4 @@
 RUN '010-HIVE-3072.derby.sql';
 RUN '011-HIVE-3649.derby.sql';
 RUN '012-HIVE-1362.derby.sql';
+RUN '013-HIVE-3255.derby.sql';
