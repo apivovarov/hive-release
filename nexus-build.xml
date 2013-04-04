@@ -1,0 +1,38 @@
+  <project name="nexus-deploy" default="stage" basedir="." xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+    <property name="modules" value="hive-anttasks,hive-cli,hive-common,hive-contrib,hive-hbase-handler,hive-hwi,hive-jdbc,hive-metastore,hive-exec,hive-serde,hive-service,hive-shims,hive-pdk,hive-builtins"/>
+    <import file="build.xml" as="apache"/>
+    <property name="ant-task.version" value="2.1.3" />
+    <property name="mvnrepo" value="http://repo2.maven.org/maven2"/>
+    <property name="ant_task.jar" location="${ivy.dir}/maven-ant-tasks-${ant-task.version}.jar"/>
+    <property name="ant_task_repo_url"
+    value="${mvnrepo}/org/apache/maven/maven-ant-tasks/${ant-task.version}/maven-ant-tasks-${ant-task.version}.jar"/>
+
+    <target name="stage" depends="apache.maven-build" description="deploy artifact to a nexus repository">
+      <get src="${ant_task_repo_url}" dest="${basedir}/ivy/maven-ant-tasks-2.1.3.jar" usetimestamp="true"/>
+      <path id="mvn-ant-task-classpath" path="${basedir}/ivy/maven-ant-tasks-2.1.3.jar"/>
+      <typedef resource="org/apache/maven/artifact/ant/antlib.xml"
+        uri="antlib:org.apache.maven.artifact.ant" classpathref="mvn-ant-task-classpath"/>
+      <macrodef name="nexus-plugin" description="macro definition for publishing artifacts to nexus">
+        <attribute name="artifact-name"/>
+        <attribute name="jar-classifier" default=""/>
+        <sequential>
+          <artifact:mvn>
+            <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+            <arg value="-Durl=${asfstagingrepo}" />
+            <arg value="-DrepositoryId=${staging_repo_id}" />
+            <arg value="-DpomFile=${mvn.pom.dir}/@{artifact-name}-${version}.pom" />
+            <arg value="-Dfile=${mvn.jar.dir}/@{artifact-name}-${version}.jar" />
+            <arg value="-Dclassifier=@{jar-classifier}"/>
+            <arg value="-Dpackaging=jar"/>
+            <arg value="-Dtype=jar"/>
+            <arg value="-Pgpg"/>
+          </artifact:mvn>
+        </sequential>
+      </macrodef>
+      <for list="${modules}" param="module" delimiter=",">
+         <sequential>
+           <nexus-plugin artifact-name="@{module}"/>
+         </sequential>
+      </for>
+    </target>
+  </project>
