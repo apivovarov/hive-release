@@ -140,7 +140,7 @@
     <pathelement location="${build.dir.hive}/common/classes"/>
     <pathelement location="${build.dir.hive}/serde/classes"/>
     <pathelement location="${build.dir.hive}/metastore/classes"/>
-    <pathelement location="${build.dir.hive}/hcatalog/classes"/>
+    <!--<pathelement location="${build.dir.hive}/hcatalog/classes"/>-->
     <pathelement location="${build.dir.hive}/ql/classes"/>
     <pathelement location="${build.dir.hive}/cli/classes"/>
     <pathelement location="${build.dir.hive}/beeline/classes"/>
@@ -506,14 +506,6 @@
     <chmod perm="ugo+x" type="file" parallel="false">
       <fileset dir="${target.bin.dir}"/>
     </chmod>
-
-    <!-- Package the hcat stuff and pull it up into Hive's build dir -->
-    <ant antfile="${hive.root}/hcatalog/build.xml" target="package"
-        inheritAll="false"/>
-    <mkdir dir="${target.dir}/hcatalog"/>
-    <copy todir="${target.dir}/hcatalog">
-        <fileset dir="${hive.root}/hcatalog/build/hcatalog-${version}"/>
-    </copy>
   </target>
 
 
@@ -664,7 +656,7 @@
       <packageset dir="metastore/src/test"/>
       <packageset dir="metastore/src/gen/thrift/gen-javabean"/>
       <packageset dir="metastore/src/model"/>
-      <packageset dir="hcatalog/src/java"/>
+      <!--<packageset dir="hcatalog/src/java"/>-->
       <packageset dir="cli/src/java"/>
       <packageset dir="beeline/src/java"/>
       <packageset dir="ql/src/java"/>
@@ -947,7 +939,7 @@
       <sourcePath path="${hive.root}/hwi" />
       <sourcePath path="${hive.root}/jdbc" />
       <sourcePath path="${hive.root}/metastore" />
-      <sourcePath path="${hive.root}/hcatalog" />
+      <!--<sourcePath path="${hive.root}/hcatalog" />-->
       <sourcePath path="${hive.root}/odbc" />
       <sourcePath path="${hive.root}/ql" />
       <sourcePath path="${hive.root}/serde" />
@@ -962,7 +954,6 @@
       <class location="${build.dir.hive}/hwi/classes" />
       <class location="${build.dir.hive}/jdbc/classes" />
       <class location="${build.dir.hive}/metastore/classes" />
-      <class location="${build.dir.hive}/hcatalog/classes" />
       <class location="${build.dir.hive}/ql/classes" />
       <class location="${build.dir.hive}/serde/classes" />
       <class location="${build.dir.hive}/service/classes" />
