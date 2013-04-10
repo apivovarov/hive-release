@@ -148,5 +148,15 @@
             <remoteRepository id="${mvn.deploy.repo.id}" url="${mvn.deploy.repo.url}"/>
         </artifact:deploy>
     </target>
+    <target name="mvn-stage" depends="mvn-init" description="deploy artifact to a nexus repository with gpg signing">
+          <artifact:mvn>
+            <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+            <arg value="-Durl=${mvn.deploy.repo.url}" />
+            <arg value="-DrepositoryId=${mvn.deploy.repo.id}" />
+            <arg value="-DpomFile=${pom.file}" />
+            <arg value="-Dfile=${build.dir}/${ant.project.name}-${hcatalog.version}.jar" />
+            <arg value="-Pgpg" />
+          </artifact:mvn>
+    </target>
 
 </project>

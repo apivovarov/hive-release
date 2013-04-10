@@ -38,7 +38,14 @@
     <condition property="staging">
         <equals arg1="${repo}" arg2="staging"/>
     </condition>
-
+    
+    <condition property="hadoopversion" value="20">
+      <equals arg1="${mvn.hadoop.profile}" arg2="hadoop20"/>
+    </condition>
+    <condition property="hadoopversion" value="23">
+      <equals arg1="${mvn.hadoop.profile}" arg2="hadoop23"/>
+    </condition>
+ 
     <!-- e2e test properties -->
     <property name="test.e2e.dir" value="${basedir}/src/test/e2e/hcatalog"/>
 
@@ -54,6 +61,7 @@
 
     <target name="init">
         <mkdir dir="${dist.dir}"/>
+        <mkdir dir="${build.dir}"/>
     </target>
 
     <!--
@@ -217,6 +225,7 @@
                  doctitle="HCatalog ${hcatalog.version} API"
                  failonerror="true">
             <packageset dir="core/src/main/java"/>
+            <packageset dir="shims/src/${hadoopversion}/java"/>
             <packageset dir="hcatalog-pig-adapter/src/main/java"/>
             <packageset dir="server-extensions/src/main/java"/>
             <packageset dir="storage-handlers/hbase/src/gen-java"/>
@@ -267,6 +276,15 @@
         <ant target="mvn-deploy" dir="webhcat/java-client" inheritAll="false" useNativeBasedir="true"/>
         <ant target="mvn-deploy" dir="webhcat/svr" inheritAll="false" useNativeBasedir="true"/>
     </target>
+
+    <target name="stage" depends="init, mvn-init"
+           description="Deploy artifacts to a Nexus Maven repository.">
+       <ant target="mvn-stage" dir="core" inheritAll="false" useNativeBasedir="true"/>
+       <ant target="mvn-stage" dir="hcatalog-pig-adapter" inheritAll="false" useNativeBasedir="true"/>
+       <ant target="mvn-stage" dir="server-extensions" inheritAll="false" useNativeBasedir="true"/>
+       <ant target="mvn-stage" dir="webhcat/java-client" inheritAll="false" useNativeBasedir="true"/>
+       <ant target="mvn-stage" dir="webhcat/svr" inheritAll="false" useNativeBasedir="true"/>
+    </target> 
 
     <target name="mvn-deploy-signed" depends="mvn-init"
             description="Sign and deploy artifacts to a Maven repository.">
@@ -419,7 +437,6 @@
         tar command because it preserves file permissions of our carefully
         constructed package dir.
         -->
-        <!--
         <exec executable="tar">
             <arg value="-C"/>
             <arg value="${build.dir}"/>
@@ -428,7 +445,14 @@
             <arg value="${final.name}"/>
         </exec>
         <checksum file="${build.dir}/${final.name}.tar.gz" forceOverwrite="yes"/>
-        -->
+
+        <!-- copy any additional dependencies we need to include -->
+        <mkdir dir="${dist.dir}/share/${ant.project.name}/lib"/>
+        <copy todir="${dist.dir}/share/${ant.project.name}/lib" includeEmptyDirs="false">
+            <fileset dir="core/build/lib/compile/">
+                <include name="guava-*.jar"/>
+            </fileset>
+        </copy>
     </target>
 
     <target name="releaseaudit" depends="init" description="generate a release audit report">
