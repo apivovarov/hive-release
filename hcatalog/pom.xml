@@ -30,7 +30,7 @@
       <hadoop23.version>2.0.3-alpha</hadoop23.version>
       <hbase.version>0.94.5</hbase.version>
       <hcatalog.version>${project.version}</hcatalog.version>
-      <hive.version>${project.version}</hive.version>
+      <hive.version>0.10.0</hive.version>
       <jackson.version>1.9.2</jackson.version>
       <jersey.version>1.14</jersey.version>
       <jetty.webhcat.version>7.6.0.v20120127</jetty.webhcat.version>
@@ -40,6 +40,9 @@
       <wadl-resourcedoc-doclet.version>1.4</wadl-resourcedoc-doclet.version>
       <zookeeper.version>3.4.3</zookeeper.version>
       <metrics-core.version>2.1.2</metrics-core.version>
+      <reponame>Apache Staging Repository</reponame>
+      <repo.maven.org>http://repo1.maven.org/maven2</repo.maven.org>
+      <publicrepoid>public</publicrepoid>
   </properties>
 
   <modelVersion>4.0.0</modelVersion>
@@ -180,6 +183,14 @@
   </modules>
 
   <repositories>
+    <repository>
+      <id>${publicrepoid}</id>
+      <name>${reponame}</name>
+      <url>${repo.maven.org}</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository> 
     <!-- This is necessary for hive-metastore dependencies. -->
     <repository>
       <id>datanucleus</id>

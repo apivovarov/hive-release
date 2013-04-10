@@ -78,7 +78,7 @@
         <taskdef resource="org/apache/maven/artifact/ant/antlib.xml"
                  uri="artifact:org.apache.maven.artifact.ant"
                  classpath="${path.to.basedir}/build/maven-ant-tasks-${maven-ant-tasks.version}.jar"/>
-        <antcall target="hive-mvn-publish" />
+        <!--<antcall target="hive-mvn-publish" />-->
         <artifact:dependencies>
             <dependency groupId="org.apache.hive.hcatalog" artifactId="hcatalog" version="${hcatalog.version}" scope="system" systemPath="${path.to.basedir}/pom.xml"/>
             <artifact:localRepository path="${mvn.local.repo}"/>
@@ -149,6 +149,16 @@
             <attach file="${pom.file}.asc" type="pom.asc"/>
             <remoteRepository id="${mvn.deploy.repo.id}" url="${mvn.deploy.repo.url}"/>
         </artifact:deploy>
+    </target>
+    <target name="mvn-stage" depends="mvn-init" description="deploy artifact to a nexus repository with gpg signing">
+          <artifact:mvn>
+            <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.4:sign-and-deploy-file" />
+            <arg value="-Durl=${mvn.deploy.repo.url}" />
+            <arg value="-DrepositoryId=${mvn.deploy.repo.id}" />
+            <arg value="-DpomFile=${pom.file}" />
+            <arg value="-Dfile=${build.dir}/${ant.project.name}-${hcatalog.version}.jar" />
+            <arg value="-Pgpg" />
+          </artifact:mvn>
     </target>
 
 </project>
