@@ -279,6 +279,7 @@
 
     <target name="stage" depends="init, mvn-init"
            description="Deploy artifacts to a Nexus Maven repository.">
+       <ant target="mvn-stage-pom" dir="." inheritAll="false" useNativeBasedir="true"/>
        <ant target="mvn-stage" dir="core" inheritAll="false" useNativeBasedir="true"/>
        <ant target="mvn-stage" dir="hcatalog-pig-adapter" inheritAll="false" useNativeBasedir="true"/>
        <ant target="mvn-stage" dir="server-extensions" inheritAll="false" useNativeBasedir="true"/>
