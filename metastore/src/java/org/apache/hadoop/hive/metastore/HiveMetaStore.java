@@ -19,8 +19,6 @@
 package org.apache.hadoop.hive.metastore;
 
 import static org.apache.commons.lang.StringUtils.join;
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_COMMENT;
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
 import static org.apache.hadoop.hive.metastore.MetaStoreUtils.validateName;
 
 import java.io.IOException;
@@ -415,11 +413,11 @@ public class HiveMetaStore extends ThriftHiveMetastore {
 
     private void createDefaultDB_core(RawStore ms) throws MetaException, InvalidObjectException {
       try {
-        ms.getDatabase(DEFAULT_DATABASE_NAME);
+        ms.getDatabase(HiveConf.DEFAULT_DATABASE_NAME);
       } catch (NoSuchObjectException e) {
         ms.createDatabase(
-            new Database(DEFAULT_DATABASE_NAME, DEFAULT_DATABASE_COMMENT,
-                wh.getDefaultDatabasePath(DEFAULT_DATABASE_NAME).toString(), null));
+            new Database(HiveConf.DEFAULT_DATABASE_NAME, HiveConf.DEFAULT_DATABASE_COMMENT,
+                wh.getDefaultDatabasePath(HiveConf.DEFAULT_DATABASE_NAME).toString(), null));
       }
       HMSHandler.createDefaultDB = true;
     }
@@ -790,7 +788,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         throws NoSuchObjectException, InvalidOperationException, MetaException {
 
       startFunction("drop_database", ": " + dbName);
-      if (DEFAULT_DATABASE_NAME.equalsIgnoreCase(dbName)) {
+      if (HiveConf.DEFAULT_DATABASE_NAME.equalsIgnoreCase(dbName)) {
         endFunction("drop_database", false, null);
         throw new MetaException("Can not drop default database");
       }

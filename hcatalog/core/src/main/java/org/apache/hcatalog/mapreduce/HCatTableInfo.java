@@ -22,7 +22,7 @@ package org.apache.hcatalog.mapreduce;
 import java.io.IOException;
 import java.io.Serializable;
 
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hcatalog.common.HCatUtil;
 import org.apache.hcatalog.data.schema.HCatSchema;
@@ -73,7 +73,7 @@ public class HCatTableInfo implements Serializable {
         HCatSchema partitionColumns,
         StorerInfo storerInfo,
         Table table) {
-        this.databaseName = (databaseName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : databaseName;
+        this.databaseName = (databaseName == null) ? HiveConf.DEFAULT_DATABASE_NAME : databaseName;
         this.tableName = tableName;
         this.dataColumns = dataColumns;
         this.table = table;

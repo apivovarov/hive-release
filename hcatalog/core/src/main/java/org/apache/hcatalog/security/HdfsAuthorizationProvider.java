@@ -19,7 +19,6 @@
 
 package org.apache.hcatalog.security;
 
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -55,7 +54,7 @@ import org.apache.hadoop.security.UserGroupInformation;
 /**
  * An AuthorizationProvider, which checks against the data access level permissions on HDFS.
  * It makes sense to eventually move this class to Hive, so that all hive users can
- * use this authorization model. 
+ * use this authorization model.
  */
 public class HdfsAuthorizationProvider extends HiveAuthorizationProviderBase {
 
@@ -132,7 +131,7 @@ public class HdfsAuthorizationProvider extends HiveAuthorizationProviderBase {
     private static final String DATABASE_WAREHOUSE_SUFFIX = ".db";
 
     private Path getDefaultDatabasePath(String dbName) throws MetaException {
-        if (dbName.equalsIgnoreCase(DEFAULT_DATABASE_NAME)) {
+        if (dbName.equalsIgnoreCase(HiveConf.DEFAULT_DATABASE_NAME)) {
             return wh.getWhRoot();
         }
         return new Path(wh.getWhRoot(), dbName.toLowerCase() + DATABASE_WAREHOUSE_SUFFIX);

@@ -18,10 +18,9 @@
 
 package org.apache.hadoop.hive.ql.hooks;
 
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
-
 import java.util.Set;
 
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.QTestUtil;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.session.SessionState;
@@ -52,7 +51,7 @@ public class EnforceReadOnlyTables implements ExecuteWithHookContext {
       if ((w.getTyp() == WriteEntity.Type.TABLE) ||
           (w.getTyp() == WriteEntity.Type.PARTITION)) {
         Table t = w.getTable();
-        if (DEFAULT_DATABASE_NAME.equalsIgnoreCase(t.getDbName())
+        if (HiveConf.DEFAULT_DATABASE_NAME.equalsIgnoreCase(t.getDbName())
             && QTestUtil.srcTables.contains(t.getTableName())) {
           throw new RuntimeException ("Cannot overwrite read-only table: " + t.getTableName());
         }

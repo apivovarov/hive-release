@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -173,7 +173,7 @@ public class HCatAddPartitionDesc {
          */
         public HCatAddPartitionDesc build() throws HCatException {
             if (this.dbName == null) {
-                this.dbName = MetaStoreUtils.DEFAULT_DATABASE_NAME;
+                this.dbName = HiveConf.DEFAULT_DATABASE_NAME;
             }
             HCatAddPartitionDesc desc = new HCatAddPartitionDesc(
                 this.dbName, this.tableName, this.location,

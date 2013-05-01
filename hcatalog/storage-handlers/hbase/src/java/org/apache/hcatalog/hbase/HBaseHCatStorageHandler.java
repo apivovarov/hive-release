@@ -41,6 +41,7 @@ import org.apache.hadoop.hbase.mapred.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.hbase.HBaseSerDe;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
@@ -405,7 +406,7 @@ public class HBaseHCatStorageHandler extends HCatStorageHandler implements HiveM
                 .get(HBaseSerDe.HBASE_TABLE_NAME);
         }
         if (tableName == null) {
-            if (tbl.getDbName().equals(MetaStoreUtils.DEFAULT_DATABASE_NAME)) {
+            if (tbl.getDbName().equals(HiveConf.DEFAULT_DATABASE_NAME)) {
                 tableName = tbl.getTableName();
             } else {
                 tableName = tbl.getDbName() + "." + tbl.getTableName();
@@ -422,7 +423,7 @@ public class HBaseHCatStorageHandler extends HCatStorageHandler implements HiveM
             String databaseName = tableInfo.getDatabaseName();
             String tableName = tableInfo.getTableName();
             if ((databaseName == null)
-                || (databaseName.equals(MetaStoreUtils.DEFAULT_DATABASE_NAME))) {
+                || (databaseName.equals(HiveConf.DEFAULT_DATABASE_NAME))) {
                 qualifiedName = tableName;
             } else {
                 qualifiedName = databaseName + "." + tableName;

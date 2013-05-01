@@ -208,7 +208,7 @@ public class TestHCatPartitionPublish {
     }
 
     private void createTable(String dbName, String tableName) throws Exception {
-        String databaseName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME
+        String databaseName = (dbName == null) ? HiveConf.DEFAULT_DATABASE_NAME
                 : dbName;
         try {
             msc.dropTable(databaseName, tableName);

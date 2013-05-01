@@ -18,8 +18,6 @@
 
 package org.apache.hadoop.hive.ql;
 
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -56,7 +54,6 @@ import org.apache.hadoop.hive.cli.CliDriver;
 import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.common.io.CachingPrintStream;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Task;
@@ -198,7 +195,7 @@ public class QTestUtil {
   public String getLogDirectory() {
     return logDir;
   }
-  
+
   private String getHadoopMainVersion(String input) {
     if (input == null) {
       return null;
@@ -468,7 +465,7 @@ public class QTestUtil {
     for (String dbName : db.getAllDatabases()) {
       db.setCurrentDatabase(dbName);
       for (String tblName : db.getAllTables()) {
-        if (!DEFAULT_DATABASE_NAME.equals(dbName) || !srcTables.contains(tblName)) {
+        if (!HiveConf.DEFAULT_DATABASE_NAME.equals(dbName) || !srcTables.contains(tblName)) {
           Table tblObj = db.getTable(tblName);
           // dropping index table can not be dropped directly. Dropping the base
           // table will automatically drop all its index table
@@ -486,11 +483,11 @@ public class QTestUtil {
           }
         }
       }
-      if (!DEFAULT_DATABASE_NAME.equals(dbName)) {
+      if (!HiveConf.DEFAULT_DATABASE_NAME.equals(dbName)) {
         db.dropDatabase(dbName);
       }
     }
-    Hive.get().setCurrentDatabase(DEFAULT_DATABASE_NAME);
+    Hive.get().setCurrentDatabase(HiveConf.DEFAULT_DATABASE_NAME);
 
     List<String> roleNames = db.getAllRoleNames();
       for (String roleName : roleNames) {
@@ -510,7 +507,7 @@ public class QTestUtil {
         "src_sequencefile", "srcpart", "srcbucket", "srcbucket2", "dest1",
         "dest2", "dest3", "dest4", "dest4_sequencefile", "dest_j1", "dest_j2",
         "dest_g1", "dest_g2", "fetchtask_ioexception"}) {
-      db.dropTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, s);
+      db.dropTable(HiveConf.DEFAULT_DATABASE_NAME, s);
     }
 
     // delete any contents in the warehouse dir
@@ -808,7 +805,7 @@ public class QTestUtil {
         .run("FROM dest4_sequencefile INSERT OVERWRITE TABLE dest4 SELECT dest4_sequencefile.*");
 
     // Drop dest4_sequencefile
-    db.dropTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, "dest4_sequencefile",
+    db.dropTable(HiveConf.DEFAULT_DATABASE_NAME, "dest4_sequencefile",
         true, true);
   }
 

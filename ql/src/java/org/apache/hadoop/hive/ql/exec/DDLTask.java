@@ -2498,7 +2498,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     HiveLockMode mode = HiveLockMode.valueOf(lockTbl.getMode());
     String tabName = lockTbl.getTableName();
-    Table  tbl = db.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tabName);
+    Table  tbl = db.getTable(HiveConf.DEFAULT_DATABASE_NAME, tabName);
     if (tbl == null) {
       throw new HiveException("Table " + tabName + " does not exist ");
     }

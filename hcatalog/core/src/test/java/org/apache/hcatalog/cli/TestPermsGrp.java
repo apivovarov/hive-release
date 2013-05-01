@@ -99,7 +99,7 @@ public class TestPermsGrp extends TestCase {
 
     public void testCustomPerms() throws Exception {
 
-        String dbName = MetaStoreUtils.DEFAULT_DATABASE_NAME;
+        String dbName = HiveConf.DEFAULT_DATABASE_NAME;
         String tblName = "simptbl";
         String typeName = "Person";
 
@@ -144,7 +144,7 @@ public class TestPermsGrp extends TestCase {
 
             // And no metadata gets created.
             try {
-                msc.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, tblName);
+                msc.getTable(HiveConf.DEFAULT_DATABASE_NAME, tblName);
                 assert false;
             } catch (Exception e) {
                 assertTrue(e instanceof NoSuchObjectException);

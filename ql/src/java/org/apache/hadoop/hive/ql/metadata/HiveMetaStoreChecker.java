@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -80,7 +79,7 @@ public class HiveMetaStoreChecker {
       throws HiveException, IOException {
 
     if (dbName == null || "".equalsIgnoreCase(dbName)) {
-      dbName = MetaStoreUtils.DEFAULT_DATABASE_NAME;
+      dbName = HiveConf.DEFAULT_DATABASE_NAME;
     }
 
     try {

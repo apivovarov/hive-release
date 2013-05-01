@@ -18,7 +18,6 @@
 
 package org.apache.hadoop.hive.ql.metadata;
 
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
 import static org.apache.hadoop.hive.metastore.api.hive_metastoreConstants.META_TABLE_STORAGE;
 import static org.apache.hadoop.hive.serde.serdeConstants.COLLECTION_DELIM;
 import static org.apache.hadoop.hive.serde.serdeConstants.ESCAPE_CHAR;
@@ -49,6 +48,7 @@ import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaException;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
@@ -163,9 +163,6 @@ public class Hive {
       closeCurrent();
       c.set("fs.scheme.class", "dfs");
       Hive newdb = new Hive(c);
-      if (db != null && db.getCurrentDatabase() != null){
-        newdb.setCurrentDatabase(db.getCurrentDatabase());
-      }
       hiveDB.set(newdb);
       return newdb;
     }
@@ -1897,10 +1894,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
    * @return the current database name
    */
   public String getCurrentDatabase() {
-    if (null == currentDatabase) {
-      currentDatabase = DEFAULT_DATABASE_NAME;
-    }
-    return currentDatabase;
+    return conf.getVar(ConfVars.HIVE_CURRENT_DATABASE);
   }
 
   /**
@@ -1908,7 +1902,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
    * @param currentDatabase
    */
   public void setCurrentDatabase(String currentDatabase) {
-    this.currentDatabase = currentDatabase;
+    conf.setVar(ConfVars.HIVE_CURRENT_DATABASE, currentDatabase);
   }
 
   public void createRole(String roleName, String ownerName)

@@ -33,7 +33,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -72,7 +71,7 @@ import static org.junit.Assert.assertTrue;
 public abstract class HCatMapReduceTest extends HCatBaseTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(HCatMapReduceTest.class);
-    protected static String dbName = MetaStoreUtils.DEFAULT_DATABASE_NAME;
+    protected static String dbName = HiveConf.DEFAULT_DATABASE_NAME;
     protected static String tableName = "testHCatMapReduceTable";
 
     private static List<HCatRecord> writeRecords = new ArrayList<HCatRecord>();
@@ -115,7 +114,7 @@ public abstract class HCatMapReduceTest extends HCatBaseTest {
     @After
     public void deleteTable() throws Exception {
         try {
-            String databaseName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
+            String databaseName = (dbName == null) ? HiveConf.DEFAULT_DATABASE_NAME : dbName;
 
             client.dropTable(databaseName, tableName);
         } catch (Exception e) {
@@ -126,7 +125,7 @@ public abstract class HCatMapReduceTest extends HCatBaseTest {
 
     @Before
     public void createTable() throws Exception {
-        String databaseName = (dbName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : dbName;
+        String databaseName = (dbName == null) ? HiveConf.DEFAULT_DATABASE_NAME : dbName;
 
         try {
             client.dropTable(databaseName, tableName);

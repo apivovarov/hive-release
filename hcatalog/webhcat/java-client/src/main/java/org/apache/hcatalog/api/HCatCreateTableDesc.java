@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Order;
@@ -476,8 +475,8 @@ public class HCatCreateTableDesc {
         public HCatCreateTableDesc build() throws HCatException {
             if (this.dbName == null) {
                 LOG.info("Database name found null. Setting db to :"
-                    + MetaStoreUtils.DEFAULT_DATABASE_NAME);
-                this.dbName = MetaStoreUtils.DEFAULT_DATABASE_NAME;
+                    + HiveConf.DEFAULT_DATABASE_NAME);
+                this.dbName = HiveConf.DEFAULT_DATABASE_NAME;
             }
             HCatCreateTableDesc desc = new HCatCreateTableDesc(this.dbName,
                 this.tableName, this.cols);

@@ -17,8 +17,6 @@
  */
 
 package org.apache.hadoop.hive.metastore;
-
-import static org.apache.hadoop.hive.metastore.MetaStoreUtils.DEFAULT_DATABASE_NAME;
 import static org.apache.hadoop.hive.metastore.MetaStoreUtils.isIndexTable;
 
 import java.io.IOException;
@@ -610,7 +608,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Deprecated
   public void dropTable(String tableName, boolean deleteData)
       throws MetaException, UnknownTableException, TException, NoSuchObjectException {
-    dropTable(DEFAULT_DATABASE_NAME, tableName, deleteData, false, null);
+    dropTable(HiveConf.DEFAULT_DATABASE_NAME, tableName, deleteData, false, null);
   }
 
   /**
@@ -842,7 +840,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Deprecated
   public Table getTable(String tableName) throws MetaException, TException,
       NoSuchObjectException {
-    return getTable(DEFAULT_DATABASE_NAME, tableName);
+    return getTable(HiveConf.DEFAULT_DATABASE_NAME, tableName);
   }
 
   /** {@inheritDoc} */
@@ -903,7 +901,7 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   @Deprecated
   public boolean tableExists(String tableName) throws MetaException,
       TException, UnknownDBException {
-    return tableExists(DEFAULT_DATABASE_NAME, tableName);
+    return tableExists(HiveConf.DEFAULT_DATABASE_NAME, tableName);
   }
 
   public List<String> listPartitionNames(String dbName, String tblName,

@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.conf;
 
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -60,6 +61,9 @@ public class HiveConf extends Configuration {
 
   private static final Map<String, ConfVars> vars = new HashMap<String, ConfVars>();
   private final List<String> restrictList = new ArrayList<String>();
+  public static final String DATABASE_WAREHOUSE_SUFFIX = ".db";
+  public static final String DEFAULT_DATABASE_COMMENT = "Default Hive database";
+  public static final String DEFAULT_DATABASE_NAME = "default";
 
   static {
     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -157,6 +161,15 @@ public class HiveConf extends Configuration {
     HiveConf.ConfVars.DOWNLOADED_RESOURCES_DIR,
     HiveConf.ConfVars.HIVEHISTORYFILELOC
   };
+
+  /**
+   *List of config parameters that user is not allowed to change using
+   * set command
+   */
+  public static final HiveConf.ConfVars[] restrictedVars = {
+    HiveConf.ConfVars.HIVE_CURRENT_DATABASE,
+  };
+
 
   /**
    * ConfVars.
@@ -762,6 +775,9 @@ public class HiveConf extends Configuration {
       "org.apache.hadoop.hive.ql.exec.PTFPersistence$PartitionedByteBasedList"),
     HIVE_PTF_PARTITION_PERSISTENT_SIZE("hive.ptf.partition.persistence.memsize",
       (int) Math.pow(2, (5 + 10 + 10)) ), // 32MB
+
+    HIVE_CURRENT_DATABASE("hive.current.db", DEFAULT_DATABASE_NAME),
+
     ;
 
     public final String varname;
@@ -1103,6 +1119,10 @@ public class HiveConf extends Configuration {
     }
 
     // setup list of conf vars that are not allowed to change runtime
+    for(ConfVars confVar : restrictedVars){
+      restrictList.add(confVar.varname);
+    }
+
     String restrictListStr = this.get(ConfVars.HIVE_CONF_RESTRICTED_LIST.toString());
     if (restrictListStr != null) {
       for (String entry : restrictListStr.split(",")) {

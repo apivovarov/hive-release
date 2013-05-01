@@ -76,10 +76,7 @@ public class TestJdbcDriver2 extends TestCase {
         .getProperty("test.service.standalone.server"));
   }
 
-  @Override
-  protected void setUp() throws Exception {
-    super.setUp();
-    Class.forName(driverName);
+  protected void setupConnection() throws SQLException {
     if (standAloneServer) {
       // get connection
       con = DriverManager.getConnection("jdbc:hive2://localhost:10000/default",
@@ -89,6 +86,37 @@ public class TestJdbcDriver2 extends TestCase {
     }
     assertNotNull("Connection is null", con);
     assertFalse("Connection should not be closed", con.isClosed());
+
+    Statement stmt = con.createStatement();
+    assertNotNull("Statement is null", stmt);
+
+    stmt.execute("set hive.support.concurrency = false");
+
+    stmt.close();
+  }
+
+  protected void resetConnection() throws SQLException {
+    try {
+      if (con != null) {
+        con.close();
+        con = null;
+      }
+
+      setupConnection();
+    } catch (SQLException e) {
+      e.printStackTrace();
+      throw e;
+    }
+  }
+
+  @Override
+  protected void setUp() throws Exception {
+    super.setUp();
+
+    Class.forName(driverName);
+
+    setupConnection();
+
     Statement stmt = con.createStatement();
     assertNotNull("Statement is null", stmt);
 
@@ -829,6 +857,64 @@ public class TestJdbcDriver2 extends TestCase {
         .getString(2).trim());
 
     assertFalse("More results found than expected", res.next());
+  }
+
+  private boolean hasTable(String t, Statement stmt) throws SQLException {
+    boolean found = false;
+    ResultSet rs = stmt.executeQuery("show tables");
+
+    ResultSetMetaData rsmd = rs.getMetaData();
+    int numCols = rsmd.getColumnCount();
+
+    while (rs.next()) {
+      for (int i = 1; i <= numCols; ++i) {
+        if (t.equals(rs.getString(i))) {
+          found = true;
+        }
+      }
+    }
+    return found;
+  }
+
+  /**
+   * Test if default database gets reset on connection reset
+   * @throws SQLException
+   */
+  public void testConnectionReset() throws SQLException {
+    Statement stmt = null;
+
+    try {
+
+      stmt = con.createStatement();
+
+      assertFalse(hasTable("foo", stmt));
+
+      //create a new db and switch to it
+      //then create a table in it
+      stmt.execute("create database second_db");
+      stmt.execute("use second_db");
+      stmt.execute("create table foo (c int)");
+
+      assertTrue(hasTable("foo", stmt));
+
+      stmt.close();
+      resetConnection();
+
+      stmt = con.createStatement();
+
+      //table foo is not in default database
+      // so it should not show up
+      assertFalse(hasTable("foo", stmt));
+
+    } catch (SQLException e) {
+      e.printStackTrace();
+      throw e;
+    } finally {
+      if (stmt != null) {
+        stmt.execute("drop database second_db cascade");
+        stmt.close();
+      }
+    }
   }
 
   public void testDatabaseMetaData() throws SQLException {

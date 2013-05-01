@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hcatalog.data.schema.HCatSchema;
 
 /** The class used to serialize and store the output related information  */
@@ -89,7 +89,7 @@ public class OutputJobInfo implements Serializable {
     private OutputJobInfo(String databaseName,
                           String tableName,
                           Map<String, String> partitionValues) {
-        this.databaseName = (databaseName == null) ? MetaStoreUtils.DEFAULT_DATABASE_NAME : databaseName;
+        this.databaseName = (databaseName == null) ? HiveConf.DEFAULT_DATABASE_NAME : databaseName;
         this.tableName = tableName;
         this.partitionValues = partitionValues;
         this.properties = new Properties();

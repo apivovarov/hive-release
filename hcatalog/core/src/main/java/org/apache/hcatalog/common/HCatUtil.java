@@ -39,7 +39,6 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -434,7 +433,7 @@ public class HCatUtil {
     public static Pair<String, String> getDbAndTableName(String tableName) throws IOException {
         String[] dbTableNametokens = tableName.split("\\.");
         if (dbTableNametokens.length == 1) {
-            return new Pair<String, String>(MetaStoreUtils.DEFAULT_DATABASE_NAME, tableName);
+            return new Pair<String, String>(HiveConf.DEFAULT_DATABASE_NAME, tableName);
         } else if (dbTableNametokens.length == 2) {
             return new Pair<String, String>(dbTableNametokens[0], dbTableNametokens[1]);
         } else {

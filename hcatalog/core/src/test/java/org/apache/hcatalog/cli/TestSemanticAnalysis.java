@@ -29,7 +29,6 @@ import java.util.List;
 
 import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -88,7 +87,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
         CommandProcessorResponse resp = driver.run("create table junit_sem_analysis (a int) partitioned by (B string) stored as TEXTFILE");
         assertEquals(resp.getResponseCode(), 0);
         assertEquals(null, resp.getErrorMessage());
-        Table tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        Table tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         assertEquals("Partition key name case problem", "b", tbl.getPartitionKeys().get(0).getName());
         driver.run("drop table junit_sem_analysis");
     }
@@ -101,13 +100,13 @@ public class TestSemanticAnalysis extends HCatBaseTest {
         driver.run("alter table junit_sem_analysis add partition (b='2010-10-10')");
         hcatDriver.run("alter table junit_sem_analysis partition (b='2010-10-10') set fileformat RCFILE");
 
-        Table tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        Table tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         assertEquals(TextInputFormat.class.getName(), tbl.getSd().getInputFormat());
         assertEquals(HiveIgnoreKeyTextOutputFormat.class.getName(), tbl.getSd().getOutputFormat());
 
         List<String> partVals = new ArrayList<String>(1);
         partVals.add("2010-10-10");
-        Partition part = client.getPartition(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME, partVals);
+        Partition part = client.getPartition(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME, partVals);
 
         assertEquals(RCFileInputFormat.class.getName(), part.getSd().getInputFormat());
         assertEquals(RCFileOutputFormat.class.getName(), part.getSd().getOutputFormat());
@@ -154,7 +153,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
 
         hcatDriver.run("drop table " + TBL_NAME);
         hcatDriver.run("create table junit_sem_analysis (a int) stored as RCFILE");
-        Table tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        Table tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         List<FieldSchema> cols = tbl.getSd().getCols();
         assertEquals(1, cols.size());
         assertTrue(cols.get(0).equals(new FieldSchema("a", "int", null)));
@@ -164,7 +163,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
         CommandProcessorResponse resp = hcatDriver.run("create table if not exists junit_sem_analysis (a int) stored as RCFILE");
         assertEquals(0, resp.getResponseCode());
         assertNull(resp.getErrorMessage());
-        tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         cols = tbl.getSd().getCols();
         assertEquals(1, cols.size());
         assertTrue(cols.get(0).equals(new FieldSchema("a", "int", null)));
@@ -217,7 +216,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
 
         response = hcatDriver.run("describe extended junit_sem_analysis");
         assertEquals(0, response.getResponseCode());
-        Table tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        Table tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         List<FieldSchema> cols = tbl.getSd().getCols();
         assertEquals(2, cols.size());
         assertTrue(cols.get(0).equals(new FieldSchema("a1", "tinyint", null)));
@@ -241,7 +240,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
         hcatDriver.run("drop table junit_sem_analysis");
         hcatDriver.run("create table junit_sem_analysis (a int) partitioned by (b string) stored as RCFILE");
 
-        Table tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        Table tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         assertEquals(RCFileInputFormat.class.getName(), tbl.getSd().getInputFormat());
         assertEquals(RCFileOutputFormat.class.getName(), tbl.getSd().getOutputFormat());
 
@@ -249,7 +248,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
                 "'org.apache.hadoop.hive.ql.io.RCFileOutputFormat' inputdriver 'mydriver' outputdriver 'yourdriver'");
         hcatDriver.run("desc extended junit_sem_analysis");
 
-        tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         assertEquals(RCFileInputFormat.class.getName(), tbl.getSd().getInputFormat());
         assertEquals(RCFileOutputFormat.class.getName(), tbl.getSd().getOutputFormat());
 
@@ -305,7 +304,7 @@ public class TestSemanticAnalysis extends HCatBaseTest {
                 "'org.apache.hadoop.hive.ql.io.RCFileOutputFormat' inputdriver 'mydriver' outputdriver 'yourdriver' ";
         assertEquals(0, hcatDriver.run(query).getResponseCode());
 
-        Table tbl = client.getTable(MetaStoreUtils.DEFAULT_DATABASE_NAME, TBL_NAME);
+        Table tbl = client.getTable(HiveConf.DEFAULT_DATABASE_NAME, TBL_NAME);
         assertEquals(RCFileInputFormat.class.getName(), tbl.getSd().getInputFormat());
         assertEquals(RCFileOutputFormat.class.getName(), tbl.getSd().getOutputFormat());
 

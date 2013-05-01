@@ -31,7 +31,6 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.mapreduce.Job;
@@ -64,7 +63,7 @@ class PigHCatUtil {
     private static final Logger LOG = LoggerFactory.getLogger(PigHCatUtil.class);
 
     static final int PIG_EXCEPTION_CODE = 1115; // http://wiki.apache.org/pig/PigErrorHandlingFunctionalSpecification#Error_codes
-    private static final String DEFAULT_DB = MetaStoreUtils.DEFAULT_DATABASE_NAME;
+    private static final String DEFAULT_DB = HiveConf.DEFAULT_DATABASE_NAME;
 
     private final Map<Pair<String, String>, Table> hcatTableCache =
         new HashMap<Pair<String, String>, Table>();
