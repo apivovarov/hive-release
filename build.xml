@@ -296,7 +296,7 @@
         <var name="target.module" value="${iterate.hive.tests}"/>
       </else>
     </if>
-    <for list="${target.module}" param="module">
+    <for keepgoing="${test.continue.on.failure}" list="${target.module}" param="module">
       <sequential>
         <ant antfile="@{module}/build.xml" target="test" inheritAll="false" inheritRefs="true">
           <property name="build.dir.hive" location="${build.dir.hive}"/>
