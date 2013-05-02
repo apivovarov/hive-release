@@ -5157,10 +5157,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
         if (field_schemas != null) {
           FieldSchema col = new FieldSchema();
-          if (nm[1] != null) {
-            col.setName(unescapeIdentifier(colInfo.getAlias()).toLowerCase()); // remove ``
-          } else {
+          if ("".equals(nm[0]) || nm[1] == null) {
+            // ast expression is not a valid column name for table
             col.setName(colInfo.getInternalName());
+          } else {
+            col.setName(unescapeIdentifier(colInfo.getAlias()).toLowerCase()); // remove ``
           }
           col.setType(colInfo.getType().getTypeName());
           field_schemas.add(col);
@@ -7365,6 +7366,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       for (ColumnInfo colInfo : rr.getColumnInfos()) {
         String name = colInfo.getInternalName();
         String[] tmp = rr.reverseLookup(name);
+        if ("".equals(tmp[0]) || tmp[1] == null) {
+          // ast expression is not a valid column name for table
+          tmp[1] = colInfo.getInternalName();
+        }
         newRR.put(alias, tmp[1], colInfo);
       }
       opParseCtx.get(curr).setRowResolver(newRR);
