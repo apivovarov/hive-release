@@ -158,8 +158,6 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
         }
       }
 
-      LOG.info("Executing: " + cmdLine);
-
       // Inherit Java system variables
       String hadoopOpts;
       StringBuilder sb = new StringBuilder();
@@ -215,13 +213,28 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
         MapRedTask.configureDebugVariablesForChildJVM(variables);
       }
 
+
+      if(ShimLoader.getHadoopShims().isSecurityEnabled() &&
+          conf.getBoolVar(HiveConf.ConfVars.HIVE_SERVER2_ENABLE_DOAS) == true
+          ){
+        //If kerberos security is enabled, and HS2 doAs is enabled,
+        // then additional params need to be set so that the command is run as
+        // intended user
+        SecureCmdDoAs secureDoAs = new SecureCmdDoAs(conf);
+        cmdLine = secureDoAs.addArg(cmdLine);
+        secureDoAs.addEnv(variables);
+      }
+
       env = new String[variables.size()];
       int pos = 0;
       for (Map.Entry<String, String> entry : variables.entrySet()) {
         String name = entry.getKey();
         String value = entry.getValue();
         env[pos++] = name + "=" + value;
+        LOG.debug("Setting env: " + env[pos-1]);
       }
+
+      LOG.info("Executing: " + cmdLine);
 
       // Run ExecDriver in another JVM
       executor = Runtime.getRuntime().exec(cmdLine, env, new File(workDir));
