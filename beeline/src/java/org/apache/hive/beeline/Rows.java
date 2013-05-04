@@ -59,6 +59,7 @@ abstract class Rows implements Iterator {
   final ResultSetMetaData rsMeta;
   final Boolean[] primaryKeys;
   final NumberFormat numberFormat;
+  private static final String NULLSTR = "NULL";
 
   Rows(BeeLine beeLine, ResultSet rs) throws SQLException {
     this.beeLine = beeLine;
@@ -167,19 +168,24 @@ abstract class Rows implements Iterator {
       }
 
       for (int i = 0; i < size; i++) {
+        String valStr = null;
         if (numberFormat != null) {
           Object o = rs.getObject(i + 1);
           if (o == null) {
-            values[i] = null;
+            valStr = NULLSTR;
           }  else if (o instanceof Number) {
-            values[i] = numberFormat.format(o);
+            valStr = numberFormat.format(o);
           } else {
-            values[i] = o.toString();
+            valStr = o.toString();
           }
         } else {
-          values[i] = rs.getString(i + 1);
+          valStr = rs.getString(i + 1);
         }
-        sizes[i] = values[i] == null ? 1 : values[i].length();
+
+        //if null, replace with NULLSTR
+        valStr = valStr == null ? NULLSTR : valStr;
+        values[i] = valStr;
+        sizes[i] = valStr.length();
       }
     }
   }
