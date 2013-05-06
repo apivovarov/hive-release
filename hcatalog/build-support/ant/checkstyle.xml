@@ -46,6 +46,7 @@
           <exclude name="storage-handlers/hbase/src/test/excluded-tests"/>
           <exclude name="storage-handlers/hbase/partitions*"/>
           <exclude name="storage-handlers/hbase/.partitions*"/>
+          <exclude name="storage-handlers/hbase/target/test-dir/**"/> <!-- HW build specific -->
           <exclude name="KEYS"/>
           <exclude name="LICENSE.txt"/>
           <exclude name="NOTICE.txt"/>
