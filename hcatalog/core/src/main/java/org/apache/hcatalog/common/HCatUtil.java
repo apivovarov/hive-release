@@ -43,6 +43,7 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat;
+import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -67,6 +68,7 @@ import org.apache.hcatalog.mapreduce.InputJobInfo;
 import org.apache.hcatalog.mapreduce.OutputJobInfo;
 import org.apache.hcatalog.mapreduce.PartInfo;
 import org.apache.hcatalog.mapreduce.StorerInfo;
+import org.apache.hcatalog.mapreduce.WrapperStorageHandler;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -419,12 +421,20 @@ public class HCatUtil {
         }
 
         try {
-            Class<? extends HCatStorageHandler> handlerClass =
-                (Class<? extends HCatStorageHandler>) Class
-                    .forName(storageHandler, true, JavaUtils.getClassLoader());
-            return (HCatStorageHandler) ReflectionUtils.newInstance(
-                handlerClass, conf);
-        } catch (ClassNotFoundException e) {
+            Class<? extends HiveStorageHandler> handlerClass =
+                (Class<? extends HiveStorageHandler>) Class.forName(
+                    storageHandler, true, JavaUtils.getClassLoader());
+            if (HCatStorageHandler.class.isAssignableFrom(handlerClass)){
+                HCatStorageHandler wrapperStorageHandler =
+                    (HCatStorageHandler) ReflectionUtils.newInstance(handlerClass,conf);
+                wrapperStorageHandler.setConf(conf);
+                return wrapperStorageHandler;
+            } else {
+                return new WrapperStorageHandler(handlerClass, conf);
+            }
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            e.printStackTrace(System.err);
             throw new IOException("Error in loading storage handler."
                 + e.getMessage(), e);
         }
@@ -461,6 +471,14 @@ public class HCatUtil {
 
             storageHandler.configureInputJobProperties(tableDesc,
                 jobProperties);
+            
+            // Copy any other conf parameters that the storage handler additionally set
+            // but wasn't present in the tableDesc.getJobProperties() we passed in.
+            for (Map.Entry<String, String> el : storageHandler.getConf()) {
+                if (! tableDesc.getJobProperties().containsKey(el.getKey())){
+                    jobProperties.put(el.getKey(), el.getValue());
+                }
+            }
 
         } catch (IOException e) {
             throw new IllegalStateException(
@@ -482,8 +500,9 @@ public class HCatUtil {
             storageHandler.getInputFormatClass(),
             IgnoreKeyTextOutputFormat.class,
             outputJobInfo.getTableInfo().getStorerInfo().getProperties());
-        if (tableDesc.getJobProperties() == null)
+        if (tableDesc.getJobProperties() == null) {
             tableDesc.setJobProperties(new HashMap<String, String>());
+        }
         for (Map.Entry<String, String> el : conf) {
             tableDesc.getJobProperties().put(el.getKey(), el.getValue());
         }
@@ -499,6 +518,11 @@ public class HCatUtil {
 
             for (Map.Entry<String, String> el : jobProperties.entrySet()) {
                 conf.set(el.getKey(), el.getValue());
+            }
+            for (Map.Entry<String, String> el : storageHandler.getConf()) {
+                if (! tableDesc.getJobProperties().containsKey(el.getKey())){
+                    conf.set(el.getKey(), el.getValue());
+                }
             }
         } catch (IOException e) {
             throw new IllegalStateException(
@@ -548,8 +572,9 @@ public class HCatUtil {
 
     public static void closeHiveClientQuietly(HiveMetaStoreClient client) {
         try {
-            if (client != null)
+            if (client != null) {
                 client.close();
+            }
         } catch (Exception e) {
             LOG.debug("Error closing metastore client. Ignored the error.", e);
         }
@@ -615,12 +640,13 @@ public class HCatUtil {
             jobConf.set(entry.getKey(), entry.getValue());
         }
     }
-    
+
 
     public static boolean isHadoop23() {
         String version = org.apache.hadoop.util.VersionInfo.getVersion();
-        if (version.matches("\\b0\\.23\\..+\\b")||version.matches("\\b2\\..*"))
+        if (version.matches("\\b0\\.23\\..+\\b")||version.matches("\\b2\\..*")) {
             return true;
+        }
         return false;
     }
 }

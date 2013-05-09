@@ -19,9 +19,12 @@
 
 package org.apache.hcatalog.mapreduce;
 
+import java.io.IOException;
+import java.text.NumberFormat;
+
+import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -29,9 +32,6 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hcatalog.common.HCatUtil;
 import org.apache.hcatalog.data.HCatRecord;
-
-import java.io.IOException;
-import java.text.NumberFormat;
 
 /**
  * Bare bones implementation of OutputFormatContainer. Does only the required
@@ -41,6 +41,7 @@ import java.text.NumberFormat;
 class DefaultOutputFormatContainer extends OutputFormatContainer {
 
     private static final NumberFormat NUMBER_FORMAT = NumberFormat.getInstance();
+    private boolean isHiveOutputFormat = true;
 
     static {
         NUMBER_FORMAT.setMinimumIntegerDigits(5);
@@ -49,6 +50,31 @@ class DefaultOutputFormatContainer extends OutputFormatContainer {
 
     public DefaultOutputFormatContainer(org.apache.hadoop.mapred.OutputFormat<WritableComparable<?>, Writable> of) {
         super(of);
+        if (
+            isHBaseHCatStorageHandlerOutputformat(of.getClass())
+            || (!HiveOutputFormat.class.isAssignableFrom(of.getClass()))
+        ){
+            // The HBaseHCatStorageHandler OutputFormats are HiveOutputFormats too, but
+            // throw runtime errors if getHiveRecordWriter() is called on them - they
+            // should be treated strictly as a non-HiveOutputFormat
+            isHiveOutputFormat = false;
+        }
+    }
+
+
+    /**
+     * Determine if outputformat class is a HBaseHCatStorageHandler class
+     * Required to determine if it is safe to call .getHiveRecordWriter
+     * We're not able to use instanceof or isAssignableFrom because
+     * that module does not yet exist when this is compiled, and is on
+     * a deprecation path
+     */
+    private boolean isHBaseHCatStorageHandlerOutputformat(Class ofc) {
+        String ofcName = ofc.getName();
+        return ( ofcName.equals("org.apache.hcatalog.hbase.HBaseBaseOutputFormat")
+            || ofcName.equals("org.apache.hcatalog.hbase.HBaseBulkOutputFormat")
+            || ofcName.equals("org.apache.hcatalog.hbase.HBaseDirectOutputFormat")
+            );
     }
 
     static synchronized String getOutputName(int partition) {
@@ -66,8 +92,21 @@ class DefaultOutputFormatContainer extends OutputFormatContainer {
     public RecordWriter<WritableComparable<?>, HCatRecord>
     getRecordWriter(TaskAttemptContext context) throws IOException, InterruptedException {
         String name = getOutputName(context.getTaskAttemptID().getTaskID().getId());
-        return new DefaultRecordWriterContainer(context,
-            getBaseOutputFormat().getRecordWriter(null, new JobConf(context.getConfiguration()), name, InternalUtil.createReporter(context)));
+        JobConf jc = new JobConf(context.getConfiguration());
+        if (!isHiveOutputFormat){
+            return new DefaultRecordWriterContainer(context,
+                getBaseOutputFormat().getRecordWriter(
+                    null, jc, name, InternalUtil.createReporter(context)));
+        } else {
+            WrapperRecordWriter rwc = new WrapperRecordWriter(
+                ((HiveOutputFormat)getBaseOutputFormat()).getHiveRecordWriter(
+                    jc, null, null, false, null, null)
+            );
+            // Going with default null args for finalOutputPath,
+            // valueClass, tableProperties & progress, and false for isCompressed
+            // override method for more specific storagehandlers
+            return new DefaultRecordWriterContainer(context,rwc);
+        }
     }
 
 

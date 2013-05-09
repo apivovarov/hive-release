@@ -23,6 +23,7 @@ import java.util.Properties;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -101,13 +102,24 @@ public class HiveHBaseTableOutputFormat extends
   }
 
   @Override
+  public void setConf(Configuration conf) {
+    ensureTableNameInConf(conf);
+    super.setConf(conf);
+  }
+
+  // TableOutputFormat.setConf complains if OUTPUT_TABLE is not set, but we have
+  // a different parameter name for it. Copy it in.
+  private void ensureTableNameInConf(Configuration conf){
+    conf.set(TableOutputFormat.OUTPUT_TABLE, conf.get(HBaseSerDe.HBASE_TABLE_NAME));
+  }
+
+  @Override
   public void checkOutputSpecs(FileSystem fs, JobConf jc) throws IOException {
 
     //obtain delegation tokens for the job
     TableMapReduceUtil.initCredentials(jc);
 
-    String hbaseTableName = jc.get(HBaseSerDe.HBASE_TABLE_NAME);
-    jc.set(TableOutputFormat.OUTPUT_TABLE, hbaseTableName);
+    ensureTableNameInConf(jc);
     Job job = new Job(jc);
     JobContext jobContext = ShimLoader.getHadoopShims().newJobContext(job);
 

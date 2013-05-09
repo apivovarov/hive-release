@@ -72,7 +72,13 @@ public class PartInfo implements Serializable {
         this.jobProperties = jobProperties;
         this.tableInfo = tableInfo;
 
-        this.storageHandlerClassName = storageHandler.getClass().getName();
+        if (storageHandler instanceof WrapperStorageHandler){
+            this.storageHandlerClassName =
+                ((WrapperStorageHandler) storageHandler)
+                    .getUnderlyingHiveStorageHandler().getClass().getName();
+        } else {
+            this.storageHandlerClassName = storageHandler.getClass().getName();
+        }
         this.inputFormatClassName = storageHandler.getInputFormatClass().getName();
         this.serdeClassName = storageHandler.getSerDeClass().getName();
         this.outputFormatClassName = storageHandler.getOutputFormatClass().getName();
