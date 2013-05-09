@@ -53,6 +53,12 @@
 </property>
 
 <property>
+  <name>hive.session.history.enabled</name>
+  <value>true</value>
+  <description>Whether to log hive query, query plan, runtime statistics etc </description>
+</property>
+
+<property>
   <name>javax.jdo.option.ConnectionURL</name>
   <!-- note: variable substituion not working here because it's loaded by jdo, not Hive -->
   <value>jdbc:derby:;databaseName=../build/test/junit_metastore_db;create=true</value>

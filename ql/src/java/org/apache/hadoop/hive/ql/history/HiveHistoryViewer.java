@@ -67,7 +67,7 @@ public class HiveHistoryViewer implements Listener {
   void init() {
 
     try {
-      HiveHistory.parseHiveHistory(historyFile, this);
+      HiveHistoryUtil.parseHiveHistory(historyFile, this);
     } catch (IOException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
@@ -77,7 +77,7 @@ public class HiveHistoryViewer implements Listener {
 
   /**
    * Implementation Listner interface function.
-   * 
+   *
    * @see org.apache.hadoop.hive.ql.history.HiveHistory.Listener#handle(org.apache.hadoop.hive.ql.history.HiveHistory.RecordTypes,
    *      java.util.Map)
    */
