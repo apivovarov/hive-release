@@ -315,7 +315,9 @@ public class MapJoinProcessor implements Transform {
     Byte[] tagOrder = desc.getTagOrder();
 
     if (!noCheckOuterJoin) {
-      checkMapJoin(mapJoinPos, condns);
+      if (!checkMapJoin(mapJoinPos, condns)) {
+        throw new SemanticException(ErrorMsg.NO_OUTER_MAPJOIN.getMsg());
+      }
     }
 
     RowResolver oldOutputRS = opParseCtxMap.get(op).getRowResolver();
@@ -550,12 +552,12 @@ public class MapJoinProcessor implements Transform {
    * @param condns
    * @return list of big table candidates
    */
-  public static HashSet<Integer> getBigTableCandidates(JoinCondDesc[] condns) {
-    HashSet<Integer> bigTableCandidates = new HashSet<Integer>();
+  public static ArrayList<Integer> getBigTableCandidates(JoinCondDesc[] condns) {
+    ArrayList<Integer> bigTableCandidates = new ArrayList<Integer>();
 
     boolean seenOuterJoin = false;
-    Set<Integer> seenPostitions = new HashSet<Integer>();
-    Set<Integer> leftPosListOfLastRightOuterJoin = new HashSet<Integer>();
+    ArrayList<Integer> seenPostitions = new ArrayList<Integer>();
+    ArrayList<Integer> leftPosListOfLastRightOuterJoin = new ArrayList<Integer>();
 
     // is the outer join that we saw most recently is a right outer join?
     boolean lastSeenRightOuterJoin = false;
@@ -605,13 +607,17 @@ public class MapJoinProcessor implements Transform {
     return bigTableCandidates;
   }
 
-  public static void checkMapJoin(int mapJoinPos, JoinCondDesc[] condns) throws SemanticException {
-    HashSet<Integer> bigTableCandidates = MapJoinProcessor.getBigTableCandidates(condns);
+  public static boolean checkMapJoin(int mapJoinPos, JoinCondDesc[] condns) throws SemanticException {
+    ArrayList<Integer> bigTableCandidates = MapJoinProcessor.getBigTableCandidates(condns);
 
-    if (bigTableCandidates == null || !bigTableCandidates.contains(mapJoinPos)) {
-      throw new SemanticException(ErrorMsg.NO_OUTER_MAPJOIN.getMsg());
+    if (bigTableCandidates == null) {
+      return false;
     }
-    return;
+
+    if (!bigTableCandidates.contains(mapJoinPos)) {
+      throw new SemanticException(ErrorMsg.INVALID_TABLES_MAPJOIN_HINT.getMsg());
+    }
+    return true;
   }
 
   private void genSelectPlan(ParseContext pctx, MapJoinOperator input) throws SemanticException {

@@ -338,6 +338,8 @@ public enum ErrorMsg {
             + "fails to construct aggregation for the partition "),
   ANALYZE_TABLE_PARTIALSCAN_AUTOGATHER(10233, "Analyze partialscan is not allowed " +
             "if hive.stats.autogather is set to false"),
+  INVALID_TABLES_MAPJOIN_HINT(10234, "Table(s) specified in map-join hint is(are) " +
+      "not valid for this map-join"),
 
   SCRIPT_INIT_ERROR(20000, "Unable to initialize custom script."),
   SCRIPT_IO_ERROR(20001, "An error occurred while reading or writing to your custom script. "

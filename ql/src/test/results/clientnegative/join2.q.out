@@ -1,1 +1,1 @@
-FAILED: SemanticException [Error 10057]: MAPJOIN cannot be performed with OUTER JOIN
+FAILED: SemanticException [Error 10234]: Table(s) specified in map-join hint is(are) not valid for this map-join

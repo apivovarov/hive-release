@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -498,7 +497,7 @@ public class CommonJoinResolver implements PhysicalPlanResolver {
           }
         }
 
-        HashSet<Integer> bigTableCandidates = MapJoinProcessor.getBigTableCandidates(joinDesc.getConds());
+        List<Integer> bigTableCandidates = MapJoinProcessor.getBigTableCandidates(joinDesc.getConds());
 
         // no table could be the big table; there is no need to convert
         if (bigTableCandidates == null) {

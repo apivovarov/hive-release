@@ -45,7 +45,8 @@ public class AvgPartitionSizeBasedBigTableSelectorForAutoSMJ
   private static final Log LOG = LogFactory
       .getLog(AvgPartitionSizeBasedBigTableSelectorForAutoSMJ.class.getName());
 
-  public int getBigTablePosition(ParseContext parseCtx, JoinOperator joinOp)
+  public int getBigTablePosition(ParseContext parseCtx, JoinOperator joinOp,
+      ArrayList<Integer> bigTableCandidates)
     throws SemanticException {
     int bigTablePos = 0;
     long maxSize = -1;
@@ -57,6 +58,11 @@ public class AvgPartitionSizeBasedBigTableSelectorForAutoSMJ
       getListTopOps(joinOp, topOps);
       int currentPos = 0;
       for (TableScanOperator topOp : topOps) {
+        if (!bigTableCandidates.contains(currentPos)) {
+          currentPos++;
+          continue;
+        }
+
         if (topOp == null) {
           return -1;
         }

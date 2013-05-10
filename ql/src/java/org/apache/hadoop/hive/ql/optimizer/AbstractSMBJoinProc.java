@@ -50,6 +50,8 @@ import org.apache.hadoop.hive.ql.parse.QBJoinTree;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.parse.TableAccessAnalyzer;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
+import org.apache.hadoop.hive.ql.plan.JoinCondDesc;
+import org.apache.hadoop.hive.ql.plan.JoinDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.SMBJoinDesc;
@@ -470,8 +472,16 @@ abstract public class AbstractSMBJoinProc extends AbstractBucketJoinProc impleme
 
     BigTableSelectorForAutoSMJ bigTableMatcher =
       (BigTableSelectorForAutoSMJ) ReflectionUtils.newInstance(bigTableMatcherClass, null);
+    JoinDesc joinDesc = joinOp.getConf();
+    JoinCondDesc[] joinCondns = joinDesc.getConds();
+    ArrayList<Integer> joinCandidates = MapJoinProcessor.getBigTableCandidates(joinCondns);
+    if (joinCandidates == null) {
+      // This is a full outer join. This can never be a map-join
+      // of any type. So return false.
+      return false;
+    }
     int bigTablePosition =
-      bigTableMatcher.getBigTablePosition(pGraphContext, joinOp);
+      bigTableMatcher.getBigTablePosition(pGraphContext, joinOp, joinCandidates);
     if (bigTablePosition < 0) {
       // contains aliases from sub-query
       return false;

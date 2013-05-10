@@ -38,7 +38,8 @@ import org.apache.hadoop.hive.ql.parse.SemanticException;
  */
 public class TableSizeBasedBigTableSelectorForAutoSMJ extends SizeBasedBigTableSelectorForAutoSMJ
 implements BigTableSelectorForAutoSMJ {
-  public int getBigTablePosition(ParseContext parseCtx, JoinOperator joinOp)
+  public int getBigTablePosition(ParseContext parseCtx, JoinOperator joinOp,
+      ArrayList<Integer> bigTableCandidates)
     throws SemanticException {
     int bigTablePos = 0;
     long maxSize = -1;
@@ -51,6 +52,10 @@ implements BigTableSelectorForAutoSMJ {
       for (TableScanOperator topOp : topOps) {
         if (topOp == null) {
           return -1;
+        }
+        if (!bigTableCandidates.contains(currentPos)) {
+          currentPos++;
+          continue;
         }
         Table table = parseCtx.getTopToTable().get(topOp);
         long currentSize = 0;
