@@ -20,6 +20,12 @@ package org.apache.hive.jdbc;
 
 import static org.apache.hadoop.hive.ql.exec.ExplainTask.EXPL_COLUMN_NAME;
 import static org.apache.hadoop.hive.ql.processors.SetProcessor.SET_COLUMN_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -37,17 +43,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import junit.framework.TestCase;
-
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hive.common.util.HiveVersionInfo;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 /**
  * TestJdbcDriver2
  *
  */
-public class TestJdbcDriver2 extends TestCase {
+public class TestJdbcDriver2  {
   private static final String driverName = "org.apache.hive.jdbc.HiveDriver";
   private static final String tableName = "testHiveJdbcDriver_Table";
   private static final String tableComment = "Simple table";
@@ -63,10 +71,10 @@ public class TestJdbcDriver2 extends TestCase {
   private final Path dataFilePath;
   private final Path dataTypeDataFilePath;
   private Connection con;
-  private boolean standAloneServer = false;
+  private static boolean standAloneServer = false;
+  private static final float floatCompareDelta = 0.0001f;
 
-  public TestJdbcDriver2(String name) {
-    super(name);
+  public TestJdbcDriver2() {
     conf = new HiveConf(TestJdbcDriver2.class);
     String dataFileDir = conf.get("test.data.files").replace('\\', '/')
         .replace("c:", "");
@@ -76,23 +84,48 @@ public class TestJdbcDriver2 extends TestCase {
         .getProperty("test.service.standalone.server"));
   }
 
-  protected void setupConnection() throws SQLException {
+
+  @BeforeClass
+  public static void oneTimeSetup() throws SQLException, ClassNotFoundException{
+    Class.forName(driverName);
+
+    Connection con1 = getConnection();
+    DatabaseMetaData metadata = con1.getMetaData();
+
+    //drop databases created by other test cases
+    ResultSet databaseRes = metadata.getSchemas();
+    Statement stmt = con1.createStatement();
+    while(databaseRes.next()){
+      String db = databaseRes.getString(1);
+      if(!db.equals("default")){
+        System.err.println("Dropping database " + db);
+        stmt.execute("DROP DATABASE " + db + " CASCADE");
+      }
+    }
+    stmt.close();
+    con1.close();
+  }
+
+
+  protected static Connection getConnection() throws SQLException {
+    Connection con1;
     if (standAloneServer) {
       // get connection
-      con = DriverManager.getConnection("jdbc:hive2://localhost:10000/default",
+      con1 = DriverManager.getConnection("jdbc:hive2://localhost:10000/default",
           "", "");
     } else {
-      con = DriverManager.getConnection("jdbc:hive2://", "", "");
+      con1 = DriverManager.getConnection("jdbc:hive2://", "", "");
     }
-    assertNotNull("Connection is null", con);
-    assertFalse("Connection should not be closed", con.isClosed());
+    assertNotNull("Connection is null", con1);
+    assertFalse("Connection should not be closed", con1.isClosed());
 
-    Statement stmt = con.createStatement();
+    Statement stmt = con1.createStatement();
     assertNotNull("Statement is null", stmt);
 
     stmt.execute("set hive.support.concurrency = false");
 
     stmt.close();
+    return con1;
   }
 
   protected void resetConnection() throws SQLException {
@@ -102,20 +135,17 @@ public class TestJdbcDriver2 extends TestCase {
         con = null;
       }
 
-      setupConnection();
+      con = getConnection();
     } catch (SQLException e) {
       e.printStackTrace();
       throw e;
     }
   }
 
-  @Override
-  protected void setUp() throws Exception {
-    super.setUp();
+  @Before
+  public void setUp() throws Exception {
 
-    Class.forName(driverName);
-
-    setupConnection();
+    con = getConnection();
 
     Statement stmt = con.createStatement();
     assertNotNull("Statement is null", stmt);
@@ -129,7 +159,6 @@ public class TestJdbcDriver2 extends TestCase {
       fail(ex.toString());
     }
 
-    ResultSet res;
     // create table
     stmt.execute("create table " + tableName
         + " (under_col int comment 'the under column', value string) comment '"
@@ -195,9 +224,8 @@ public class TestJdbcDriver2 extends TestCase {
             +"' as select * from "+ tableName);
   }
 
-  @Override
-  protected void tearDown() throws Exception {
-    super.tearDown();
+  @After
+  public void tearDown() throws Exception {
 
     // drop table
     Statement stmt = con.createStatement();
@@ -221,6 +249,7 @@ public class TestJdbcDriver2 extends TestCase {
         expectedException);
   }
 
+  @Test
   public void testDataTypes2() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -236,6 +265,8 @@ public class TestJdbcDriver2 extends TestCase {
     }
 
   }
+
+  @Test
   public void testErrorDiag() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -266,6 +297,7 @@ public class TestJdbcDriver2 extends TestCase {
    * verify 'explain ...' resultset
    * @throws SQLException
    */
+  @Test
   public void testExplainStmt() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -280,6 +312,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertTrue("Nothing returned explain", res.next());
   }
 
+  @Test
   public void testPrepareStatement() {
 
     String sql = "from (select count(1) from "
@@ -389,11 +422,13 @@ public class TestJdbcDriver2 extends TestCase {
         expectedException);
   }
 
+  @Test
   public final void testSelectAll() throws Exception {
     doTestSelectAll(tableName, -1, -1); // tests not setting maxRows (return all)
     doTestSelectAll(tableName, 0, -1); // tests setting maxRows to 0 (return all)
   }
 
+  @Test
   public final void testSelectAllPartioned() throws Exception {
     doTestSelectAll(partitionedTableName, -1, -1); // tests not setting maxRows
     // (return all)
@@ -401,14 +436,17 @@ public class TestJdbcDriver2 extends TestCase {
     // (return all)
   }
 
+  @Test
   public final void testSelectAllMaxRows() throws Exception {
     doTestSelectAll(tableName, 100, -1);
   }
 
+  @Test
   public final void testSelectAllFetchSize() throws Exception {
     doTestSelectAll(tableName, 100, 20);
   }
 
+  @Test
   public void testDataTypes() throws Exception {
     Statement stmt = con.createStatement();
 
@@ -425,7 +463,7 @@ public class TestJdbcDriver2 extends TestCase {
     // getXXX returns 0 for numeric types, false for boolean and null for other
     assertEquals(0, res.getInt(1));
     assertEquals(false, res.getBoolean(2));
-    assertEquals(0d, res.getDouble(3));
+    assertEquals(0d, res.getDouble(3), floatCompareDelta);
     assertEquals(null, res.getString(4));
     assertEquals(null, res.getString(5));
     assertEquals(null, res.getString(6));
@@ -433,7 +471,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertEquals(null, res.getString(8));
     assertEquals(0, res.getByte(9));
     assertEquals(0, res.getShort(10));
-    assertEquals(0f, res.getFloat(11));
+    assertEquals(0f, res.getFloat(11), floatCompareDelta);
     assertEquals(0L, res.getLong(12));
     assertEquals(null, res.getString(13));
     assertEquals(null, res.getString(14));
@@ -447,7 +485,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertTrue(res.next());
     assertEquals(-1, res.getInt(1));
     assertEquals(false, res.getBoolean(2));
-    assertEquals(-1.1d, res.getDouble(3));
+    assertEquals(-1.1d, res.getDouble(3), floatCompareDelta);
     assertEquals("", res.getString(4));
     assertEquals("[]", res.getString(5));
     assertEquals("{}", res.getString(6));
@@ -455,7 +493,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertEquals("{\"r\":null,\"s\":null,\"t\":null}", res.getString(8));
     assertEquals(-1, res.getByte(9));
     assertEquals(-1, res.getShort(10));
-    assertEquals(-1.0f, res.getFloat(11));
+    assertEquals(-1.0f, res.getFloat(11), floatCompareDelta);
     assertEquals(-1, res.getLong(12));
     assertEquals("[]", res.getString(13));
     assertEquals("{}", res.getString(14));
@@ -470,7 +508,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertTrue(res.next());
     assertEquals(1, res.getInt(1));
     assertEquals(true, res.getBoolean(2));
-    assertEquals(1.1d, res.getDouble(3));
+    assertEquals(1.1d, res.getDouble(3), floatCompareDelta);
     assertEquals("1", res.getString(4));
     assertEquals("[1,2]", res.getString(5));
     assertEquals("{1:\"x\",2:\"y\"}", res.getString(6));
@@ -478,7 +516,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertEquals("{\"r\":\"a\",\"s\":9,\"t\":2.2}", res.getString(8));
     assertEquals(1, res.getByte(9));
     assertEquals(1, res.getShort(10));
-    assertEquals(1.0f, res.getFloat(11));
+    assertEquals(1.0f, res.getFloat(11), floatCompareDelta);
     assertEquals(1, res.getLong(12));
     assertEquals("[[\"a\",\"b\"],[\"c\",\"d\"]]", res.getString(13));
     assertEquals("{1:{11:12,13:14},2:{21:22}}", res.getString(14));
@@ -579,6 +617,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertTrue("Statement should be closed", stmt.isClosed());
   }
 
+  @Test
   public void testErrorMessages() throws SQLException {
     String invalidSyntaxSQLState = "42000";
 
@@ -627,6 +666,7 @@ public class TestJdbcDriver2 extends TestCase {
         exceptionFound);
   }
 
+  @Test
   public void testShowTables() throws SQLException {
     Statement stmt = con.createStatement();
     assertNotNull("Statement is null", stmt);
@@ -645,6 +685,7 @@ public class TestJdbcDriver2 extends TestCase {
         + " not found in SHOW TABLES result set", testTableExists);
   }
 
+  @Test
   public void testMetaDataGetTables() throws SQLException {
     Map<String, Object[]> tests = new HashMap<String, Object[]>();
     tests.put("test%jdbc%", new Object[]{"testhivejdbcdriver_table"
@@ -691,6 +732,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertEquals("Incorrect number of views found.", 1, cnt);
   }
 
+  @Test
   public void testMetaDataGetCatalogs() throws SQLException {
     ResultSet rs = (ResultSet)con.getMetaData().getCatalogs();
     ResultSetMetaData resMeta = rs.getMetaData();
@@ -700,6 +742,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertFalse(rs.next());
   }
 
+  @Test
   public void testMetaDataGetSchemas() throws SQLException {
     ResultSet rs = (ResultSet)con.getMetaData().getSchemas();
     ResultSetMetaData resMeta = rs.getMetaData();
@@ -709,12 +752,11 @@ public class TestJdbcDriver2 extends TestCase {
 
     assertTrue(rs.next());
     assertEquals("default", rs.getString(1));
-//    assertNull(rs.getString(2));
-
     assertFalse(rs.next());
     rs.close();
   }
 
+  @Test
   public void testMetaDataGetTableTypes() throws SQLException {
     ResultSet rs = (ResultSet)con.getMetaData().getTableTypes();
 
@@ -736,6 +778,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertTrue("Found less tabletypes then we test for.", cnt >= tabletypes.size());
   }
 
+  @Test
   public void testMetaDataGetColumns() throws SQLException {
     Map<String[], Integer> tests = new HashMap<String[], Integer>();
     tests.put(new String[]{"testhivejdbcdriver\\_table", null}, 2);
@@ -784,6 +827,7 @@ public class TestJdbcDriver2 extends TestCase {
   /**
    * Validate the Metadata for the result set of a metadata getColumns call.
    */
+  @Test
   public void testMetaDataGetColumnsMetaData() throws SQLException {
     ResultSet rs = (ResultSet)con.getMetaData().getColumns(null, null
             , "testhivejdbcdriver\\_table", null);
@@ -841,6 +885,7 @@ public class TestJdbcDriver2 extends TestCase {
   }
   */
 
+  @Test
   public void testDescribeTable() throws SQLException {
     Statement stmt = con.createStatement();
     assertNotNull("Statement is null", stmt);
@@ -880,6 +925,7 @@ public class TestJdbcDriver2 extends TestCase {
    * Test if default database gets reset on connection reset
    * @throws SQLException
    */
+  @Test
   public void testConnectionReset() throws SQLException {
     Statement stmt = null;
 
@@ -917,6 +963,7 @@ public class TestJdbcDriver2 extends TestCase {
     }
   }
 
+  @Test
   public void testDatabaseMetaData() throws SQLException {
     DatabaseMetaData meta = con.getMetaData();
 
@@ -935,6 +982,7 @@ public class TestJdbcDriver2 extends TestCase {
     assertTrue(meta.supportsAlterTableWithAddColumn());
   }
 
+  @Test
   public void testResultSetMetaData() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -1161,6 +1209,7 @@ public class TestJdbcDriver2 extends TestCase {
       {"jdbc:hive2://localhost/notdefault", "localhost", "10000", "notdefault"},
       {"jdbc:hive2://foo:1243", "foo", "1243", "default"}};
 
+  @Test
   public void testDriverProperties() throws SQLException {
     HiveDriver driver = new HiveDriver();
 
@@ -1186,6 +1235,7 @@ public class TestJdbcDriver2 extends TestCase {
    * validate schema generated by "set" command
    * @throws SQLException
    */
+  @Test
   public void testSetCommand() throws SQLException {
     // execute set command
     String sql = "set -v";
@@ -1208,6 +1258,7 @@ public class TestJdbcDriver2 extends TestCase {
    * Validate error on closed resultset
    * @throws SQLException
    */
+  @Test
   public void testPostClose() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet res = stmt.executeQuery("select * from " + tableName);
@@ -1225,6 +1276,7 @@ public class TestJdbcDriver2 extends TestCase {
    * The JDBC spec says when you have duplicate column names,
    * the first one should be returned.
    */
+  @Test
   public void testDuplicateColumnNameOrder() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT 1 AS a, 2 AS a from " + tableName);
@@ -1237,6 +1289,7 @@ public class TestJdbcDriver2 extends TestCase {
    * Test bad args to getXXX()
    * @throws SQLException
    */
+  @Test
   public void testOutOfBoundCols() throws SQLException {
     Statement stmt = con.createStatement();
 
@@ -1262,6 +1315,7 @@ public class TestJdbcDriver2 extends TestCase {
    * Verify selecting using builtin UDFs
    * @throws SQLException
    */
+  @Test
   public void testBuiltInUDFCol() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet res = stmt.executeQuery("select c12, bin(c12) from " + dataTypeTableName
@@ -1279,6 +1333,7 @@ public class TestJdbcDriver2 extends TestCase {
    * Verify selecting named expression columns
    * @throws SQLException
    */
+  @Test
   public void testExprCol() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet res = stmt.executeQuery("select c1+1 as col1, length(c4) as len from " + dataTypeTableName
@@ -1297,6 +1352,7 @@ public class TestJdbcDriver2 extends TestCase {
    * test getProcedureColumns()
    * @throws SQLException
    */
+  @Test
   public void testProcCols() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1311,6 +1367,7 @@ public class TestJdbcDriver2 extends TestCase {
    * test testProccedures()
    * @throws SQLException
    */
+  @Test
   public void testProccedures() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1325,6 +1382,7 @@ public class TestJdbcDriver2 extends TestCase {
    * test getPrimaryKeys()
    * @throws SQLException
    */
+  @Test
   public void testPrimaryKeys() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1339,6 +1397,7 @@ public class TestJdbcDriver2 extends TestCase {
    * test getImportedKeys()
    * @throws SQLException
    */
+  @Test
   public void testImportedKeys() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);

@@ -47,8 +47,8 @@ public class TestHiveMetaStoreChecker extends TestCase {
   private FileSystem fs;
   private HiveMetaStoreChecker checker = null;
 
-  private final String dbName = "dbname";
-  private final String tableName = "tablename";
+  private final String dbName = "testhivemetastorechecker_db";
+  private final String tableName = "testhivemetastorechecker_table";
 
   private final String partDateName = "partdate";
   private final String partCityName = "partcity";
@@ -76,17 +76,25 @@ public class TestHiveMetaStoreChecker extends TestCase {
     part2.put(partCityName, "stockholm");
     parts.add(part2);
 
+    //cleanup just in case something is left over from previous run
+    dropDbTable();
+  }
+
+  private void dropDbTable()  {
     // cleanup
-    hive.dropTable(dbName, tableName, true, true);
     try {
+      hive.dropTable(dbName, tableName, true, true);
       hive.dropDatabase(dbName);
     } catch (NoSuchObjectException e) {
+      // ignore
+    } catch (HiveException e) {
       // ignore
     }
   }
 
   @Override
   protected void tearDown() throws Exception {
+    dropDbTable();
     super.tearDown();
     Hive.closeCurrent();
   }
