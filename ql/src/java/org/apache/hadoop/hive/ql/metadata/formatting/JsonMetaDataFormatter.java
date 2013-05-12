@@ -19,14 +19,15 @@
 package org.apache.hadoop.hive.ql.metadata.formatting;
 
 import java.io.DataOutputStream;
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -146,7 +147,7 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
                               String colPath, String tableName,
                               Table tbl, Partition part, List<FieldSchema> cols,
                               boolean isFormatted, boolean isExt,
-                              boolean isPretty)
+                              boolean isPretty, boolean humanFriendly)
         throws HiveException
     {
         MapBuilder builder = MapBuilder.create();
@@ -154,10 +155,11 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
         builder.put("columns", makeColsUnformatted(cols));
 
         if (isExt) {
-            if (part != null)
-                builder.put("partitionInfo", part.getTPartition());
-            else
-                builder.put("tableInfo", tbl.getTTable());
+            if (part != null) {
+              builder.put("partitionInfo", part.getTPartition());
+            } else {
+              builder.put("tableInfo", tbl.getTTable());
+            }
         }
 
         asJson(out, builder.build());
@@ -165,8 +167,9 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
 
     private List<Map<String, Object>> makeColsUnformatted(List<FieldSchema> cols) {
         ArrayList<Map<String, Object>> res = new ArrayList<Map<String, Object>>();
-        for (FieldSchema col : cols)
-            res.add(makeOneColUnformatted(col));
+        for (FieldSchema col : cols) {
+          res.add(makeOneColUnformatted(col));
+        }
         return res;
     }
 
@@ -202,8 +205,9 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
     {
         try {
             ArrayList<Map<String, Object>> res = new ArrayList<Map<String, Object>>();
-            for (Table tbl : tbls)
-                res.add(makeOneTableStatus(tbl, db, conf, part, par));
+            for (Table tbl : tbls) {
+              res.add(makeOneTableStatus(tbl, db, conf, part, par));
+            }
             return res;
         } catch(IOException e) {
             throw new HiveException(e);
@@ -246,8 +250,9 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
         builder.put("columns", makeColsUnformatted(tbl.getCols()));
 
         builder.put("partitioned", tbl.isPartitioned());
-        if (tbl.isPartitioned())
-            builder.put("partitionColumns", makeColsUnformatted(tbl.getPartCols()));
+        if (tbl.isPartitioned()) {
+          builder.put("partitionColumns", makeColsUnformatted(tbl.getPartCols()));
+        }
 
         putFileSystemsStats(builder, makeTableStatusLocations(tbl, db, par),
                             conf, tbl.getPath());
@@ -380,8 +385,9 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
     {
         try {
             ArrayList<Map<String, Object>> res = new ArrayList<Map<String, Object>>();
-            for (String part : parts)
-                res.add(makeOneTablePartition(part));
+            for (String part : parts) {
+              res.add(makeOneTablePartition(part));
+            }
             return res;
         } catch (UnsupportedEncodingException e) {
             throw new HiveException(e);
@@ -401,13 +407,15 @@ public class JsonMetaDataFormatter implements MetaDataFormatter {
             String[] kv = StringUtils.split(part, "=", 2);
             if (kv != null) {
                 name = kv[0];
-                if (kv.length > 1)
-                    val = URLDecoder.decode(kv[1], "UTF-8");
+                if (kv.length > 1) {
+                  val = URLDecoder.decode(kv[1], "UTF-8");
+                }
             }
-            if (val != null)
-                names.add(name + "='" + val + "'");
-            else
-                names.add(name);
+            if (val != null) {
+              names.add(name + "='" + val + "'");
+            } else {
+              names.add(name);
+            }
 
             res.add(MapBuilder.create()
                     .put("columnName", name)

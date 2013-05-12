@@ -893,13 +893,36 @@ public class TestJdbcDriver2  {
     ResultSet res = stmt.executeQuery("describe " + tableName);
 
     res.next();
-    assertEquals("Column name 'under_col' not found", "under_col", res.getString(1).trim());
-    assertEquals("Column type 'under_col' for column under_col not found", "int", res
-        .getString(2).trim());
+    assertEquals("Column name 'under_col' not found", "under_col", res.getString(1));
+    assertEquals("Column type 'under_col' for column under_col not found",
+                 "int",res.getString(2));
+    assertEquals("Column comment for column under_col not found",
+                 "the under column", res.getString(3));
+
     res.next();
     assertEquals("Column name 'value' not found", "value", res.getString(1).trim());
     assertEquals("Column type 'string' for column key not found", "string", res
-        .getString(2).trim());
+                 .getString(2));
+    assertEquals("Column comment for key not found",
+                 "", res.getString(3));
+
+    assertFalse("More results found than expected", res.next());
+
+  }
+
+  @Test
+  public void testShowColumns() throws SQLException {
+    Statement stmt = con.createStatement();
+    assertNotNull("Statement is null", stmt);
+
+    ResultSet res = stmt.executeQuery("show columns in " + tableName);
+    res.next();
+    assertEquals("Column name 'under_col' not found",
+             "under_col", res.getString(1));
+
+    res.next();
+    assertEquals("Column name 'value' not found",
+             "value", res.getString(1).trim());
 
     assertFalse("More results found than expected", res.next());
   }

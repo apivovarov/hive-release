@@ -18,7 +18,6 @@
 
 package org.apache.hive.service.cli.session;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -82,6 +80,8 @@ public class HiveSessionImpl implements HiveSession {
     this.username = username;
     this.password = password;
 
+    setHiveServer2Configs();
+
     if (sessionConf != null) {
       for (Map.Entry<String, String> entry : sessionConf.entrySet()) {
         hiveConf.set(entry.getKey(), entry.getValue());
@@ -92,6 +92,18 @@ public class HiveSessionImpl implements HiveSession {
         sessionHandle.getHandleIdentifier().toString());
     sessionState = new SessionState(hiveConf);
   }
+
+  /**
+   * Set configurations recommended for hive-server2
+   */
+  private void setHiveServer2Configs() {
+    //as the results are meant to be consumed by java code, turn off
+    //human friendly format, so that additional indentation and space padding
+    // is not done
+    hiveConf.setBoolVar(ConfVars.HIVE_HUMAN_FRIENDLY_FORMAT, false);
+  }
+
+
 
   private SessionManager getSessionManager() {
     return sessionManager;

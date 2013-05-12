@@ -67,6 +67,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Write an error message.
      */
+    @Override
     public void error(OutputStream out, String msg, int errorCode)
         throws HiveException
     {
@@ -81,6 +82,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Write a log warn message.
      */
+    @Override
     public void logWarn(OutputStream out, String msg, int errorCode)
         throws HiveException
     {
@@ -99,6 +101,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Write a console error message.
      */
+    @Override
     public void consoleError(LogHelper console, String msg, int errorCode) {
         console.printError(msg);
     }
@@ -106,6 +109,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Write a console error message.
      */
+    @Override
     public void consoleError(LogHelper console, String msg, String detail,
                              int errorCode)
     {
@@ -115,6 +119,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Show a list of tables.
      */
+    @Override
     public void showTables(DataOutputStream out, Set<String> tables)
         throws HiveException
     {
@@ -131,10 +136,12 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
         }
     }
 
+    @Override
     public void describeTable(DataOutputStream outStream,
                               String colPath, String tableName,
                               Table tbl, Partition part, List<FieldSchema> cols,
-                              boolean isFormatted, boolean isExt, boolean isPretty)
+                              boolean isFormatted, boolean isExt,
+                              boolean isPretty, boolean humanFriendly)
          throws HiveException {
         try {
           if (colPath.equals(tableName)) {
@@ -144,11 +151,12 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
                   MetaDataPrettyFormatUtils.getAllColumnsInformation(
                       cols, partCols, prettyOutputNumCols)
                 :
-                  MetaDataFormatUtils.getAllColumnsInformation(cols, partCols, isFormatted)
+                  MetaDataFormatUtils.getAllColumnsInformation(cols, partCols,
+                      isFormatted, humanFriendly)
               );
           } else {
             outStream.writeBytes(
-                MetaDataFormatUtils.getAllColumnsInformation(cols, isFormatted));
+                MetaDataFormatUtils.getAllColumnsInformation(cols, isFormatted, humanFriendly));
           }
 
           if (tableName.equals(colPath)) {
@@ -187,6 +195,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
         }
     }
 
+    @Override
     public void showTableStatus(DataOutputStream outStream,
                                 Hive db,
                                 HiveConf conf,
@@ -406,6 +415,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Show the table partitions.
      */
+    @Override
     public void showTablePartitons(DataOutputStream outStream, List<String> parts)
         throws HiveException
     {
@@ -430,6 +440,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Show the list of databases
      */
+    @Override
     public void showDatabases(DataOutputStream outStream, List<String> databases)
         throws HiveException
         {
@@ -447,6 +458,7 @@ public class TextMetaDataFormatter implements MetaDataFormatter {
     /**
      * Describe a database
      */
+    @Override
     public void showDatabaseDescription(DataOutputStream outStream,
                                         String database,
                                         String comment,

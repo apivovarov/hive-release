@@ -717,6 +717,12 @@ public class HiveConf extends Configuration {
     HIVE_DDL_OUTPUT_FORMAT("hive.ddl.output.format", null),
     HIVE_ENTITY_SEPARATOR("hive.entity.separator", "@"),
 
+    //Whether to do space padding, indentation for human readability
+    //controls 'describe table' and 'show columns' output. But formatting
+    // keywords in query can override this.
+    //Automatically set by hive-server2
+    HIVE_HUMAN_FRIENDLY_FORMAT("hive.human.friendly.format", true),
+
     HIVE_SERVER2_THRIFT_MIN_WORKER_THREADS("hive.server2.thrift.min.worker.threads", 5),
     HIVE_SERVER2_THRIFT_MAX_WORKER_THREADS("hive.server2.thrift.max.worker.threads", 100),
 

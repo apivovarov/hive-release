@@ -23,6 +23,7 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.ql.metadata.Hive;
@@ -90,11 +91,23 @@ public interface MetaDataFormatter {
 
     /**
      * Describe table.
+     * @param out
+     * @param colPath
+     * @param tableName
+     * @param tbl
+     * @param part
+     * @param cols
+     * @param isFormatted - describe with formatted keyword
+     * @param isExt
+     * @param isPretty
+     * @param humanFriendly - if true, add spacing and indentation
+     * @throws HiveException
      */
     public void describeTable(DataOutputStream out,
                               String colPath, String tableName,
                               Table tbl, Partition part, List<FieldSchema> cols,
-                              boolean isFormatted, boolean isExt, boolean isPretty)
+                              boolean isFormatted, boolean isExt,
+                              boolean isPretty, boolean humanFriendly)
         throws HiveException;
 
    /**
