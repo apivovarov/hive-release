@@ -1014,7 +1014,8 @@ public class QTestUtil {
         ".*LOCK_TIME:.*",
         ".*grantTime.*",
         ".*[.][.][.] [0-9]* more.*",
-        ".*job_[0-9]*_[0-9]*.*",
+        ".*job_[0-9_]*.*",
+        ".*job_local[0-9_]*.*",
         ".*USING 'java -cp.*",
         "^Deleted.*",
     };
