@@ -159,6 +159,7 @@ public class GenMRProcContext implements NodeProcessorCtx {
   private HashMap<UnionOperator, GenMRUnionCtx> unionTaskMap;
   private List<Operator<? extends OperatorDesc>> seenOps;
   private List<FileSinkOperator> seenFileSinkOps;
+  private List<Operator<? extends OperatorDesc>> splitTaskOps;
 
   private ParseContext parseCtx;
   private List<Task<MoveWork>> mvTask;
@@ -231,6 +232,7 @@ public class GenMRProcContext implements NodeProcessorCtx {
     currTopOp = null;
     currUnionOp = null;
     currAliasId = null;
+    splitTaskOps = new ArrayList<Operator<? extends OperatorDesc>>();
     rootOps = new ArrayList<Operator<? extends OperatorDesc>>();
     rootOps.addAll(parseCtx.getTopOps().values());
     unionTaskMap = new HashMap<UnionOperator, GenMRUnionCtx>();
@@ -478,5 +480,9 @@ public class GenMRProcContext implements NodeProcessorCtx {
   public void setLinkedFileDescTasks(
       Map<FileSinkDesc, Task<? extends Serializable>> linkedFileDescTasks) {
     this.linkedFileDescTasks = linkedFileDescTasks;
+  }
+
+  public List<Operator<? extends OperatorDesc>> getSplitTasks() {
+    return splitTaskOps;
   }
 }
