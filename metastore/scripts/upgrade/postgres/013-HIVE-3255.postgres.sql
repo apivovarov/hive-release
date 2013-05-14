@@ -1,7 +1,7 @@
 SELECT '< HIVE-3255 Storing delegation tokens in metastore >';
 
 -- Table "MASTER_KEYS" for classes [org.apache.hadoop.hive.metastore.model.MMasterKey]
-CREATE TABLE IF NOT EXISTS "MASTER_KEYS"
+CREATE TABLE "MASTER_KEYS"
 (
     "KEY_ID" SERIAL,
     "MASTER_KEY" varchar(767) NULL,
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS "MASTER_KEYS"
 );
 
 -- Table "DELEGATION_TOKENS" for classes [org.apache.hadoop.hive.metastore.model.MDelegationToken]
-CREATE TABLE IF NOT EXISTS "DELEGATION_TOKENS"
+CREATE TABLE "DELEGATION_TOKENS"
 (
     "TOKEN_IDENT" varchar(767) NOT NULL,
     "TOKEN" varchar(767) NULL,
