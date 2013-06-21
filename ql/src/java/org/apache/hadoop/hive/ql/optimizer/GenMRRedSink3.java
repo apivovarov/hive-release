@@ -106,6 +106,6 @@ public class GenMRRedSink3 implements NodeProcessor {
 
     // the union operator has been processed
     ctx.setCurrUnionOp(null);
-    return null;
+    return true;
   }
 }

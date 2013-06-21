@@ -616,15 +616,15 @@ public class QueryPlan implements Serializable {
     return sb.toString();
   }
 
-  @Override
-  public String toString() {
-    try {
-      return getJSONQuery(getQueryPlan());
-    } catch (Exception e) {
-      e.printStackTrace();
-      return e.toString();
-    }
-  }
+//  @Override
+//  public String toString() {
+//    try {
+//      return getJSONQuery(getQueryPlan());
+//    } catch (Exception e) {
+//      e.printStackTrace();
+//      return e.toString();
+//    }
+//  }
 
   public String toThriftJSONString() throws IOException {
     org.apache.hadoop.hive.ql.plan.api.Query q = getQueryPlan();

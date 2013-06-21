@@ -70,6 +70,8 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
   private boolean isLocalMode =false;
   private boolean retryCmdWhenFail = false;
 
+  private transient List<Operator<?>> seenOps = new ArrayList<Operator<?>>(1);
+
   public static final int NO_TAG = 0;
   public static final int COMMON_JOIN = 1;
   public static final int CONVERTED_MAPJOIN = 2;
@@ -86,6 +88,15 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
 
   protected String id;
   protected T work;
+
+  public boolean isSeenOp(Operator<?> topOp) {
+    return seenOps.contains(topOp);
+  }
+
+  public void addSeenOp(Operator<?> topOp) {
+    seenOps.add(topOp);
+  }
+
   public static enum FeedType {
     DYNAMIC_PARTITIONS, // list of dynamic partitions
   };

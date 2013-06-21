@@ -71,14 +71,20 @@ public class GenMRRedSink2 implements NodeProcessor {
     if (opMapTask == null) {
       GenMapRedUtils.splitPlan(op, ctx);
     } else {
-      GenMapRedUtils.joinPlan(op, currTask, opMapTask, ctx, -1, true);
+      GenMapRedUtils.splitPlan(op, currTask, opMapTask, ctx);
       currTask = opMapTask;
       ctx.setCurrTask(currTask);
     }
 
     mapCurrCtx.put(op, new GenMapRedCtx(ctx.getCurrTask(), ctx.getCurrTopOp(),
         ctx.getCurrAliasId()));
-    return null;
+
+    if (GenMapRedUtils.isFinishedBranch(nodeOutputs)) {
+      ctx.addRootIfPossible(currTask);
+      return false;
+    }
+
+    return true;
   }
 
 }

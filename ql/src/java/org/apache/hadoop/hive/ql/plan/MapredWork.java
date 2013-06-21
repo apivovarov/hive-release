@@ -90,7 +90,7 @@ public class MapredWork extends AbstractOperatorDesc {
 
   private boolean mapperCannotSpanPartns;
 
-  // used to indicate the input is sorted, and so a BinarySearchRecordReader shoudl be used
+  // used to indicate the input is sorted, and so a BinarySearchRecordReader should be used
   private boolean inputFormatSorted = false;
 
   private transient boolean useBucketizedHiveInputFormat;
@@ -562,5 +562,10 @@ public class MapredWork extends AbstractOperatorDesc {
 
   public void setFinalMapRed(boolean finalMapRed) {
     this.finalMapRed = finalMapRed;
+  }
+
+  public void mergingInto(MapredWork mapred) {
+    // currently, this is sole field affecting mergee task
+    mapred.useBucketizedHiveInputFormat |= useBucketizedHiveInputFormat;
   }
 }

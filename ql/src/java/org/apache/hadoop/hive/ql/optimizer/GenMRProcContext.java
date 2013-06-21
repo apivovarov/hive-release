@@ -103,13 +103,13 @@ public class GenMRProcContext implements NodeProcessorCtx {
    *
    */
   public static class GenMRUnionCtx {
-    Task<? extends Serializable> uTask;
+    final Task<? extends Serializable> uTask;
     List<String> taskTmpDir;
     List<TableDesc> tt_desc;
     List<Operator<? extends OperatorDesc>> listTopOperators;
 
-    public GenMRUnionCtx() {
-      uTask = null;
+    public GenMRUnionCtx(Task<? extends Serializable> uTask) {
+      this.uTask = uTask;
       taskTmpDir = new ArrayList<String>();
       tt_desc = new ArrayList<TableDesc>();
       listTopOperators = new ArrayList<Operator<? extends OperatorDesc>>();
@@ -117,10 +117,6 @@ public class GenMRProcContext implements NodeProcessorCtx {
 
     public Task<? extends Serializable> getUTask() {
       return uTask;
-    }
-
-    public void setUTask(Task<? extends Serializable> uTask) {
-      this.uTask = uTask;
     }
 
     public void addTaskTmpDir(String taskTmpDir) {
@@ -157,9 +153,7 @@ public class GenMRProcContext implements NodeProcessorCtx {
   private
     HashMap<Operator<? extends OperatorDesc>, Task<? extends Serializable>> opTaskMap;
   private HashMap<UnionOperator, GenMRUnionCtx> unionTaskMap;
-  private List<Operator<? extends OperatorDesc>> seenOps;
   private List<FileSinkOperator> seenFileSinkOps;
-  private List<Operator<? extends OperatorDesc>> splitTaskOps;
 
   private ParseContext parseCtx;
   private List<Task<MoveWork>> mvTask;
@@ -214,14 +208,13 @@ public class GenMRProcContext implements NodeProcessorCtx {
   public GenMRProcContext(
       HiveConf conf,
       HashMap<Operator<? extends OperatorDesc>, Task<? extends Serializable>> opTaskMap,
-      List<Operator<? extends OperatorDesc>> seenOps, ParseContext parseCtx,
+      ParseContext parseCtx,
       List<Task<MoveWork>> mvTask,
       List<Task<? extends Serializable>> rootTasks,
       LinkedHashMap<Operator<? extends OperatorDesc>, GenMapRedCtx> mapCurrCtx,
       Set<ReadEntity> inputs, Set<WriteEntity> outputs) {
     this.conf = conf;
     this.opTaskMap = opTaskMap;
-    this.seenOps = seenOps;
     this.mvTask = mvTask;
     this.parseCtx = parseCtx;
     this.rootTasks = rootTasks;
@@ -232,7 +225,6 @@ public class GenMRProcContext implements NodeProcessorCtx {
     currTopOp = null;
     currUnionOp = null;
     currAliasId = null;
-    splitTaskOps = new ArrayList<Operator<? extends OperatorDesc>>();
     rootOps = new ArrayList<Operator<? extends OperatorDesc>>();
     rootOps.addAll(parseCtx.getTopOps().values());
     unionTaskMap = new HashMap<UnionOperator, GenMRUnionCtx>();
@@ -258,25 +250,10 @@ public class GenMRProcContext implements NodeProcessorCtx {
   }
 
   /**
-   * @return operators already visited
-   */
-  public List<Operator<? extends OperatorDesc>> getSeenOps() {
-    return seenOps;
-  }
-
-  /**
    * @return file operators already visited
    */
   public List<FileSinkOperator> getSeenFileSinkOps() {
     return seenFileSinkOps;
-  }
-
-  /**
-   * @param seenOps
-   *          operators already visited
-   */
-  public void setSeenOps(List<Operator<? extends OperatorDesc>> seenOps) {
-    this.seenOps = seenOps;
   }
 
   /**
@@ -345,6 +322,15 @@ public class GenMRProcContext implements NodeProcessorCtx {
    */
   public void setRootTasks(List<Task<? extends Serializable>> rootTasks) {
     this.rootTasks = rootTasks;
+  }
+
+  public boolean addRootIfPossible(Task<? extends Serializable> task) {
+    if (task.getParentTasks() == null || task.getParentTasks().isEmpty()) {
+      if (!rootTasks.contains(task)) {
+        return rootTasks.add(task);
+      }
+    }
+    return false;
   }
 
   /**
@@ -480,9 +466,5 @@ public class GenMRProcContext implements NodeProcessorCtx {
   public void setLinkedFileDescTasks(
       Map<FileSinkDesc, Task<? extends Serializable>> linkedFileDescTasks) {
     this.linkedFileDescTasks = linkedFileDescTasks;
-  }
-
-  public List<Operator<? extends OperatorDesc>> getSplitTasks() {
-    return splitTaskOps;
   }
 }

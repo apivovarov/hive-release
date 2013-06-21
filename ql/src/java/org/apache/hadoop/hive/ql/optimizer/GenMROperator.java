@@ -55,6 +55,6 @@ public class GenMROperator implements NodeProcessor {
     mapCurrCtx.put((Operator<? extends OperatorDesc>) nd, new GenMapRedCtx(
         mapredCtx.getCurrTask(), mapredCtx.getCurrTopOp(), mapredCtx
         .getCurrAliasId()));
-    return null;
+    return true;
   }
 }

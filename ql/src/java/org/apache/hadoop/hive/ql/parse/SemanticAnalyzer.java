@@ -8329,8 +8329,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     GenMRProcContext procCtx = new GenMRProcContext(
         conf,
         new HashMap<Operator<? extends OperatorDesc>, Task<? extends Serializable>>(),
-        new ArrayList<Operator<? extends OperatorDesc>>(), tempParseContext,
-        mvTask, rootTasks,
+        tempParseContext, mvTask, rootTasks,
         new LinkedHashMap<Operator<? extends OperatorDesc>, GenMapRedCtx>(),
         inputs, outputs);
 
