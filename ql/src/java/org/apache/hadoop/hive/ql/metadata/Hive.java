@@ -2117,12 +2117,63 @@ private void constructOneLBLocationMap(FileStatus fSta,
     return false;
   }
 
+  //it is assumed that parent directory of the destf should already exist when this
+  //method is called, just like command mv
+  static protected boolean renameFile(HiveConf conf, Path srcf, Path destf, FileSystem fs)
+      throws HiveException {
+    boolean success = false;
+    boolean inheritPerms = HiveConf.getBoolVar(conf,
+        HiveConf.ConfVars.HIVE_WAREHOUSE_SUBDIR_INHERIT_PERMS);
+    Path destfp = destf.getParent();
+    if (inheritPerms) {
+      try {
+        //if destf is an existing directory, rename just move the src file/dir under destf and
+        //destf itself will be the parent dir after the rename
+        if (fs.exists(destf) && fs.getFileStatus(destf).isDir()) {
+          destfp = destf;
+          LOG.debug("Renaming:" + destf.toString()  + " is an existing directory; " +
+          srcf.toString() + " will move under it.");
+        }
+      } catch (IOException ioe) {
+        throw new HiveException("Unable to check the status of dest " + destf, ioe);
+      }
+    }
+
+    try {
+      success = fs.rename(srcf, destf);
+      LOG.debug("Renaming:" + srcf.toString() + " to " + destf.toString()  + ",Status:" + success);
+    } catch (IOException ioe) {
+      throw new HiveException("Unable to move source" + srcf + " to destination " + destf, ioe);
+    }
+
+    if (success && inheritPerms) {
+      //use FsShell to change group and permissions recursively
+      FsShell fshell = new FsShell();
+      fshell.setConf(conf);
+      try {
+        FileStatus fstatus = fs.getFileStatus(destfp);
+        fshell.run(new String[]{"-chgrp", "-R", fstatus.getGroup(), destf.toString()});
+        fshell.run(new String[]{"-chmod", "-R",
+            Integer.toString(fstatus.getPermission().toShort(), 8), destf.toString()});
+      } catch (Exception e) {
+        throw new HiveException("Unable to set permissions of " + destf
+            + " to those of its parent " + destf.getParent(), e);
+      }
+    }
+    return success;
+  }
+
   static protected void copyFiles(HiveConf conf, Path srcf, Path destf, FileSystem fs)
       throws HiveException {
+    boolean inheritPerms = HiveConf.getBoolVar(conf,
+        HiveConf.ConfVars.HIVE_WAREHOUSE_SUBDIR_INHERIT_PERMS);
     try {
       // create the destination if it does not exist
       if (!fs.exists(destf)) {
         fs.mkdirs(destf);
+        if (inheritPerms) {
+          fs.setPermission(destf, fs.getFileStatus(destf.getParent()).getPermission());
+        }
       }
     } catch (IOException e) {
       throw new HiveException(
@@ -2149,7 +2200,7 @@ private void constructOneLBLocationMap(FileStatus fSta,
     try {
       for (List<Path[]> sdpairs : result) {
         for (Path[] sdpair : sdpairs) {
-          if (!fs.rename(sdpair[0], sdpair[1])) {
+          if (!renameFile(conf, sdpair[0], sdpair[1], fs)) {
             throw new IOException("Cannot move " + sdpair[0] + " to " + sdpair[1]);
           }
         }
@@ -2178,6 +2229,8 @@ private void constructOneLBLocationMap(FileStatus fSta,
       throws HiveException {
     try {
       FileSystem fs = srcf.getFileSystem(conf);
+      boolean inheritPerms = HiveConf.getBoolVar(conf,
+          HiveConf.ConfVars.HIVE_WAREHOUSE_SUBDIR_INHERIT_PERMS);
 
       // check if srcf contains nested sub-directories
       FileStatus[] srcs;
@@ -2211,27 +2264,33 @@ private void constructOneLBLocationMap(FileStatus fSta,
       // rename src directory to destf
       if (srcs.length == 1 && srcs[0].isDir()) {
         // rename can fail if the parent doesn't exist
-        if (!fs.exists(destf.getParent())) {
-          fs.mkdirs(destf.getParent());
+        Path destfp = destf.getParent();
+        if (!fs.exists(destfp)) {
+          boolean success = fs.mkdirs(destfp);
+          if (inheritPerms && success) {
+            fs.setPermission(destfp, fs.getFileStatus(destfp.getParent()).getPermission());
+          }
         }
         if (fs.exists(destf)) {
           fs.delete(destf, true);
         }
 
-        boolean b = fs.rename(srcs[0].getPath(), destf);
+        boolean b = renameFile(conf, srcs[0].getPath(), destf, fs);
         if (!b) {
           throw new HiveException("Unable to move results from " + srcs[0].getPath()
               + " to destination directory: " + destf);
         }
-        LOG.debug("Renaming:" + srcf.toString() + " to " + destf.toString()  + ",Status:" + b);
       } else { // srcf is a file or pattern containing wildcards
         if (!fs.exists(destf)) {
-          fs.mkdirs(destf);
+          boolean success = fs.mkdirs(destf);
+          if (inheritPerms && success) {
+            fs.setPermission(destf, fs.getFileStatus(destf.getParent()).getPermission());
+          }
         }
         // srcs must be a list of files -- ensured by LoadSemanticAnalyzer
         for (List<Path[]> sdpairs : result) {
           for (Path[] sdpair : sdpairs) {
-            if (!fs.rename(sdpair[0], sdpair[1])) {
+            if (!renameFile(conf, sdpair[0], sdpair[1], fs)) {
               throw new IOException("Error moving: " + sdpair[0] + " into: " + sdpair[1]);
             }
           }
