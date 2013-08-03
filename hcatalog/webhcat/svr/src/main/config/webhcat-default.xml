@@ -226,11 +226,53 @@
   </property>
   <property>
     <name>templeton.hadoop.queue.name</name>
-    <value></value>
+    <value>default</value>
     <description>
     MapReduce queue name where WebHCat map-only jobs will be
     submitted to. Can be used to avoid a deadlock where all map slots
     in the cluster are taken over by Templeton launcher tasks.
     </description>
   </property>
+  <!--
+    <property>
+        <name>webhcat.proxyuser.#USER#.hosts</name>
+        <value>www.example.com,host2</value>
+        <description>
+            List of hosts the '#USER#' user is allowed to perform 'doAs'
+            operations.
+
+            The '#USER#' must be replaced with the username o the user who is
+            allowed to perform 'doAs' operations.
+
+            The value can be the '*' wildcard, which means every host is allowed,
+            or a comma-separated list of hostnames.
+            
+            If value is a blank string or webhcat.proxyuser.#USER#.hosts is missing,
+            no hosts will be allowed.  
+
+            For multiple users copy this property and replace the user name
+            in the property name.
+        </description>
+    </property>
+    <property>
+        <name>webhcat.proxyuser.#USER#.groups</name>
+        <value>group1, group2</value>
+        <description>
+            List of groups the '#USER#' user is allowed to impersonate users
+            from to perform 'doAs' operations.
+
+            The '#USER#' must be replaced with the username o the user who is
+            allowed to perform 'doAs' operations.
+
+            The value can be the '*' wildcard, which means any doAs value is
+            allowed, or a comma-separated list of groups.
+
+            If value is an empty list or webhcat.proxyuser.#USER#.groups is missing,
+            every doAs call value will fail.
+
+            For multiple users copy this property and replace the user name
+            in the property name.
+        </description>
+    </property>
+   -->
 </configuration>

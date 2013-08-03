@@ -137,6 +137,7 @@ public class AppConfig extends Configuration {
         String hadoopConfDir = getHadoopConfDir();
         for (String fname : HADOOP_CONF_FILENAMES)
             loadOneFileConfig(hadoopConfDir, fname);
+        ProxyUserSupport.processProxyuserConfig(this);
     }
 
     public void startCleanup() {
