@@ -56,8 +56,9 @@ public class LauncherDelegator extends TempletonDelegator {
             state.setUser(user);
             state.setCallback(callback);
         } finally {
-            if (state != null)
+            if (state != null) {
                 state.close();
+            }
         }
     }
 
@@ -78,8 +79,9 @@ public class LauncherDelegator extends TempletonDelegator {
             long elapsed = ((System.nanoTime() - startTime) / ((int) 1e6));
             LOG.debug("queued job " + id + " in " + elapsed + " ms");
 
-            if (id == null)
+            if (id == null) {
                 throw new QueueException("Unable to get job id");
+            }
 
             registerJob(id, user, callback);
 
@@ -172,8 +174,9 @@ public class LauncherDelegator extends TempletonDelegator {
      */
     public static String makeOverrideClasspath(AppConfig appConf) {
         String[] overrides = appConf.overrideJars();
-        if (overrides == null)
+        if (overrides == null) {
             return null;
+        }
 
         ArrayList<String> cp = new ArrayList<String>();
         for (String fname : overrides) {
@@ -193,6 +196,18 @@ public class LauncherDelegator extends TempletonDelegator {
             args.add("-D");
             args.add(name + "=" + val);
         }
+    }
+
+    /**
+     * Add argument to ask TempletonControllerJob to get
+     * metastore delegation token
+     * @param args
+     */
+    protected void addHiveMetaStoreTokenArg(ArrayList<String> args) {
+        LOG.debug("Setting argument for controller job "
+                + TempletonControllerJob.HIVE_MS_DTOKEN_ENABLE_ARG);
+
+        args.add(TempletonControllerJob.HIVE_MS_DTOKEN_ENABLE_ARG);
     }
 
 }

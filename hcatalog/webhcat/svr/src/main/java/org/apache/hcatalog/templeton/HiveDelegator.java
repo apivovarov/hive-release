@@ -60,8 +60,10 @@ public class HiveDelegator extends LauncherDelegator {
         try {
             args.addAll(makeBasicArgs(execute, srcFile, statusdir, completedUrl));
             args.add("--");
+            addHiveMetaStoreTokenArg(args);
+
             args.add(appConf.hivePath());
-            
+
             args.add("--service");
             args.add("cli");
 
@@ -102,9 +104,10 @@ public class HiveDelegator extends LauncherDelegator {
         ArrayList<String> args = new ArrayList<String>();
 
         ArrayList<String> allFiles = new ArrayList<String>();
-        if (TempletonUtils.isset(srcFile))
+        if (TempletonUtils.isset(srcFile)) {
             allFiles.add(TempletonUtils.hadoopFsFilename(srcFile, appConf,
                     runAs));
+        }
 
         args.addAll(makeLauncherArgs(appConf, statusdir, completedUrl, allFiles));
 

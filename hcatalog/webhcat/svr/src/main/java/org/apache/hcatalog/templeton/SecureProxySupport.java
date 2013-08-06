@@ -44,7 +44,7 @@ import org.apache.hadoop.security.token.Token;
  */
 public class SecureProxySupport {
     private Path tokenPath;
-    private final String HCAT_SERVICE = "hcat";
+    public static final String HCAT_SERVICE = "hcat";
     private boolean isEnabled;
     private String user;
 

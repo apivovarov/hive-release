@@ -53,7 +53,7 @@ public class StreamingDelegator extends LauncherDelegator {
         return d.run(user,
             appConf.streamingJar(), null,
             null, null, args, defines,
-            statusdir, callback, completedUrl);
+            statusdir, callback, false, completedUrl);
     }
 
     private List<String> makeArgs(List<String> inputs,
@@ -76,12 +76,15 @@ public class StreamingDelegator extends LauncherDelegator {
         args.add("-reducer");
         args.add(reducer);
 
-        for (String f : files)
+        for (String f : files) {
             args.add("-file" + f);
-        for (String d : defines)
+        }
+        for (String d : defines) {
             args.add("-D" + d);
-        for (String e : cmdenvs)
+        }
+        for (String e : cmdenvs) {
             args.add("-cmdenv" + e);
+        }
         args.addAll(jarArgs);
 
         return args;

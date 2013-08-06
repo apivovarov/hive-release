@@ -41,13 +41,14 @@ public class JarDelegator extends LauncherDelegator {
     public EnqueueBean run(String user, String jar, String mainClass,
                            String libjars, String files,
                            List<String> jarArgs, List<String> defines,
-                           String statusdir, String callback, String completedUrl)
+                           String statusdir, String callback,
+                           boolean usehcatalog, String completedUrl)
         throws NotAuthorizedException, BadParam, BusyException, QueueException,
         ExecuteException, IOException, InterruptedException {
         runAs = user;
         List<String> args = makeArgs(jar, mainClass,
             libjars, files, jarArgs, defines,
-            statusdir, completedUrl);
+            statusdir, usehcatalog, completedUrl);
 
         return enqueueController(user, callback, args);
     }
@@ -55,7 +56,8 @@ public class JarDelegator extends LauncherDelegator {
     private List<String> makeArgs(String jar, String mainClass,
                                   String libjars, String files,
                                   List<String> jarArgs, List<String> defines,
-                                  String statusdir, String completedUrl)
+                                  String statusdir, boolean usehcatalog,
+                                  String completedUrl)
         throws BadParam, IOException, InterruptedException {
         ArrayList<String> args = new ArrayList<String>();
         try {
@@ -65,11 +67,18 @@ public class JarDelegator extends LauncherDelegator {
             args.addAll(makeLauncherArgs(appConf, statusdir,
                 completedUrl, allFiles));
             args.add("--");
+
+            //check if the rest command specified explicitly to use hcatalog
+            if(usehcatalog){
+                addHiveMetaStoreTokenArg(args);
+            }
+
             args.add(appConf.clusterHadoop());
             args.add("jar");
             args.add(TempletonUtils.hadoopFsPath(jar, appConf, runAs).getName());
-            if (TempletonUtils.isset(mainClass))
+            if (TempletonUtils.isset(mainClass)) {
                 args.add(mainClass);
+            }
             if (TempletonUtils.isset(libjars)) {
                 args.add("-libjars");
                 args.add(TempletonUtils.hadoopFsListAsString(libjars, appConf,
@@ -82,9 +91,10 @@ public class JarDelegator extends LauncherDelegator {
             }
             //the token file location comes after mainClass, as a -Dprop=val
             args.add("-D" + TempletonControllerJob.TOKEN_FILE_ARG_PLACEHOLDER);
-            
-            for (String d : defines)
+
+            for (String d : defines) {
                 args.add("-D" + d);
+            }
 
             args.addAll(jarArgs);
         } catch (FileNotFoundException e) {
