@@ -326,6 +326,9 @@ public class FetchOperator implements Serializable {
         return;
       } else {
         iterPath = FetchWork.convertStringToPathArray(work.getPartDir()).iterator();
+        job.set("hive.complete.dir.list",
+                org.apache.hadoop.util.StringUtils.join("\t",
+                                                        work.getPartDir()));
         iterPartDesc = work.getPartDesc().iterator();
       }
     }
