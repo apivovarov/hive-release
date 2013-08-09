@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
@@ -82,6 +83,10 @@ public abstract class HCatMapReduceTest extends HCatBaseTest {
     protected abstract List<FieldSchema> getTableColumns();
 
     private static FileSystem fs;
+
+    protected Boolean isTableExternal() {
+        return false;
+    }
 
     protected String inputFormat() { 
         return RCFileInputFormat.class.getName();
@@ -136,7 +141,11 @@ public abstract class HCatMapReduceTest extends HCatBaseTest {
         Table tbl = new Table();
         tbl.setDbName(databaseName);
         tbl.setTableName(tableName);
-        tbl.setTableType("MANAGED_TABLE");
+        if (isTableExternal()){
+            tbl.setTableType(TableType.EXTERNAL_TABLE.toString());
+        } else {
+            tbl.setTableType(TableType.MANAGED_TABLE.toString());
+        }
         StorageDescriptor sd = new StorageDescriptor();
 
         sd.setCols(getTableColumns());
@@ -149,6 +158,9 @@ public abstract class HCatMapReduceTest extends HCatBaseTest {
         sd.getSerdeInfo().setName(tbl.getTableName());
         sd.getSerdeInfo().setParameters(new HashMap<String, String>());
         sd.getSerdeInfo().getParameters().put(serdeConstants.SERIALIZATION_FORMAT, "1");
+        if (isTableExternal()){
+            sd.getSerdeInfo().getParameters().put("EXTERNAL", "TRUE");
+        }
         sd.getSerdeInfo().setSerializationLib(serdeClass());
         sd.setInputFormat(inputFormat());
         sd.setOutputFormat(outputFormat());
