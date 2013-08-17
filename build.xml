@@ -541,6 +541,7 @@
         <exclude name="**/mockito*.jar"/>
         <exclude name="**/velocity*.jar"/>
         <exclude name="**/antlr-3*.jar"/>
+        <exclude name="**/stax-api-1.0-2.jar"/>
       </fileset>
     </copy>
     <copy todir="${target.example.dir}/files" preservelastmodified="true" flatten="true">
