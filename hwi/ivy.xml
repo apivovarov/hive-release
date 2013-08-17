@@ -28,11 +28,16 @@
   <dependencies>
     <dependency org="org.apache.hive" name="hive-cli" rev="${version}"
                 conf="compile->default" />
-    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}" />
+    <dependency org="org.mortbay.jetty" name="jetty" rev="${jetty.version}">
+      <exclude org="org.mortbay.jetty" module="servlet-api"/>
+    </dependency>
+    <dependency org="org.mortbay.jetty" name="servlet-api-2.5" rev="${servlet-api-2.5.version}" />
 
     <!-- Test Dependencies -->
     <dependency org="commons-httpclient" name="commons-httpclient" rev="${commons-httpclient.version}"
                 conf="test->default"
-                transitive="false"/>
+                transitive="false">
+      <exclude org="commons-codec" module="commons-codec"/>
+    </dependency>
   </dependencies>
 </ivy-module>

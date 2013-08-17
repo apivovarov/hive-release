@@ -38,6 +38,8 @@
                 transitive="false"/>
     <dependency org="commons-logging" name="commons-logging-api" rev="${commons-logging-api.version}"
                 transitive="false"/>
+    <dependency org="commons-codec" name="commons-codec" rev="${commons-codec.version}"
+                transitive="false"/>
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="${jackson.version}"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="${jackson.version}"/>
     <dependency org="log4j" name="log4j" rev="${log4j.version}" />
@@ -51,6 +53,9 @@
       <artifact name="hadoop-common" type="tests" ext="jar" m:classifier="tests"/>
       <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
       <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
+      <exclude org="commons-codec" module="commons-codec"/>
+      <exclude org="commons-lang" module="commons-lang"/>
+      <exclude org="com.google.guava" module="guava"/>
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-core"
                 rev="${hadoop-0.23.version}"
@@ -73,6 +78,9 @@
       <artifact name="hadoop-hdfs" type="tests" ext="jar" m:classifier="tests"/>
       <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
       <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
+      <exclude org="commons-codec" module="commons-codec"/>
+      <exclude org="commons-lang" module="commons-lang"/>
+      <exclude org="com.google.guava" module="guava"/>
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-jobclient"
                 rev="${hadoop-0.23.version}"
@@ -133,6 +141,8 @@
       <include type="jar"/>
       <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
       <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
+      <exclude org="commons-codec" module="commons-codec"/>
+      <exclude org="stax" module="stax-api"/>
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-tools"
                 rev="${hadoop-0.20.version}"
@@ -156,6 +166,7 @@
       <include type="jar"/>
       <exclude org="commons-daemon" module="commons-daemon"/><!--bad POM-->
       <exclude org="org.apache.commons" module="commons-daemon"/><!--bad POM-->
+      <exclude org="commons-codec" module="commons-codec"/>
     </dependency>
     <dependency org="org.apache.hadoop" name="hadoop-tools"
                 rev="${hadoop-0.20S.version}"
