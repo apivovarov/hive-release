@@ -52,9 +52,9 @@ final class ProxyUserSupport {
             if(confEnt.getKey().startsWith(CONF_PROXYUSER_PREFIX)
                     && confEnt.getKey().endsWith(CONF_GROUPS_SUFFIX)) {
                 //process user groups for which doAs is authorized
-                String proxyUser = normalizeUsername(
+                String proxyUser = 
                         confEnt.getKey().substring(CONF_PROXYUSER_PREFIX.length(), 
-                        confEnt.getKey().lastIndexOf(CONF_GROUPS_SUFFIX)));
+                        confEnt.getKey().lastIndexOf(CONF_GROUPS_SUFFIX));
                 Set<String> groups;
                 if("*".equals(confEnt.getValue())) {
                     groups = WILD_CARD;
@@ -82,8 +82,8 @@ final class ProxyUserSupport {
             else if(confEnt.getKey().startsWith(CONF_PROXYUSER_PREFIX)
                     && confEnt.getKey().endsWith(CONF_HOSTS_SUFFIX)) {
                 //process hosts from which doAs requests are authorized
-                String proxyUser = normalizeUsername(confEnt.getKey().substring(CONF_PROXYUSER_PREFIX.length(), 
-                        confEnt.getKey().lastIndexOf(CONF_HOSTS_SUFFIX)));
+                String proxyUser = confEnt.getKey().substring(CONF_PROXYUSER_PREFIX.length(), 
+                        confEnt.getKey().lastIndexOf(CONF_HOSTS_SUFFIX));
                 Set<String> hosts;
                 if("*".equals(confEnt.getValue())) {
                     hosts = WILD_CARD;
@@ -110,19 +110,6 @@ final class ProxyUserSupport {
             }
         }
     }
-
-    /**
-     * In secure mode Server#getUser() returns name as username@EXAMPLE.COM
-     * Requiring short name in webhcat-site.xml is consistent with hadoop and 
-     * oozie proxyuser support
-     */
-    static String normalizeUsername(String username) {
-        int atPos;
-        if(username == null || (atPos = username.indexOf("@")) < 0) {
-            return username;
-        }
-        return username.substring(0, atPos);
-    }
     /**
      * Verifies a that proxyUser is making the request from authorized host and that doAs user
      * belongs to one of the groups for which proxyUser is allowed to impersonate users.
@@ -134,7 +121,6 @@ final class ProxyUserSupport {
      */
     static void validate(String proxyUser, String proxyHost, String doAsUser) throws 
             NotAuthorizedException {
-        proxyUser = normalizeUsername(proxyUser);
         assertNotEmpty(proxyUser, "proxyUser",
                 "If you're attempting to use user-impersonation via a proxy user, please make sure that "
                         + CONF_PROXYUSER_PREFIX + "#USER#" + CONF_HOSTS_SUFFIX + " and "

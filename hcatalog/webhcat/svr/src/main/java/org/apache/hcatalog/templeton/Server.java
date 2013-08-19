@@ -49,6 +49,7 @@ import javax.ws.rs.core.UriInfo;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.security.KerberosName;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.client.PseudoAuthenticator;
 import org.apache.hcatalog.templeton.tool.TempletonUtils;
@@ -793,7 +794,7 @@ public class Server {
             }
             throw new NotAuthorizedException(msg);
         }
-        if(doAs != null && !doAs.equals(ProxyUserSupport.normalizeUsername(requestingUser))) {
+        if(doAs != null && !doAs.equals(requestingUser)) {
             /*if doAs user is different than logged in user, need to check that
             that logged in user is authorized to run as 'doAs'*/
             ProxyUserSupport.validate(requestingUser, getRequestingHost(requestingUser, request), doAs);
@@ -857,7 +858,14 @@ public class Server {
         if (theSecurityContext.getUserPrincipal() == null) {
             return null;
         }
-        return theSecurityContext.getUserPrincipal().getName();
+        try {
+            //this will map hue/foo.bar@something.com->hue
+            return new KerberosName(theSecurityContext.getUserPrincipal().getName()).getShortName();
+        }
+        catch(IOException ex) {
+            LOG.error("Unable to get requesting user name.  ", ex);
+            return null;
+        }
     }
 
     /**
