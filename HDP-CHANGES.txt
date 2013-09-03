@@ -1,5 +1,4 @@
-Comanche-0.11.0 branched from hortonworks condor-0.11.0 (SHA1 6bf5f2905ac0177d36c6fbe7de94a38128e401b4) @ git@github.com:hortonworks/hive.git 
-trunk@1b3307fbe57909a68e50b787243a77551280fd70 
+bigwheel-GA-0.96.0 branched from hortonworks bigwheel-beta2-0.11-12.0  (SHA1 f5842ec2e010e5460f0f8de2b9d830ca7833867e) @ git@github.com:hortonworks/hive.git 
 
  INCOMPATIBLE CHANGES
 
