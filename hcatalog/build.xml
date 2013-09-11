@@ -263,12 +263,14 @@
             <group title="hcatalog" packages="org.apache.hive.hcatalog.*"/>
         </javadoc>
         <record name="${build.dir}/javadoc.log" action="stop"/>
+<!--
         <condition property="javadoc.warnings">
             <isfileselected file="${build.dir}/javadoc.log">
                 <contains text="warnings"/>
             </isfileselected>
         </condition>
         <fail if="javadoc.warnings">Javadoc comments contain warnings.</fail>
+-->
     </target>
 
     <!--
