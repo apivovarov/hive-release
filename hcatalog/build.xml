@@ -245,7 +245,6 @@
                  failonerror="true"
                  useexternalfile="yes">
             <packageset dir="core/src/main/java"/>
-            <packageset dir="shims/src/${hadoopversion}/java"/>
             <packageset dir="hcatalog-pig-adapter/src/main/java"/>
             <packageset dir="server-extensions/src/main/java"/>
             <packageset dir="storage-handlers/hbase/src/gen-java"/>
