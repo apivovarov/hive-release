@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
@@ -186,8 +187,9 @@ public class Server {
     verifyDdlParam(db, ":db");
 
     HcatDelegator d = new HcatDelegator(appConf, execService);
-    if (!TempletonUtils.isset(tablePattern))
+    if (!TempletonUtils.isset(tablePattern)) {
       tablePattern = "*";
+    }
     return d.listTables(getDoAsUser(), db, tablePattern);
   }
 
@@ -252,10 +254,11 @@ public class Server {
     verifyDdlParam(table, ":table");
 
     HcatDelegator d = new HcatDelegator(appConf, execService);
-    if ("extended".equals(format))
+    if ("extended".equals(format)) {
       return d.descExtendedTable(getDoAsUser(), db, table);
-    else
+    } else {
       return d.descTable(getDoAsUser(), db, table, false);
+    }
   }
 
   /**
@@ -455,8 +458,9 @@ public class Server {
     verifyUser();
 
     HcatDelegator d = new HcatDelegator(appConf, execService);
-    if (!TempletonUtils.isset(dbPattern))
+    if (!TempletonUtils.isset(dbPattern)) {
       dbPattern = "*";
+    }
     return d.listDatabases(getDoAsUser(), dbPattern);
   }
 
@@ -508,8 +512,9 @@ public class Server {
     BadParam, ExecuteException, IOException {
     verifyUser();
     verifyDdlParam(db, ":db");
-    if (TempletonUtils.isset(option))
+    if (TempletonUtils.isset(option)) {
       verifyDdlParam(option, "option");
+    }
     HcatDelegator d = new HcatDelegator(appConf, execService);
     return d.dropDatabase(getDoAsUser(), db, ifExists, option,
         group, permissions);
@@ -628,6 +633,24 @@ public class Server {
 
   /**
    * Run a MapReduce Jar job.
+   * Params correspond to the REST api params
+   * @param jar
+   * @param mainClass
+   * @param libjars
+   * @param files
+   * @param args
+   * @param defines
+   * @param statusdir
+   * @param callback
+   * @param usehcatalog
+   * @return EnqueueBean
+   * @throws NotAuthorizedException
+   * @throws BusyException
+   * @throws BadParam
+   * @throws QueueException
+   * @throws ExecuteException
+   * @throws IOException
+   * @throws InterruptedException
    */
   @POST
   @Path("mapreduce/jar")
@@ -640,6 +663,7 @@ public class Server {
                   @FormParam("define") List<String> defines,
                   @FormParam("statusdir") String statusdir,
                   @FormParam("callback") String callback,
+                  @FormParam("usehcatalog") boolean usehcatalog,
                   @FormParam("enablelog") boolean enablelog)
     throws NotAuthorizedException, BusyException, BadParam, QueueException,
     ExecuteException, IOException, InterruptedException {
@@ -657,6 +681,7 @@ public class Server {
     userArgs.put("define", defines);
     userArgs.put("statusdir", statusdir);
     userArgs.put("callback", callback);
+    userArgs.put("usehcatalog", Boolean.toString(usehcatalog));
     userArgs.put("enablelog", Boolean.toString(enablelog));
 
     checkEnableLogPrerequisite(enablelog, statusdir);
@@ -665,11 +690,27 @@ public class Server {
     return d.run(getDoAsUser(), userArgs,
       jar, mainClass,
       libjars, files, args, defines,
-      statusdir, callback, getCompletedUrl(), enablelog, JobType.JAR);
+      statusdir, callback, usehcatalog, getCompletedUrl(), enablelog, JobType.JAR);
   }
 
   /**
    * Run a Pig job.
+   * Params correspond to the REST api params
+   * @param execute
+   * @param srcFile
+   * @param pigArgs
+   * @param otherFiles
+   * @param statusdir
+   * @param callback
+   * @param usehcatalog
+   * @return EnqueueBean
+   * @throws NotAuthorizedException
+   * @throws BusyException
+   * @throws BadParam
+   * @throws QueueException
+   * @throws ExecuteException
+   * @throws IOException
+   * @throws InterruptedException
    */
   @POST
   @Path("pig")
@@ -680,12 +721,14 @@ public class Server {
                @FormParam("files") String otherFiles,
                @FormParam("statusdir") String statusdir,
                @FormParam("callback") String callback,
+               @FormParam("usehcatalog") boolean usehcatalog,
                @FormParam("enablelog") boolean enablelog)
     throws NotAuthorizedException, BusyException, BadParam, QueueException,
     ExecuteException, IOException, InterruptedException {
     verifyUser();
-    if (execute == null && srcFile == null)
+    if (execute == null && srcFile == null) {
       throw new BadParam("Either execute or file parameter required");
+    }
     
     //add all function arguments to a map
     Map<String, Object> userArgs = new HashMap<String, Object>();
@@ -696,6 +739,7 @@ public class Server {
     userArgs.put("files", otherFiles);
     userArgs.put("statusdir", statusdir);
     userArgs.put("callback", callback);
+    userArgs.put("usehcatalog", Boolean.toString(usehcatalog));
     userArgs.put("enablelog", Boolean.toString(enablelog));
 
     checkEnableLogPrerequisite(enablelog, statusdir);
@@ -704,7 +748,7 @@ public class Server {
     return d.run(getDoAsUser(), userArgs,
       execute, srcFile,
       pigArgs, otherFiles,
-      statusdir, callback, getCompletedUrl(), enablelog);
+      statusdir, callback, usehcatalog, getCompletedUrl(), enablelog);
   }
 
   /**
@@ -736,8 +780,9 @@ public class Server {
     throws NotAuthorizedException, BusyException, BadParam, QueueException,
     ExecuteException, IOException, InterruptedException {
     verifyUser();
-    if (execute == null && srcFile == null)
+    if (execute == null && srcFile == null) {
       throw new BadParam("Either execute or file parameter required");
+    }
     
     //add all function arguments to a map
     Map<String, Object> userArgs = new HashMap<String, Object>();
@@ -887,8 +932,9 @@ public class Server {
     String requestingUser = getRequestingUser();
     if (requestingUser == null) {
       String msg = "No user found.";
-      if (!UserGroupInformation.isSecurityEnabled())
+      if (!UserGroupInformation.isSecurityEnabled()) {
         msg += "  Missing " + PseudoAuthenticator.USER_NAME + " parameter.";
+      }
       throw new NotAuthorizedException(msg);
     }
     if(doAs != null && !doAs.equals(requestingUser)) {
@@ -897,9 +943,10 @@ public class Server {
       ProxyUserSupport.validate(requestingUser, getRequestingHost(requestingUser, request), doAs);
     }
   }
+
   /**
    * All 'tasks' spawned by WebHCat should be run as this user.  W/o doAs query parameter
-   * this is just the user making the request (or 
+   * this is just the user making the request (or
    * {@link org.apache.hadoop.security.authentication.client.PseudoAuthenticator#USER_NAME}
    * query param).
    * @return value of doAs query parameter or {@link #getRequestingUser()}
@@ -912,8 +959,9 @@ public class Server {
    */
   public void verifyParam(String param, String name)
     throws BadParam {
-    if (param == null)
+    if (param == null) {
       throw new BadParam("Missing " + name + " parameter");
+    }
   }
 
   /**
@@ -921,8 +969,9 @@ public class Server {
    */
   public void verifyParam(List<String> param, String name)
     throws BadParam {
-    if (param == null || param.isEmpty())
+    if (param == null || param.isEmpty()) {
       throw new BadParam("Missing " + name + " parameter");
+    }
   }
 
   public static final Pattern DDL_ID = Pattern.compile("[a-zA-Z]\\w*");
@@ -937,8 +986,9 @@ public class Server {
     throws BadParam {
     verifyParam(param, name);
     Matcher m = DDL_ID.matcher(param);
-    if (!m.matches())
+    if (!m.matches()) {
       throw new BadParam("Invalid DDL identifier " + name);
+    }
   }
   /**
    * Get the user name from the security context, i.e. the user making the HTTP request.
@@ -946,11 +996,13 @@ public class Server {
    * value of user.name query param, in kerberos mode it's the kinit'ed user.
    */
   private String getRequestingUser() {
-    if (theSecurityContext == null)
+    if (theSecurityContext == null) {
       return null;
-    if (theSecurityContext.getUserPrincipal() == null)
+    }
+    if (theSecurityContext.getUserPrincipal() == null) {
       return null;
-    //map hue/foo.bar@something.com->hue since user group checks 
+    }
+    //map hue/foo.bar@something.com->hue since user group checks
     // and config files are in terms of short name
     return UserGroupInformation.createRemoteUser(
         theSecurityContext.getUserPrincipal().getName()).getShortUserName();
@@ -960,16 +1012,18 @@ public class Server {
    * The callback url on this server when a task is completed.
    */
   public String getCompletedUrl() {
-    if (theUriInfo == null)
+    if (theUriInfo == null) {
       return null;
-    if (theUriInfo.getBaseUri() == null)
+    }
+    if (theUriInfo.getBaseUri() == null) {
       return null;
+    }
     return theUriInfo.getBaseUri() + VERSION
       + "/internal/complete/$jobId";
   }
 
   /**
-   * Returns canonical host name from which the request is made; used for doAs validation  
+   * Returns canonical host name from which the request is made; used for doAs validation
    */
   private static String getRequestingHost(String requestingUser, HttpServletRequest request) {
     final String unkHost = "???";

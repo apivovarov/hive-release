@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -41,6 +42,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobClient;
@@ -57,7 +62,11 @@ import org.apache.hadoop.util.Shell;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.hive.hcatalog.templeton.BadParam;
+import org.apache.hcatalog.common.HCatUtil;
 import org.apache.hive.hcatalog.templeton.LauncherDelegator;
+import org.apache.hive.hcatalog.templeton.SecureProxySupport;
+import org.apache.hive.hcatalog.templeton.UgiFactory;
+import org.apache.thrift.TException;
 
 /**
  * A Map Reduce job that will start another job.
@@ -86,8 +95,11 @@ public class TempletonControllerJob extends Configured implements Tool {
   public static final int WATCHER_TIMEOUT_SECS = 10;
   public static final int KEEP_ALIVE_MSEC = 60 * 1000;
 
-  public static final String TOKEN_FILE_ARG_PLACEHOLDER 
-    = "__WEBHCAT_TOKEN_FILE_LOCATION__";
+  public static final String TOKEN_FILE_ARG_PLACEHOLDER
+  = "__WEBHCAT_TOKEN_FILE_LOCATION__";
+
+  public static final String HIVE_MS_DTOKEN_ENABLE_ARG
+  = "__TEMPLETON_FETCH_HIVE_METASTORE_DELEGATION_TOKEN__";
 
 
   private static TrivialExecService execService = TrivialExecService.getInstance();
@@ -128,8 +140,8 @@ public class TempletonControllerJob extends Configured implements Tool {
           }
         }
         for(int i=0; i<jarArgsList.size(); i++){
-          String newArg = 
-            jarArgsList.get(i).replace(TOKEN_FILE_ARG_PLACEHOLDER, tokenArg);
+          String newArg =
+              jarArgsList.get(i).replace(TOKEN_FILE_ARG_PLACEHOLDER, tokenArg);
           jarArgsList.set(i, newArg);
         }
 
@@ -194,8 +206,9 @@ public class TempletonControllerJob extends Configured implements Tool {
       proc.waitFor();
       keepAlive.sendReport = false;
       pool.shutdown();
-      if (!pool.awaitTermination(WATCHER_TIMEOUT_SECS, TimeUnit.SECONDS))
+      if (!pool.awaitTermination(WATCHER_TIMEOUT_SECS, TimeUnit.SECONDS)) {
         pool.shutdownNow();
+      }
 
       writeExitValue(conf, proc.exitValue(), statusdir);
       JobState state = new JobState(context.getJobID().toString(), conf);
@@ -210,11 +223,12 @@ public class TempletonControllerJob extends Configured implements Tool {
         logRetriever.run();
       }
 
-      if (proc.exitValue() != 0)
+      if (proc.exitValue() != 0) {
         System.err.println("templeton: job failed with exit code "
-          + proc.exitValue());
-      else
+            + proc.exitValue());
+      } else {
         System.err.println("templeton: job completed with exit code 0");
+      }
     }
 
     private void executeWatcher(ExecutorService pool, Configuration conf,
@@ -248,10 +262,10 @@ public class TempletonControllerJob extends Configured implements Tool {
   }
 
   private static class Watcher implements Runnable {
-    private InputStream in;
+    private final InputStream in;
     private OutputStream out;
-    private JobID jobid;
-    private Configuration conf;
+    private final JobID jobid;
+    private final Configuration conf;
 
     public Watcher(Configuration conf, JobID jobid, InputStream in,
              String statusdir, String name)
@@ -260,10 +274,11 @@ public class TempletonControllerJob extends Configured implements Tool {
       this.jobid = jobid;
       this.in = in;
 
-      if (name.equals(STDERR_FNAME))
+      if (name.equals(STDERR_FNAME)) {
         out = System.err;
-      else
+      } else {
         out = System.out;
+      }
 
       if (TempletonUtils.isset(statusdir)) {
         Path p = new Path(statusdir, name);
@@ -341,10 +356,11 @@ public class TempletonControllerJob extends Configured implements Tool {
   private JobID submittedJobId;
 
   public String getSubmittedId() {
-    if (submittedJobId == null)
+    if (submittedJobId == null) {
       return null;
-    else
+    } else {
       return submittedJobId.toString();
+    }
   }
 
   /**
@@ -352,10 +368,25 @@ public class TempletonControllerJob extends Configured implements Tool {
    */
   @Override
   public int run(String[] args)
-    throws IOException, InterruptedException, ClassNotFoundException {
+      throws IOException, InterruptedException, ClassNotFoundException,
+      MetaException, TException {
     Configuration conf = getConf();
+    boolean fetchHMetaStoreToken = checkHMSTokenArg(args);
+    if(fetchHMetaStoreToken){
+      args = removeHMSTokenArg(args);
+    }
+
+    HiveConf hconf = new HiveConf();
+    if(isHMSDelegationNeeded(fetchHMetaStoreToken, hconf)){
+      //this util function serializes hive configuration and
+      //stores it as a property in conf!
+      //It returns deserialized hiveconf when called in backend
+      HCatUtil.getHiveConf(conf);
+    }
+
     conf.set(JAR_ARGS_NAME, TempletonUtils.encodeArray(args));
-    conf.set("user.name", UserGroupInformation.getCurrentUser().getShortUserName());
+        String user = UserGroupInformation.getCurrentUser().getShortUserName();
+        conf.set("user.name", user);
     Job job = new Job(conf);
     job.setJarByClass(TempletonControllerJob.class);
     job.setJobName("TempletonControllerJob");
@@ -363,15 +394,29 @@ public class TempletonControllerJob extends Configured implements Tool {
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Text.class);
     job.setInputFormatClass(SingleInputFormat.class);
-    NullOutputFormat<NullWritable, NullWritable> of
+
+    if(isHMSDelegationNeeded(fetchHMetaStoreToken, hconf)){
+      //need to cancel the meta store delegation token after the job is done
+      //setup a OutputFormat that can do that
+      job.setOutputFormatClass(MSTokenCleanOutputFormat.class);
+    } else {
+      NullOutputFormat<NullWritable, NullWritable> of
       = new NullOutputFormat<NullWritable, NullWritable>();
-    job.setOutputFormatClass(of.getClass());
+      job.setOutputFormatClass(of.getClass());
+    }
     job.setNumReduceTasks(0);
 
     JobClient jc = new JobClient(new JobConf(job.getConfiguration()));
 
     Token<DelegationTokenIdentifier> mrdt = jc.getDelegationToken(new Text("mr token"));
     job.getCredentials().addToken(new Text("mr token"), mrdt);
+
+    if(isHMSDelegationNeeded(fetchHMetaStoreToken, hconf)){
+      // Get a token for the Hive metastore.
+      LOG.debug("Getting delegation token from hive metastore");
+      addHMSToken(job, user);
+    }
+
     job.submit();
 
     submittedJobId = job.getJobID();
@@ -380,10 +425,73 @@ public class TempletonControllerJob extends Configured implements Tool {
   }
 
 
+  private boolean isHMSDelegationNeeded(boolean fetchHMetaStoreToken, HiveConf hconf) {
+    return fetchHMetaStoreToken
+        && hconf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_SASL);
+  }
+
+  private void addHMSToken(Job job, String user)
+      throws MetaException, IOException, InterruptedException, TException {
+    Token<org.apache.hadoop.hive.thrift.DelegationTokenIdentifier>
+    hiveToken =
+    new Token<org.apache.hadoop.hive.thrift.DelegationTokenIdentifier>();
+    hiveToken.decodeFromUrlString(buildHcatDelegationToken(user));
+    job.getCredentials().addToken(new
+        Text(SecureProxySupport.HCAT_SERVICE), hiveToken);
+  }
+
+  private String[] removeHMSTokenArg(String[] args) {
+    String[] newArgs = new String[args.length-1];
+    int i = 0;
+    for(String arg : args){
+      if(!arg.equals(HIVE_MS_DTOKEN_ENABLE_ARG)){
+        newArgs[i++] = arg;
+      }
+    }
+    if(i != newArgs.length){
+      //should never happen!
+      throw new AssertionError("Error creating args list, " +
+          "while processing -usehcatalog arg. " + " i " + newArgs.length );
+    }
+    return newArgs;
+  }
+
+  private boolean checkHMSTokenArg(String[] args) {
+    for(String arg : args){
+      if(arg.equals(HIVE_MS_DTOKEN_ENABLE_ARG)){
+        return true;
+      }
+    }
+    return false;
+  }
+
   public static void main(String[] args) throws Exception {
     int ret = ToolRunner.run(new TempletonControllerJob(), args);
-    if (ret != 0)
+    if (ret != 0) {
       System.err.println("TempletonControllerJob failed!");
+    }
     System.exit(ret);
   }
+
+    private String buildHcatDelegationToken(String user)
+        throws IOException, InterruptedException, MetaException, TException {
+      final HiveConf c = new HiveConf();
+      LOG.debug("Creating hive metastore delegation token for user " + user);
+      final UserGroupInformation ugi = UgiFactory.getUgi(user);
+      UserGroupInformation real = ugi.getRealUser();
+      String s = real.doAs(new PrivilegedExceptionAction<String>() {
+        public String run()
+            throws IOException, MetaException, TException, InterruptedException  {
+          final HiveMetaStoreClient client = new HiveMetaStoreClient(c);
+          return ugi.doAs(new PrivilegedExceptionAction<String>() {
+            public String run()
+                throws IOException, MetaException, TException, InterruptedException {
+              String u = ugi.getUserName();
+              return client.getDelegationToken(u);
+            }
+          });
+        }
+      });
+      return s;
+    }
 }

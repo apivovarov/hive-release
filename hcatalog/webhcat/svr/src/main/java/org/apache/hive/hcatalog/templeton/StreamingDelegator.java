@@ -56,9 +56,9 @@ public class StreamingDelegator extends LauncherDelegator {
 
     JarDelegator d = new JarDelegator(appConf);
     return d.run(user, userArgs,
-      appConf.streamingJar(), null,
-      null, files, args, defines,
-      statusdir, callback, completedUrl, enableLog, jobType);
+        appConf.streamingJar(), null,
+        null, null, args, defines,
+        statusdir, callback, false, completedUrl, enableLog, jobType);
   }
 
   private List<String> makeArgs(List<String> inputs,
@@ -100,6 +100,10 @@ public class StreamingDelegator extends LauncherDelegator {
 
     for (String arg : jarArgs) {
       args.add(TempletonUtils.quoteForWindows(arg));
+    }
+
+    for (String d : defines) {
+      args.add("-D" + d);
     }
 
     return args;
