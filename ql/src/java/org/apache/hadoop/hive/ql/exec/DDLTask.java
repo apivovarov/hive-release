@@ -2285,8 +2285,12 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
       List<FieldSchema> cols = table.getCols();
       cols.addAll(table.getPartCols());
+      boolean humanFriendly =
+          db.getConf().getBoolVar(ConfVars.HIVE_HUMAN_FRIENDLY_FORMAT);
+
       outStream.writeBytes(
-          MetaDataFormatUtils.getAllColumnsInformation(cols, false));
+          MetaDataFormatUtils.getAllColumnsInformation(cols, false, humanFriendly));
+
       ((FSDataOutputStream) outStream).close();
       outStream = null;
     } catch (IOException e) {
@@ -2832,9 +2836,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       } else {
         cols = Hive.getFieldsFromDeserializer(colPath, tbl.getDeserializer());
       }
-
+      boolean humanFriendly = db.getConf().getBoolVar(ConfVars.HIVE_HUMAN_FRIENDLY_FORMAT);
       formatter.describeTable(outStream, colPath, tableName, tbl, part, cols,
-                              descTbl.isFormatted(), descTbl.isExt(), descTbl.isPretty());
+                              descTbl.isFormatted(),
+                              descTbl.isExt(),
+                              descTbl.isPretty(),
+                              humanFriendly
+          );
 
       LOG.info("DDLTask: written data for " + tbl.getTableName());
       outStream.close();

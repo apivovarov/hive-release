@@ -80,6 +80,10 @@ public class HiveSessionImpl implements HiveSession {
     this.username = username;
     this.password = password;
 
+    //set hs2 default config
+    setHiveServer2Configs();
+
+    //set conf properties specified by user from client side
     if (sessionConf != null) {
       for (Map.Entry<String, String> entry : sessionConf.entrySet()) {
         hiveConf.set(entry.getKey(), entry.getValue());
@@ -90,6 +94,17 @@ public class HiveSessionImpl implements HiveSession {
         sessionHandle.getHandleIdentifier().toString());
     sessionState = new SessionState(hiveConf);
   }
+
+  /**
+   * Set configurations recommended for hive-server2
+   */
+  private void setHiveServer2Configs() {
+    //as the results are meant to be consumed by java code, turn off
+    //human friendly format, so that additional indentation and space padding
+    // is not done
+    hiveConf.setBoolVar(ConfVars.HIVE_HUMAN_FRIENDLY_FORMAT, false);
+  }
+ 
 
   public SessionManager getSessionManager() {
     return sessionManager;

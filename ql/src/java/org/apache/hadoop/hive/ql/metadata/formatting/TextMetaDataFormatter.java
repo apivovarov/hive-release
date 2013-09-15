@@ -116,7 +116,8 @@ class TextMetaDataFormatter implements MetaDataFormatter {
     public void describeTable(DataOutputStream outStream,
                               String colPath, String tableName,
                               Table tbl, Partition part, List<FieldSchema> cols,
-                              boolean isFormatted, boolean isExt, boolean isPretty)
+                              boolean isFormatted, boolean isExt,
+                              boolean isPretty, boolean humanFriendly)
          throws HiveException {
         try {
           String output;
@@ -126,9 +127,11 @@ class TextMetaDataFormatter implements MetaDataFormatter {
                 MetaDataPrettyFormatUtils.getAllColumnsInformation(
                     cols, partCols, prettyOutputNumCols)
                 :
-                MetaDataFormatUtils.getAllColumnsInformation(cols, partCols, isFormatted);
+                MetaDataFormatUtils.getAllColumnsInformation(cols, partCols, 
+                    isFormatted, humanFriendly);
           } else {
-            output = MetaDataFormatUtils.getAllColumnsInformation(cols, isFormatted);
+            output = MetaDataFormatUtils.getAllColumnsInformation(cols,
+                       isFormatted, humanFriendly);
           }
           outStream.write(output.getBytes());
 
