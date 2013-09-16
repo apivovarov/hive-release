@@ -29,7 +29,7 @@ import junit.framework.Test;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnectionManager;
@@ -98,7 +98,7 @@ public class HBaseTestSetup extends TestSetup {
     hbaseCluster = new MiniHBaseCluster(hbaseConf, NUM_REGIONSERVERS);
     conf.set("hbase.master", hbaseCluster.getMaster().getServerName().getHostAndPort());
     // opening the META table ensures that cluster is running
-    new HTable(hbaseConf, HConstants.META_TABLE_NAME);
+    new HTable(hbaseConf, TableName.META_TABLE_NAME.getNameAsString());
     createHBaseTable(hbaseConf);
   }
 
@@ -153,7 +153,7 @@ public class HBaseTestSetup extends TestSetup {
   @Override
   protected void tearDown() throws Exception {
     if (hbaseCluster != null) {
-      HConnectionManager.deleteAllConnections(true);
+      HConnectionManager.deleteAllConnections();
       hbaseCluster.shutdown();
       hbaseCluster = null;
     }

@@ -25,6 +25,7 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -69,7 +70,7 @@ public class TestLazyHBaseObject extends TestCase {
     LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
     // Initialize a result
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     kvs.add(new KeyValue(Bytes.toBytes("test-row"), Bytes.toBytes("cfa"),
         Bytes.toBytes("col1"), Bytes.toBytes("cfacol1")));
@@ -131,7 +132,7 @@ public class TestLazyHBaseObject extends TestCase {
     LazyHBaseCellMap b = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
     // Initialize a result
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfa"), Bytes.toBytes("col1"), Bytes.toBytes("cfacol1")));
@@ -192,7 +193,7 @@ public class TestLazyHBaseObject extends TestCase {
         mapBinaryIntKeyValue, new byte [] {(byte)1, (byte) 2}, 0, nullSequence, false, (byte) 0);
     LazyHBaseCellMap hbaseCellMap = new LazyHBaseCellMap((LazyMapObjectInspector) oi);
 
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
     byte [] rowKey = "row-key".getBytes();
     byte [] cfInt = "cf-int".getBytes();
     kvs.add(new KeyValue(rowKey, cfInt, Bytes.toBytes(1), Bytes.toBytes(1)));
@@ -487,7 +488,7 @@ public class TestLazyHBaseObject extends TestCase {
       nullSequence, false, false, (byte)0);
     LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi);
 
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfa"), Bytes.toBytes("a"), Bytes.toBytes("123")));
@@ -614,7 +615,7 @@ public class TestLazyHBaseObject extends TestCase {
       nullSequence, false, false, (byte) 0);
     LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi);
 
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
         Bytes.toBytes("cfa"), Bytes.toBytes("a"), Bytes.toBytes("123")));
     kvs.add(new KeyValue(Bytes.toBytes("test-row"),
@@ -738,7 +739,7 @@ public class TestLazyHBaseObject extends TestCase {
     LazyHBaseRow o = new LazyHBaseRow((LazySimpleStructObjectInspector) oi);
 
     byte [] rowKey = "row-key".getBytes();
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
     byte [] value;
 
     for (int i = 1; i < columnsMapping.size(); i++) {

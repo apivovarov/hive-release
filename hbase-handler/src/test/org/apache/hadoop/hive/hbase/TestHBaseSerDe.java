@@ -27,6 +27,7 @@ import java.util.Properties;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -72,7 +73,7 @@ public class TestHBaseSerDe extends TestCase {
     byte [] rowKey = Bytes.toBytes("test-row1");
 
     // Data
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     kvs.add(new KeyValue(rowKey, cfa, qualByte, Bytes.toBytes("123")));
     kvs.add(new KeyValue(rowKey, cfb, qualShort, Bytes.toBytes("456")));
@@ -166,7 +167,7 @@ public class TestHBaseSerDe extends TestCase {
     byte [] rowKey = Bytes.toBytes("test-row1");
 
     // Data
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     kvs.add(new KeyValue(rowKey, cfa, qualByte, Bytes.toBytes("123")));
     kvs.add(new KeyValue(rowKey, cfb, qualShort, Bytes.toBytes("456")));
@@ -217,7 +218,7 @@ public class TestHBaseSerDe extends TestCase {
     assertEquals(9, fieldRefs.size());
 
     // Deserialize
-    Object row = serDe.deserialize(r);
+    Object row = serDe.deserialize(new ResultWritable(r));
     for (int i = 0; i < fieldRefs.size(); i++) {
       Object fieldData = oi.getStructFieldData(row, fieldRefs.get(i));
       if (fieldData != null) {
@@ -226,9 +227,9 @@ public class TestHBaseSerDe extends TestCase {
       assertEquals("Field " + i, expectedFieldsData[i], fieldData);
     }
     // Serialize
-    assertEquals(Put.class, serDe.getSerializedClass());
-    Put serializedPut = (Put) serDe.serialize(row, oi);
-    assertEquals("Serialized data", p.toString(), serializedPut.toString());
+    assertEquals(PutWritable.class, serDe.getSerializedClass());
+    PutWritable serializedPut = (PutWritable) serDe.serialize(row, oi);
+    assertEquals("Serialized data", p.toString(),String.valueOf(serializedPut.getPut()));
   }
 
   // No specifications default to UTF8 String storage for backwards compatibility
@@ -312,7 +313,7 @@ public class TestHBaseSerDe extends TestCase {
     byte [] rowKey = Bytes.toBytes("test-row-2");
 
     // Data
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     kvs.add(new KeyValue(rowKey, cfa, qualByte, new byte [] { Byte.MIN_VALUE }));
     kvs.add(new KeyValue(rowKey, cfb, qualShort, Bytes.toBytes(Short.MIN_VALUE)));
@@ -450,7 +451,7 @@ public class TestHBaseSerDe extends TestCase {
          Bytes.toBytes(true)}
     };
 
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
     Result [] r = new Result [] {null, null, null};
     Put [] p = new Put [] {null, null, null};
 
@@ -513,8 +514,8 @@ public class TestHBaseSerDe extends TestCase {
 
     // Deserialize
     for (int i = 0; i < r.length; i++) {
-      Object row = hbaseSerDe.deserialize(r[i]);
-      Put serializedPut = (Put) hbaseSerDe.serialize(row, soi);
+      Object row = hbaseSerDe.deserialize(new ResultWritable(r[i]));
+      Put serializedPut = ((PutWritable) hbaseSerDe.serialize(row, soi)).getPut();
       byte [] rowKey = serializedPut.getRow();
 
       for (int k = 0; k < rowKey.length; k++) {
@@ -594,7 +595,7 @@ public class TestHBaseSerDe extends TestCase {
     };
 
     Put p = new Put(rowKey);
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     for (int j = 0; j < columnQualifiersAndValues.length; j++) {
       kvs.add(new KeyValue(rowKey,
@@ -669,7 +670,7 @@ public class TestHBaseSerDe extends TestCase {
     assertEquals(9, fieldRefs.size());
 
     // Deserialize
-    Object row = hbaseSerDe.deserialize(r);
+    Object row = hbaseSerDe.deserialize(new ResultWritable(r));
 
     for (int j = 0; j < fieldRefs.size(); j++) {
       Object fieldData = soi.getStructFieldData(row, fieldRefs.get(j));
@@ -687,7 +688,7 @@ public class TestHBaseSerDe extends TestCase {
     }
 
     // Serialize
-    Put serializedPut = (Put) hbaseSerDe.serialize(row, soi);
+    Put serializedPut = ((PutWritable) hbaseSerDe.serialize(row, soi)).getPut();
     assertEquals("Serialized data: ", p.toString(), serializedPut.toString());
   }
 
@@ -714,7 +715,7 @@ public class TestHBaseSerDe extends TestCase {
     byte[] rowKey = Bytes.toBytes("test-row1");
 
     // Data
-    List<KeyValue> kvs = new ArrayList<KeyValue>();
+    List<Cell> kvs = new ArrayList<Cell>();
 
     byte[] dataA = "This is first test data".getBytes();
     byte[] dataB = "This is second test data".getBytes();
@@ -775,7 +776,7 @@ public class TestHBaseSerDe extends TestCase {
 
     List<? extends StructField> fieldRefs = soi.getAllStructFieldRefs();
 
-    Object row = serDe.deserialize(r);
+    Object row = serDe.deserialize(new ResultWritable(r));
 
     int j = 0;
 
@@ -803,7 +804,7 @@ public class TestHBaseSerDe extends TestCase {
     SerDeUtils.getJSONString(row, soi);
 
     // Now serialize
-    Put put = (Put) serDe.serialize(row, soi);
+    Put put = ((PutWritable) serDe.serialize(row, soi)).getPut();
 
     if (p != null) {
       assertEquals("Serialized put:", p.toString(), put.toString());

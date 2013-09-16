@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
@@ -35,8 +36,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.hive.hbase.ResultWritable;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hcatalog.common.HCatUtil;
 import org.apache.hcatalog.hbase.snapshot.FamilyRevision;
@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  * The Class HbaseSnapshotRecordReader implements logic for filtering records
  * based on snapshot.
  */
-class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, Result> {
+class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, ResultWritable> {
 
   static final Logger LOG = LoggerFactory.getLogger(HbaseSnapshotRecordReader.class);
   private final InputJobInfo inpJobInfo;
@@ -62,8 +62,6 @@ class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, 
   private TableSnapshot snapshot;
   private Iterator<Result> resultItr;
   private Set<Long> allAbortedTransactions;
-  private DataOutputBuffer valueOut = new DataOutputBuffer();
-  private DataInputBuffer valueIn = new DataInputBuffer();
 
   HbaseSnapshotRecordReader(InputJobInfo inputJobInfo, Configuration conf) throws IOException {
     this.inpJobInfo = inputJobInfo;
@@ -152,8 +150,8 @@ class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, 
   }
 
   @Override
-  public Result createValue() {
-    return new Result();
+  public ResultWritable createValue() {
+    return new ResultWritable();
   }
 
   @Override
@@ -170,7 +168,7 @@ class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, 
   }
 
   @Override
-  public boolean next(ImmutableBytesWritable key, Result value) throws IOException {
+  public boolean next(ImmutableBytesWritable key, ResultWritable value) throws IOException {
     if (this.resultItr == null) {
       LOG.warn("The HBase result iterator is found null. It is possible"
         + " that the record reader has already been closed.");
@@ -182,10 +180,7 @@ class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, 
           // Update key and value. Currently no way to avoid serialization/de-serialization
           // as no setters are available.
           key.set(hbaseRow.getRow());
-          valueOut.reset();
-          hbaseRow.write(valueOut);
-          valueIn.reset(valueOut.getData(), valueOut.getLength());
-          value.readFields(valueIn);
+          value.setResult(hbaseRow);
           return true;
         }
 
@@ -194,11 +189,12 @@ class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, 
     return false;
   }
 
-  private Result prepareResult(List<KeyValue> keyvalues) {
+  private Result prepareResult(List<Cell> keyvalues) {
 
     List<KeyValue> finalKeyVals = new ArrayList<KeyValue>();
     Map<String, List<KeyValue>> qualValMap = new HashMap<String, List<KeyValue>>();
-    for (KeyValue kv : keyvalues) {
+    for (Cell kvc : keyvalues) {
+      KeyValue kv = (KeyValue) kvc;
       byte[] cf = kv.getFamily();
       byte[] qualifier = kv.getQualifier();
       String key = Bytes.toString(cf) + ":" + Bytes.toString(qualifier);

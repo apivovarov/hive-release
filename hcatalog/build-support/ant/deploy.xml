@@ -84,7 +84,7 @@
             <artifact:localRepository path="${mvn.local.repo}"/>
         </artifact:dependencies>
         <artifact:pom id="mvn.pom" file="pom.xml">
-            <profile id="${_mvn.hadoop.profile}"/>
+            <profile id="${mvn.hadoop.profile}"/>
             <artifact:localRepository path="${mvn.local.repo}"/>
         </artifact:pom>
         <property name="mvn-init.complete" value="true"/>

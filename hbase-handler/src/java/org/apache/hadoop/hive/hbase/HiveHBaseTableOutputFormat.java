@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
@@ -99,7 +100,7 @@ public class HiveHBaseTableOutputFormat extends
         jobConf, HiveConf.ConfVars.HIVE_HBASE_WAL_ENABLED);
     final HTable table = new HTable(HBaseConfiguration.create(jobConf), hbaseTableName);
     table.setAutoFlush(false);
-    return new MyRecordWriter(table);
+    return new MyRecordWriter(table,walEnabled);
   }
 
   @Override
@@ -111,9 +112,11 @@ public class HiveHBaseTableOutputFormat extends
 
   static private class MyRecordWriter implements org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> {
     private final HTable m_table;
+    private final boolean m_walEnabled;
 
-    public MyRecordWriter(HTable table) {
+    public MyRecordWriter(HTable table, boolean walEnabled) {
       m_table = table;
+      m_walEnabled = walEnabled;
     }
 
     public void close(Reporter reporter)
@@ -123,7 +126,13 @@ public class HiveHBaseTableOutputFormat extends
 
     public void write(ImmutableBytesWritable key,
         Put value) throws IOException {
-      m_table.put(new Put(value));
+      Put put = new Put(value);
+      if(m_walEnabled) {
+        put.setDurability(Durability.SYNC_WAL);
+      } else {
+        put.setDurability(Durability.SKIP_WAL);
+      }
+      m_table.put(put);
     }
   }
 }
