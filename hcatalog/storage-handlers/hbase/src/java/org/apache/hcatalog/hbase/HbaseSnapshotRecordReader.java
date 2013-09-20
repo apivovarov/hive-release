@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
@@ -189,12 +188,11 @@ class HbaseSnapshotRecordReader implements RecordReader<ImmutableBytesWritable, 
     return false;
   }
 
-  private Result prepareResult(List<Cell> keyvalues) {
+  private Result prepareResult(List<KeyValue> keyvalues) {
 
     List<KeyValue> finalKeyVals = new ArrayList<KeyValue>();
     Map<String, List<KeyValue>> qualValMap = new HashMap<String, List<KeyValue>>();
-    for (Cell kvc : keyvalues) {
-      KeyValue kv = (KeyValue) kvc;
+    for (KeyValue kv : keyvalues) {
       byte[] cf = kv.getFamily();
       byte[] qualifier = kv.getQualifier();
       String key = Bytes.toString(cf) + ":" + Bytes.toString(qualifier);
