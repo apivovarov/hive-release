@@ -48,10 +48,11 @@
     <dependency org="org.apache.hbase" name="hbase-server" rev="${hbase.version.with.hadoop.version}"
                 conf="compile, test->default" transitive="true">
       <artifact name="hbase-server" type="jar"/>
+      <artifact name="hbase-server" type="test-jar" ext="jar" m:classifier="tests"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-server" rev="${hbase.version.with.hadoop.version}"
                 conf="test->default" transitive="false">
-      <artifact name="hbase-server" type="jar" m:classifier="tests"/>
+      <artifact name="hbase-server" type="test-jar" ext="jar" m:classifier="tests"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-hadoop2-compat" rev="${hbase.version.with.hadoop.version}"
                 conf="hadoop23.compile->default" transitive="false">
