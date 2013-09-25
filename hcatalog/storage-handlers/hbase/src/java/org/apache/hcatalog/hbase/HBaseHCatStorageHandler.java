@@ -638,7 +638,6 @@ public class HBaseHCatStorageHandler extends HCatStorageHandler implements HiveM
         MutationSerialization.class.getName(), ResultSerialization.class.getName(),
         KeyValueSerialization.class.getName());
   }
-
   static void setHBaseSerializers(Map<String, String> configuration) {
     String value = "";
     if(configuration.containsKey(IO_SERIALIZATIONS)) {

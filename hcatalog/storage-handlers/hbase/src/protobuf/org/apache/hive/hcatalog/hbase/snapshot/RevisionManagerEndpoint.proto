@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-option java_package = "org.apache.hcatalog.hbase.snapshot";
+option java_package = "org.apache.hive.hcatalog.hbase.snapshot";
 option java_outer_classname = "RevisionManagerEndpointProtos";
 option java_generic_services = true;
 option java_generate_equals_and_hash = true;
@@ -102,4 +102,3 @@ service RevisionManagerEndpointService {
   rpc createSnapshot(CreateSnapshotRequest) returns(CreateSnapshotResponse);
   rpc keepAliveTransaction(KeepAliveTransactionRequest) returns (KeepAliveTransactionResponse);
 }
-

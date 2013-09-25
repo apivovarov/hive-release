@@ -94,7 +94,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public Void call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<CreateTableResponse> done = 
+        BlockingRpcCallback<CreateTableResponse> done =
             new BlockingRpcCallback<CreateTableResponse>();
         CreateTableRequest request = CreateTableRequest.newBuilder()
                 .setTableName(table).addAllColumnFamilies(columnFamilies).build();
@@ -112,7 +112,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public Void call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<DropTableResponse> done = 
+        BlockingRpcCallback<DropTableResponse> done =
             new BlockingRpcCallback<DropTableResponse>();
         DropTableRequest request = DropTableRequest.newBuilder()
               .setTableName(table).build();
@@ -136,7 +136,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public Transaction call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<BeginWriteTransactionResponse> done = 
+        BlockingRpcCallback<BeginWriteTransactionResponse> done =
             new BlockingRpcCallback<BeginWriteTransactionResponse>();
         BeginWriteTransactionRequest.Builder builder = BeginWriteTransactionRequest.newBuilder()
               .setTableName(table)
@@ -157,7 +157,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public Void call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<CommitWriteTransactionResponse> done = 
+        BlockingRpcCallback<CommitWriteTransactionResponse> done =
             new BlockingRpcCallback<CommitWriteTransactionResponse>();
         CommitWriteTransactionRequest request = CommitWriteTransactionRequest.newBuilder()
               .setTransaction(rpcConverter.convertTransaction(transaction)).build();
@@ -175,7 +175,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public Void call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<AbortWriteTransactionResponse> done = 
+        BlockingRpcCallback<AbortWriteTransactionResponse> done =
             new BlockingRpcCallback<AbortWriteTransactionResponse>();
         AbortWriteTransactionRequest request = AbortWriteTransactionRequest.newBuilder()
               .setTransaction(rpcConverter.convertTransaction(transaction)).build();
@@ -194,7 +194,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public List<FamilyRevision> call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<GetAbortedWriteTransactionsResponse> done = 
+        BlockingRpcCallback<GetAbortedWriteTransactionsResponse> done =
             new BlockingRpcCallback<GetAbortedWriteTransactionsResponse>();
         GetAbortedWriteTransactionsRequest request = GetAbortedWriteTransactionsRequest.newBuilder()
               .setTableName(table)
@@ -218,7 +218,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public TableSnapshot call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<CreateSnapshotResponse> done = 
+        BlockingRpcCallback<CreateSnapshotResponse> done =
             new BlockingRpcCallback<CreateSnapshotResponse>();
         CreateSnapshotRequest.Builder builder = CreateSnapshotRequest.newBuilder()
               .setTableName(tableName);
@@ -238,7 +238,7 @@ public class RevisionManagerEndpointClient implements RevisionManager, Configura
       public Void call(RevisionManagerEndpointService service)
         throws IOException {
         ServerRpcController controller = new ServerRpcController();
-        BlockingRpcCallback<KeepAliveTransactionResponse> done = 
+        BlockingRpcCallback<KeepAliveTransactionResponse> done =
             new BlockingRpcCallback<KeepAliveTransactionResponse>();
         KeepAliveTransactionRequest request = KeepAliveTransactionRequest.newBuilder()
               .setTransaction(rpcConverter.convertTransaction(transaction)).build();

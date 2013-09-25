@@ -65,8 +65,8 @@ public class ResultWritable implements Writable {
   throws IOException {
     ProtobufUtil.toResultNoData(result).writeDelimitedTo(DataOutputOutputStream.from(out));
     out.writeInt(result.size());
-    for(Cell kv : result.list()) {
-      KeyValue.write((KeyValue)kv, out);
+    for(KeyValue kv : result.list()) {
+      KeyValue.write(kv, out);
     }
   }
 

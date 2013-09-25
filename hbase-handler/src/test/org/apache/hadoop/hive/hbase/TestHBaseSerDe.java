@@ -27,7 +27,6 @@ import java.util.Properties;
 import junit.framework.TestCase;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
@@ -73,7 +72,7 @@ public class TestHBaseSerDe extends TestCase {
     byte [] rowKey = Bytes.toBytes("test-row1");
 
     // Data
-    List<Cell> kvs = new ArrayList<Cell>();
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
 
     kvs.add(new KeyValue(rowKey, cfa, qualByte, Bytes.toBytes("123")));
     kvs.add(new KeyValue(rowKey, cfb, qualShort, Bytes.toBytes("456")));
@@ -167,7 +166,7 @@ public class TestHBaseSerDe extends TestCase {
     byte [] rowKey = Bytes.toBytes("test-row1");
 
     // Data
-    List<Cell> kvs = new ArrayList<Cell>();
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
 
     kvs.add(new KeyValue(rowKey, cfa, qualByte, Bytes.toBytes("123")));
     kvs.add(new KeyValue(rowKey, cfb, qualShort, Bytes.toBytes("456")));
@@ -313,7 +312,7 @@ public class TestHBaseSerDe extends TestCase {
     byte [] rowKey = Bytes.toBytes("test-row-2");
 
     // Data
-    List<Cell> kvs = new ArrayList<Cell>();
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
 
     kvs.add(new KeyValue(rowKey, cfa, qualByte, new byte [] { Byte.MIN_VALUE }));
     kvs.add(new KeyValue(rowKey, cfb, qualShort, Bytes.toBytes(Short.MIN_VALUE)));
@@ -451,7 +450,7 @@ public class TestHBaseSerDe extends TestCase {
          Bytes.toBytes(true)}
     };
 
-    List<Cell> kvs = new ArrayList<Cell>();
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
     Result [] r = new Result [] {null, null, null};
     Put [] p = new Put [] {null, null, null};
 
@@ -595,7 +594,7 @@ public class TestHBaseSerDe extends TestCase {
     };
 
     Put p = new Put(rowKey);
-    List<Cell> kvs = new ArrayList<Cell>();
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
 
     for (int j = 0; j < columnQualifiersAndValues.length; j++) {
       kvs.add(new KeyValue(rowKey,
@@ -715,7 +714,7 @@ public class TestHBaseSerDe extends TestCase {
     byte[] rowKey = Bytes.toBytes("test-row1");
 
     // Data
-    List<Cell> kvs = new ArrayList<Cell>();
+    List<KeyValue> kvs = new ArrayList<KeyValue>();
 
     byte[] dataA = "This is first test data".getBytes();
     byte[] dataB = "This is second test data".getBytes();

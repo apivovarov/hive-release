@@ -21,7 +21,6 @@ package org.apache.hcatalog.hbase;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
@@ -46,9 +45,10 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hive.hcatalog.mapreduce.HCatMapRedUtil;
-import org.apache.hadoop.mapreduce.lib.partition.TotalOrderPartitioner;
+import org.apache.hadoop.hbase.mapreduce.hadoopbackport.TotalOrderPartitioner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 /**
  * MapReduce job which reads a series of Puts stored in a sequence file
@@ -66,7 +66,8 @@ class ImportSequenceFile {
   private static class SequenceFileImporter extends Mapper<ImmutableBytesWritable, Put, ImmutableBytesWritable, Put> {
 
     @Override
-    public void map(ImmutableBytesWritable rowKey, Put value, Context context)
+    public void map(ImmutableBytesWritable rowKey, Put value,
+            Context context)
       throws IOException, InterruptedException {
       context.write(new ImmutableBytesWritable(value.getRow()), value);
     }
@@ -212,12 +213,10 @@ class ImportSequenceFile {
     Configuration parentConf = parentContext.getConfiguration();
     Configuration conf = new Configuration();
     for (Map.Entry<String, String> el : parentConf) {
-      if (el.getKey().startsWith("hbase.")) {
+      if (el.getKey().startsWith("hbase."))
         conf.set(el.getKey(), el.getValue());
-      }
-      if (el.getKey().startsWith("mapred.cache.archives")) {
+      if (el.getKey().startsWith("mapred.cache.archives"))
         conf.set(el.getKey(), el.getValue());
-      }
     }
 
     //Inherit jar dependencies added to distributed cache loaded by parent job

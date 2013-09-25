@@ -104,10 +104,10 @@ public class HiveHBaseTableOutputFormat extends
   }
 
   @Override
-   public OutputCommitter getOutputCommitter(TaskAttemptContext context) throws IOException,
+  public OutputCommitter getOutputCommitter(TaskAttemptContext context) throws IOException,
   InterruptedException {
     return new TableOutputCommitter();
-}
+  }
 
 
   static private class MyRecordWriter implements org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> {

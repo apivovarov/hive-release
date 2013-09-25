@@ -17,3 +17,9 @@ ql/derby.log
 derby.log
 .arc
 ql/TempStatsStore
+hcatalog/hcatalog-pig-adapter/target
+hcatalog/server-extensions/target
+hcatalog/core/target
+hcatalog/webhcat/java-client/target
+hcatalog/storage-handlers/hbase/target
+hcatalog/webhcat/svr/target
