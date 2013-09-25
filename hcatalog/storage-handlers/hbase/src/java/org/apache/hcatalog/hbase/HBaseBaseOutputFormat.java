@@ -25,7 +25,7 @@ import java.util.Properties;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.PutWritable;
+import org.apache.hadoop.hive.hbase.PutWritable;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormat;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -42,7 +42,7 @@ import org.apache.hcatalog.mapreduce.OutputJobInfo;
  * PutWritable. PutWritables will come from Hive's HBase SerDe.
  */
 
-public class HBaseBaseOutputFormat implements OutputFormat<WritableComparable<?>, Put>,
+public class HBaseBaseOutputFormat implements OutputFormat<WritableComparable<?>, Object>,
   HiveOutputFormat<WritableComparable<?>, Object> {
 
   @Override
