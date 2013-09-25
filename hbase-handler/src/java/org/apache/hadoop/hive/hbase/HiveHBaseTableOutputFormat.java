@@ -32,6 +32,7 @@ import org.apache.hadoop.hbase.mapred.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableOutputCommitter;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.hbase.PutWritable;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -49,7 +50,7 @@ import org.apache.hadoop.util.Progressable;
  */
 public class HiveHBaseTableOutputFormat extends
     TableOutputFormat<ImmutableBytesWritable> implements
-    OutputFormat<ImmutableBytesWritable, Put> {
+    OutputFormat<ImmutableBytesWritable, Object> {
 
   static final Log LOG = LogFactory.getLog(HiveHBaseTableOutputFormat.class);
   public static final String HBASE_WAL_ENABLED = "hive.hbase.wal.enabled";
@@ -87,7 +88,7 @@ public class HiveHBaseTableOutputFormat extends
 
   @Override
   public
-  org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put>
+  org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Object>
   getRecordWriter(
       FileSystem fileSystem,
       JobConf jobConf,
@@ -110,7 +111,7 @@ public class HiveHBaseTableOutputFormat extends
   }
 
 
-  static private class MyRecordWriter implements org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Put> {
+  static private class MyRecordWriter implements org.apache.hadoop.mapred.RecordWriter<ImmutableBytesWritable, Object> {
     private final HTable m_table;
     private final boolean m_walEnabled;
 
@@ -125,8 +126,15 @@ public class HiveHBaseTableOutputFormat extends
     }
 
     public void write(ImmutableBytesWritable key,
-        Put value) throws IOException {
-      Put put = new Put(value);
+        Object value) throws IOException {
+      Put put;
+      if (value instanceof Put){
+        put = (Put)value;
+      } else if (value instanceof PutWritable) {
+        put = new Put(((PutWritable)value).getPut());
+      } else {
+        throw new IllegalArgumentException("Illegal Argument " + (value == null ? "null" : value.getClass().getName()));
+      }
       if(m_walEnabled) {
         put.setDurability(Durability.SYNC_WAL);
       } else {
