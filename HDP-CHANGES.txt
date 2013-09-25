@@ -1,13 +1,1 @@
-Comanche-0.11.0 branched from hortonworks condor-0.11.0 (SHA1 6bf5f2905ac0177d36c6fbe7de94a38128e401b4) @ git@github.com:hortonworks/hive.git 
-trunk@1b3307fbe57909a68e50b787243a77551280fd70 
-
- INCOMPATIBLE CHANGES
-
-
- NEW FEATURES
-
-
- IMPROVEMENTS
-
-
- BUG FIXES
+condorM30-0.11.0 is branched from hortonworks  comanche-0.11.0  SHA1 410a7a1c151ca953553eae68aa84e2a9f0d6e4ca @  git@github.com:hortonworks/hive.git 
