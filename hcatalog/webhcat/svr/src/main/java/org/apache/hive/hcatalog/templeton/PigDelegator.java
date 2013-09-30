@@ -108,7 +108,7 @@ public class PigDelegator extends LauncherDelegator {
       //check if the REST command specified explicitly to use hcatalog
       // or if it says that implicitly using the pig -useHCatalog arg
       if(usehcatalog || hasPigArgUseHcat(pigArgs)){
-        addHiveMetaStoreTokenArg(args);
+        addHiveMetaStoreTokenArg();
       }
 
       if (TempletonUtils.isset(execute)) {

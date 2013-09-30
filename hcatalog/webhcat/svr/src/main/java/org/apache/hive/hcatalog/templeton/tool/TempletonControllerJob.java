@@ -43,9 +43,7 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobClient;
@@ -98,15 +96,19 @@ public class TempletonControllerJob extends Configured implements Tool {
   public static final String TOKEN_FILE_ARG_PLACEHOLDER
   = "__WEBHCAT_TOKEN_FILE_LOCATION__";
 
-  public static final String HIVE_MS_DTOKEN_ENABLE_ARG
-  = "__TEMPLETON_FETCH_HIVE_METASTORE_DELEGATION_TOKEN__";
-
-
   private static TrivialExecService execService = TrivialExecService.getInstance();
 
   private static final Log LOG = LogFactory.getLog(TempletonControllerJob.class);
+  private final boolean secureMetastoreAccess;
 
-
+  /**
+   * @param secureMetastoreAccess - if true, a delegation token will be created
+   *                              and added to the job
+   */
+  public TempletonControllerJob(boolean secureMetastoreAccess) {
+    super();
+    this.secureMetastoreAccess = secureMetastoreAccess;
+  }
   public static class LaunchMapper
     extends Mapper<NullWritable, NullWritable, Text, Text> {
     protected Process startJob(Context context, String user,
@@ -365,24 +367,12 @@ public class TempletonControllerJob extends Configured implements Tool {
 
   /**
    * Enqueue the job and print out the job id for later collection.
+   * @see org.apache.hive.hcatalog.templeton.CompleteDelegator
    */
   @Override
   public int run(String[] args)
-      throws IOException, InterruptedException, ClassNotFoundException,
-      MetaException, TException {
+      throws IOException, InterruptedException, ClassNotFoundException, TException {
     Configuration conf = getConf();
-    boolean fetchHMetaStoreToken = checkHMSTokenArg(args);
-    if(fetchHMetaStoreToken){
-      args = removeHMSTokenArg(args);
-    }
-
-    HiveConf hconf = new HiveConf();
-    if(isHMSDelegationNeeded(fetchHMetaStoreToken, hconf)){
-      //this util function serializes hive configuration and
-      //stores it as a property in conf!
-      //It returns deserialized hiveconf when called in backend
-      HCatUtil.getHiveConf(conf);
-    }
 
     conf.set(JAR_ARGS_NAME, TempletonUtils.encodeArray(args));
         String user = UserGroupInformation.getCurrentUser().getShortUserName();
@@ -395,15 +385,8 @@ public class TempletonControllerJob extends Configured implements Tool {
     job.setMapOutputValueClass(Text.class);
     job.setInputFormatClass(SingleInputFormat.class);
 
-    if(isHMSDelegationNeeded(fetchHMetaStoreToken, hconf)){
-      //need to cancel the meta store delegation token after the job is done
-      //setup a OutputFormat that can do that
-      job.setOutputFormatClass(MSTokenCleanOutputFormat.class);
-    } else {
-      NullOutputFormat<NullWritable, NullWritable> of
-      = new NullOutputFormat<NullWritable, NullWritable>();
-      job.setOutputFormatClass(of.getClass());
-    }
+    NullOutputFormat<NullWritable, NullWritable> of = new NullOutputFormat<NullWritable, NullWritable>();
+    job.setOutputFormatClass(of.getClass());
     job.setNumReduceTasks(0);
 
     JobClient jc = new JobClient(new JobConf(job.getConfiguration()));
@@ -411,87 +394,52 @@ public class TempletonControllerJob extends Configured implements Tool {
     Token<DelegationTokenIdentifier> mrdt = jc.getDelegationToken(new Text("mr token"));
     job.getCredentials().addToken(new Text("mr token"), mrdt);
 
-    if(isHMSDelegationNeeded(fetchHMetaStoreToken, hconf)){
-      // Get a token for the Hive metastore.
-      LOG.debug("Getting delegation token from hive metastore");
-      addHMSToken(job, user);
-    }
+    String metastoreTokenStrForm = addHMSToken(job, user);
 
     job.submit();
 
     submittedJobId = job.getJobID();
-
+    if(metastoreTokenStrForm != null) {
+      //so that it can be cancelled later from CompleteDelegator
+      DelegationTokenCache.getStringFormTokenCache().storeDelegationToken(
+            submittedJobId.toString(), metastoreTokenStrForm);
+      LOG.debug("Added metastore delegation token for jobId=" + submittedJobId.toString() + " " +
+              "user=" + user);
+    }
     return 0;
   }
-
-
-  private boolean isHMSDelegationNeeded(boolean fetchHMetaStoreToken, HiveConf hconf) {
-    return fetchHMetaStoreToken
-        && hconf.getBoolVar(ConfVars.METASTORE_USE_THRIFT_SASL);
-  }
-
-  private void addHMSToken(Job job, String user)
-      throws MetaException, IOException, InterruptedException, TException {
-    Token<org.apache.hadoop.hive.thrift.DelegationTokenIdentifier>
-    hiveToken =
-    new Token<org.apache.hadoop.hive.thrift.DelegationTokenIdentifier>();
-    hiveToken.decodeFromUrlString(buildHcatDelegationToken(user));
+  private String addHMSToken(Job job, String user) throws IOException, InterruptedException, 
+          TException {
+    if(!secureMetastoreAccess) {
+      return null;
+    }
+    Token<org.apache.hadoop.hive.thrift.DelegationTokenIdentifier> hiveToken =
+      new Token<org.apache.hadoop.hive.thrift.DelegationTokenIdentifier>();
+    String metastoreTokenStrForm = buildHcatDelegationToken(user);
+    hiveToken.decodeFromUrlString(metastoreTokenStrForm);
     job.getCredentials().addToken(new
         Text(SecureProxySupport.HCAT_SERVICE), hiveToken);
+    return metastoreTokenStrForm;
   }
-
-  private String[] removeHMSTokenArg(String[] args) {
-    String[] newArgs = new String[args.length-1];
-    int i = 0;
-    for(String arg : args){
-      if(!arg.equals(HIVE_MS_DTOKEN_ENABLE_ARG)){
-        newArgs[i++] = arg;
+  private String buildHcatDelegationToken(String user)
+          throws IOException, InterruptedException, TException {
+    final HiveConf c = new HiveConf();
+    LOG.debug("Creating hive metastore delegation token for user " + user);
+    final UserGroupInformation ugi = UgiFactory.getUgi(user);
+    UserGroupInformation real = ugi.getRealUser();
+    return real.doAs(new PrivilegedExceptionAction<String>() {
+      public String run()
+              throws IOException, TException, InterruptedException  {
+        final HiveMetaStoreClient client = new HiveMetaStoreClient(c);
+        return ugi.doAs(new PrivilegedExceptionAction<String>() {
+          public String run()
+                  throws IOException, TException, InterruptedException {
+            String u = ugi.getUserName();
+            return client.getDelegationToken(u);
+          }
+        });
       }
-    }
-    if(i != newArgs.length){
-      //should never happen!
-      throw new AssertionError("Error creating args list, " +
-          "while processing -usehcatalog arg. " + " i " + newArgs.length );
-    }
-    return newArgs;
+    });
   }
 
-  private boolean checkHMSTokenArg(String[] args) {
-    for(String arg : args){
-      if(arg.equals(HIVE_MS_DTOKEN_ENABLE_ARG)){
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public static void main(String[] args) throws Exception {
-    int ret = ToolRunner.run(new TempletonControllerJob(), args);
-    if (ret != 0) {
-      System.err.println("TempletonControllerJob failed!");
-    }
-    System.exit(ret);
-  }
-
-    private String buildHcatDelegationToken(String user)
-        throws IOException, InterruptedException, MetaException, TException {
-      final HiveConf c = new HiveConf();
-      LOG.debug("Creating hive metastore delegation token for user " + user);
-      final UserGroupInformation ugi = UgiFactory.getUgi(user);
-      UserGroupInformation real = ugi.getRealUser();
-      String s = real.doAs(new PrivilegedExceptionAction<String>() {
-        public String run()
-            throws IOException, MetaException, TException, InterruptedException  {
-          final HiveMetaStoreClient client = new HiveMetaStoreClient(c);
-          return ugi.doAs(new PrivilegedExceptionAction<String>() {
-            public String run()
-                throws IOException, MetaException, TException, InterruptedException {
-              String u = ugi.getUserName();
-              return client.getDelegationToken(u);
-            }
-          });
-        }
-      });
-      return s;
-    }
 }

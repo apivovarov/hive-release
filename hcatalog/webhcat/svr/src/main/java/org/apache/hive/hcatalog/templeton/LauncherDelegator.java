@@ -24,10 +24,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.ToolRunner;
@@ -45,6 +45,7 @@ public class LauncherDelegator extends TempletonDelegator {
   private static final Log LOG = LogFactory.getLog(LauncherDelegator.class);
   protected String runAs = null;
   static public enum JobType {JAR, STREAMING, PIG, HIVE};
+  private boolean secureMeatastoreAccess = false;
 
   public LauncherDelegator(AppConfig appConf) {
     super(appConf);
@@ -71,7 +72,7 @@ public class LauncherDelegator extends TempletonDelegator {
    */
   public EnqueueBean enqueueController(String user, Map<String, Object> userArgs, String callback,
                      List<String> args)
-    throws NotAuthorizedException, BusyException, ExecuteException,
+    throws NotAuthorizedException, BusyException,
     IOException, QueueException {
     try {
       UserGroupInformation ugi = UgiFactory.getUgi(user);
@@ -97,16 +98,14 @@ public class LauncherDelegator extends TempletonDelegator {
 
   private String queueAsUser(UserGroupInformation ugi, final List<String> args)
     throws IOException, InterruptedException {
-    String id = ugi.doAs(new PrivilegedExceptionAction<String>() {
+    return ugi.doAs(new PrivilegedExceptionAction<String>() {
       public String run() throws Exception {
         String[] array = new String[args.size()];
-        TempletonControllerJob ctrl = new TempletonControllerJob();
+        TempletonControllerJob ctrl = new TempletonControllerJob(secureMeatastoreAccess);
         ToolRunner.run(ctrl, args.toArray(array));
         return ctrl.getSubmittedId();
       }
     });
-
-    return id;
   }
 
   public List<String> makeLauncherArgs(AppConfig appConf, String statusdir,
@@ -209,15 +208,17 @@ public class LauncherDelegator extends TempletonDelegator {
   }
 
   /**
-   * Add argument to ask TempletonControllerJob to get
-   * metastore delegation token
-   * @param args
+   * This is called by subclasses when they determined that the sumbmitted job requires
+   * metastore access (e.g. Pig job that uses HCatalog).  This then determines if 
+   * secure access is required and causes TempletonControllerJob to set up a delegation token.
    */
-  protected void addHiveMetaStoreTokenArg(ArrayList<String> args) {
-    LOG.debug("Setting argument for controller job "
-        + TempletonControllerJob.HIVE_MS_DTOKEN_ENABLE_ARG);
-
-    args.add(TempletonControllerJob.HIVE_MS_DTOKEN_ENABLE_ARG);
+  void addHiveMetaStoreTokenArg() {
+    //todo: in order for this to work hive-site.xml must be on the classpath
+    HiveConf hiveConf = new HiveConf();
+    if(!hiveConf.getBoolVar(HiveConf.ConfVars.METASTORE_USE_THRIFT_SASL)) {
+      return;
+    }
+    secureMeatastoreAccess = true;
   }
 
 }

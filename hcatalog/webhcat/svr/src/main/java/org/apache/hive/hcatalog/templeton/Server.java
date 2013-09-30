@@ -919,10 +919,12 @@ public class Server {
   @GET
   @Path("internal/complete/{jobid}")
   @Produces({MediaType.APPLICATION_JSON})
-  public CompleteBean completeJob(@PathParam("jobid") String jobid)
+  public CompleteBean completeJob(@PathParam("jobid") String jobid, 
+                                  @QueryParam("status") String jobStatus)
     throws CallbackFailedException, IOException {
+    LOG.debug("Received callback " + theUriInfo.getRequestUri());
     CompleteDelegator d = new CompleteDelegator(appConf);
-    return d.run(jobid);
+    return d.run(jobid, jobStatus);
   }
 
   /**
@@ -1019,7 +1021,7 @@ public class Server {
       return null;
     }
     return theUriInfo.getBaseUri() + VERSION
-      + "/internal/complete/$jobId";
+      + "/internal/complete/$jobId?status=$jobStatus";
   }
 
   /**

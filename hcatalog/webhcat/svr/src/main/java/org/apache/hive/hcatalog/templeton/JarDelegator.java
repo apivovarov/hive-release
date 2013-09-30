@@ -73,7 +73,7 @@ public class JarDelegator extends LauncherDelegator {
 
       //check if the rest command specified explicitly to use hcatalog
       if(usehcatalog){
-        addHiveMetaStoreTokenArg(args);
+        addHiveMetaStoreTokenArg();
       }
 
       args.add(appConf.clusterHadoop());

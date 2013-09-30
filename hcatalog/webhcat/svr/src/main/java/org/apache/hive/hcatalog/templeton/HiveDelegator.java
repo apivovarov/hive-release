@@ -65,7 +65,7 @@ public class HiveDelegator extends LauncherDelegator {
       args.addAll(makeBasicArgs(execute, srcFile, otherFiles, statusdir, completedUrl, enablelog));
       args.add("--");
       TempletonUtils.addCmdForWindows(args);
-      addHiveMetaStoreTokenArg(args);
+      addHiveMetaStoreTokenArg();
 
       args.add(appConf.hivePath());
 
