@@ -94,7 +94,7 @@ public class TempletonControllerJob extends Configured implements Tool {
   public static final int KEEP_ALIVE_MSEC = 60 * 1000;
 
   public static final String TOKEN_FILE_ARG_PLACEHOLDER
-  = "__WEBHCAT_TOKEN_FILE_LOCATION__";
+    = "__WEBHCAT_TOKEN_FILE_LOCATION__";
 
   private static TrivialExecService execService = TrivialExecService.getInstance();
 
@@ -371,12 +371,12 @@ public class TempletonControllerJob extends Configured implements Tool {
    */
   @Override
   public int run(String[] args)
-      throws IOException, InterruptedException, ClassNotFoundException, TException {
+    throws IOException, InterruptedException, ClassNotFoundException, TException {
     Configuration conf = getConf();
 
     conf.set(JAR_ARGS_NAME, TempletonUtils.encodeArray(args));
-        String user = UserGroupInformation.getCurrentUser().getShortUserName();
-        conf.set("user.name", user);
+    String user = UserGroupInformation.getCurrentUser().getShortUserName();
+    conf.set("user.name", user);
     Job job = new Job(conf);
     job.setJarByClass(TempletonControllerJob.class);
     job.setJobName("TempletonControllerJob");
@@ -421,19 +421,17 @@ public class TempletonControllerJob extends Configured implements Tool {
         Text(SecureProxySupport.HCAT_SERVICE), hiveToken);
     return metastoreTokenStrForm;
   }
-  private String buildHcatDelegationToken(String user)
-          throws IOException, InterruptedException, TException {
+  private String buildHcatDelegationToken(String user) throws IOException, InterruptedException, 
+          TException {
     final HiveConf c = new HiveConf();
     LOG.debug("Creating hive metastore delegation token for user " + user);
     final UserGroupInformation ugi = UgiFactory.getUgi(user);
     UserGroupInformation real = ugi.getRealUser();
     return real.doAs(new PrivilegedExceptionAction<String>() {
-      public String run()
-              throws IOException, TException, InterruptedException  {
+      public String run() throws IOException, TException, InterruptedException  {
         final HiveMetaStoreClient client = new HiveMetaStoreClient(c);
         return ugi.doAs(new PrivilegedExceptionAction<String>() {
-          public String run()
-                  throws IOException, TException, InterruptedException {
+          public String run() throws IOException, TException, InterruptedException {
             String u = ugi.getUserName();
             return client.getDelegationToken(u);
           }
@@ -441,5 +439,4 @@ public class TempletonControllerJob extends Configured implements Tool {
       }
     });
   }
-
 }

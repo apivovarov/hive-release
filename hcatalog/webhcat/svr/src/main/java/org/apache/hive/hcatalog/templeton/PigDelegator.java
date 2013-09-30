@@ -81,8 +81,7 @@ public class PigDelegator extends LauncherDelegator {
     try {
       ArrayList<String> allFiles = new ArrayList<String>();
       if (TempletonUtils.isset(srcFile)) {
-        allFiles.add(TempletonUtils.hadoopFsFilename
-            (srcFile, appConf, runAs));
+        allFiles.add(TempletonUtils.hadoopFsFilename(srcFile, appConf, runAs));
       }
       if (TempletonUtils.isset(otherFiles)) {
         String[] ofs = TempletonUtils.hadoopFsListAsArray(otherFiles, appConf, runAs);
