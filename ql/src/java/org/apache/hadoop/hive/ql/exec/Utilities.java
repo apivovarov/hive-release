@@ -629,6 +629,26 @@ public final class Utilities {
     }
   }
 
+  /**
+   * Kryo serializer for timestamp.
+   */
+  private static class TimestampSerializer extends
+  com.esotericsoftware.kryo.Serializer<Timestamp> {
+
+    @Override
+    public Timestamp read(Kryo kryo, Input input, Class<Timestamp> clazz) {
+      Timestamp ts = new Timestamp(input.readLong());
+      ts.setNanos(input.readInt());
+      return ts;
+    }
+
+    @Override
+    public void write(Kryo kryo, Output output, Timestamp ts) {
+      output.writeLong(ts.getTime());
+      output.writeInt(ts.getNanos());
+    }
+  }
+
    /** Custom Kryo serializer for sql date, otherwise Kryo gets confused between
    java.sql.Date and java.util.Date while deserializing
    */
@@ -800,6 +820,7 @@ public final class Utilities {
       Kryo kryo = new Kryo();
       kryo.setClassLoader(Thread.currentThread().getContextClassLoader());
       kryo.register(java.sql.Date.class, new SqlDateSerializer());
+      kryo.register(java.sql.Timestamp.class, new TimestampSerializer());
       removeField(kryo, Operator.class, "colExprMap");
       removeField(kryo, ColumnInfo.class, "objectInspector");
       removeField(kryo, MapWork.class, "opParseCtxMap");
@@ -820,6 +841,7 @@ public final class Utilities {
       kryo.setClassLoader(Thread.currentThread().getContextClassLoader());
       kryo.register(CommonToken.class, new CommonTokenSerializer());
       kryo.register(java.sql.Date.class, new SqlDateSerializer());
+      kryo.register(java.sql.Timestamp.class, new TimestampSerializer());
       return kryo;
     };
   };
