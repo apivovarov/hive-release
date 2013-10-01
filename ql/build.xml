@@ -251,7 +251,7 @@
       </patternset>
     </unzip>
      <unzip 
-      src="${build.ivy.lib.dir}/default/kryo-${kryo.version}.jar" 
+      src="${hive.root}/lib/kryo-${kryo.version}.jar" 
       dest="${build.dir.hive}/kryo/classes">
       <patternset>
         <exclude name="META-INF"/>
