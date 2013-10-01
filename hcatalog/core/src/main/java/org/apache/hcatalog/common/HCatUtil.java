@@ -472,14 +472,6 @@ public class HCatUtil {
             storageHandler.configureInputJobProperties(tableDesc,
                 jobProperties);
             
-            // Copy any other conf parameters that the storage handler additionally set
-            // but wasn't present in the tableDesc.getJobProperties() we passed in.
-            for (Map.Entry<String, String> el : storageHandler.getConf()) {
-                if (! tableDesc.getJobProperties().containsKey(el.getKey())){
-                    jobProperties.put(el.getKey(), el.getValue());
-                }
-            }
-
         } catch (IOException e) {
             throw new IllegalStateException(
                 "Failed to configure StorageHandler", e);
