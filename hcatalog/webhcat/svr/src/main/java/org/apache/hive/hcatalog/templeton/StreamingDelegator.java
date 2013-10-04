@@ -102,10 +102,6 @@ public class StreamingDelegator extends LauncherDelegator {
       args.add(TempletonUtils.quoteForWindows(arg));
     }
 
-    for (String d : defines) {
-      args.add("-D" + d);
-    }
-
     return args;
   }
 }
