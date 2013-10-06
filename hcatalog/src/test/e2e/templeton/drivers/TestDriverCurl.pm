@@ -249,6 +249,12 @@ sub runTest
     my ($self, $testCmd, $log) = @_;
     my $subName  = (caller(0))[3];
 
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    if ($self->wrongExecutionMode($testCmd, $log)) {
+        my %result;
+        return \%result;
+    }
     # Handle the various methods of running used in 
     # the original TestDrivers
 
@@ -607,6 +613,13 @@ sub compare
     my ($self, $testResult, $benchmarkResult, $log, $testCmd) = @_;
     my $subName  = (caller(0))[3];
 
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    if ($self->wrongExecutionMode($testCmd, $log)) {
+        # Special magic value
+        return $self->{'wrong_execution_mode'};
+    }
+
     my $result = 1;             # until proven wrong...
     if (defined $testCmd->{'status_code'}) {
       my $res = $self->checkResStatusCode($testResult, $testCmd->{'status_code'}, $log);
@@ -951,6 +964,38 @@ sub compare
     }
     return $result;
   }
+
+##############################################################################
+# Check whether we should be running this test or not.
+#
+sub wrongExecutionMode($$)
+{
+    my ($self, $testCmd, $log) = @_;
+
+    # Check that we should run this test.  If the current execution type
+    # doesn't match the execonly flag, then skip this one.
+    my $wrong = ((defined $testCmd->{'execonly'} &&
+            $testCmd->{'execonly'} ne $testCmd->{'exectype'}));
+
+    if ($wrong) {
+        print $log "Skipping test $testCmd->{'group'}" . "_" .
+            $testCmd->{'num'} . " since it is executed only in " .
+            $testCmd->{'execonly'} . " mode and we are executing in " .
+            $testCmd->{'exectype'} . " mode.\n";
+        return $wrong;
+    }
+
+    if (defined $testCmd->{'ignore23'} && $testCmd->{'hadoopversion'}=='23') {
+        $wrong = 1;
+    }
+
+    if ($wrong) {
+        print $log "Skipping test $testCmd->{'group'}" . "_" .
+            $testCmd->{'num'} . " since it is not suppsed to be run in hadoop 23\n";
+    }
+
+    return  $wrong;
+}
 
 ###############################################################################
 sub  setLocationPermGroup{
