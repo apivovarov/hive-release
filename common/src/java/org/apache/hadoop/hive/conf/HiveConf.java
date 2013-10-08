@@ -606,7 +606,7 @@ public class HiveConf extends Configuration {
     HIVE_INDEX_COMPACT_BINARY_SEARCH("hive.index.compact.binary.search", true),
 
     // Statistics
-    HIVESTATSAUTOGATHER("hive.stats.autogather", true),
+    HIVESTATSAUTOGATHER("hive.stats.autogather", false),
     HIVESTATSDBCLASS("hive.stats.dbclass",
         "jdbc:derby"), // other options are jdbc:mysql and hbase as defined in StatsSetupConst.java
     HIVESTATSJDBCDRIVER("hive.stats.jdbcdriver",
