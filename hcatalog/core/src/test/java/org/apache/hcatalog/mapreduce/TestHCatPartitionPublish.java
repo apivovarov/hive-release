@@ -66,7 +66,7 @@ import org.junit.Test;
  * @deprecated Use/modify {@link org.apache.hive.hcatalog.mapreduce.TestHCatPartitionPublish} instead
  */
 public class TestHCatPartitionPublish {
-  private static Configuration mrConf = null;
+  private static JobConf mrConf = null;
   private static FileSystem fs = null;
   private static MiniMRCluster mrCluster = null;
   private static boolean isServerRunning = false;
@@ -86,9 +86,9 @@ public class TestHCatPartitionPublish {
         .toString(), "/logs").getAbsolutePath());
     // LocalJobRunner does not work with mapreduce OutputCommitter. So need
     // to use MiniMRCluster. MAPREDUCE-2350
-    mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null,
-        new JobConf(conf));
-    mrConf = mrCluster.createJobConf();
+    mrConf = new JobConf(conf);
+    mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null, mrConf);
+    // mrConf = mrCluster.createJobConf();
 
     if (isServerRunning) {
       return;

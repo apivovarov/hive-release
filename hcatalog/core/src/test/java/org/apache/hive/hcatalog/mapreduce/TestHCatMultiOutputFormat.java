@@ -82,7 +82,7 @@ public class TestHCatMultiOutputFormat {
   private static HashMap<String, HCatSchema> schemaMap = new HashMap<String, HCatSchema>();
   private static HiveMetaStoreClient hmsc;
   private static MiniMRCluster mrCluster;
-  private static Configuration mrConf;
+  private static JobConf mrConf;
   private static HiveConf hiveConf;
   private static File workDir;
 
@@ -180,9 +180,10 @@ public class TestHCatMultiOutputFormat {
 
     FileSystem fs = FileSystem.get(conf);
     System.setProperty("hadoop.log.dir", new File(workDir, "/logs").getAbsolutePath());
-    mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null,
-      new JobConf(conf));
-    mrConf = mrCluster.createJobConf();
+
+    mrConf = new JobConf(conf);
+    mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null, mrConf);
+    // mrConf = mrCluster.createJobConf();
     fs.mkdirs(warehousedir);
 
     initializeSetup();
