@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.hive.hcatalog.templeton.tool;
 
 import org.apache.commons.logging.Log;
@@ -40,7 +58,7 @@ import java.util.concurrent.TimeUnit;
  * dependencies are clear.  (This used to be an inner class of TempletonControllerJob)
  */
 @InterfaceAudience.Private
-public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text> implements 
+public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text> implements
         JobSubmissionConstants {
   /**
    * This class currently sends everything to stderr, but it should probably use Log4J - 
@@ -49,13 +67,11 @@ public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text>
   private static final Log LOG = LogFactory.getLog(LaunchMapper.class);
 
 
-  protected Process startJob(Context context, String user,
-                             String overrideClasspath)
-          throws IOException, InterruptedException {
+  protected Process startJob(Context context, String user, String overrideClasspath)
+    throws IOException, InterruptedException {
     Configuration conf = context.getConfiguration();
     copyLocal(COPY_NAME, conf);
-    String[] jarArgs
-            = TempletonUtils.decodeArray(conf.get(JAR_ARGS_NAME));
+    String[] jarArgs = TempletonUtils.decodeArray(conf.get(JAR_ARGS_NAME));
 
     ArrayList<String> removeEnv = new ArrayList<String>();
     //why the hell are these removed?
@@ -101,8 +117,7 @@ public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text>
     return TrivialExecService.getInstance().run(jarArgsList, removeEnv, env, overrideLog4jProps);
   }
 
-  private void copyLocal(String var, Configuration conf)
-          throws IOException {
+  private void copyLocal(String var, Configuration conf) throws IOException {
     String[] filenames = TempletonUtils.decodeArray(conf.get(var));
     if (filenames != null) {
       for (String filename : filenames) {
@@ -116,8 +131,7 @@ public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text>
   }
 
   @Override
-  public void run(Context context)
-          throws IOException, InterruptedException {
+  public void run(Context context) throws IOException, InterruptedException {
 
     Configuration conf = context.getConfiguration();
 
@@ -174,23 +188,20 @@ public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text>
     }
   }
 
-  private void executeWatcher(ExecutorService pool, Configuration conf,
-                              JobID jobid, InputStream in, String statusdir,
-                              String name)
-          throws IOException {
+  private void executeWatcher(ExecutorService pool, Configuration conf, JobID jobid, InputStream in,
+                              String statusdir, String name) throws IOException {
     Watcher w = new Watcher(conf, jobid, in, statusdir, name);
     pool.execute(w);
   }
 
-  private KeepAlive startCounterKeepAlive(ExecutorService pool, Context context)
-          throws IOException {
+  private KeepAlive startCounterKeepAlive(ExecutorService pool, Context context) throws IOException {
     KeepAlive k = new KeepAlive(context);
     pool.execute(k);
     return k;
   }
 
-  private void writeExitValue(Configuration conf, int exitValue, String statusdir)
-          throws IOException {
+  private void writeExitValue(Configuration conf, int exitValue, String statusdir) 
+    throws IOException {
     if (TempletonUtils.isset(statusdir)) {
       Path p = new Path(statusdir, EXIT_FNAME);
       FileSystem fs = p.getFileSystem(conf);
@@ -210,9 +221,8 @@ public class LaunchMapper extends Mapper<NullWritable, NullWritable, Text, Text>
     private final JobID jobid;
     private final Configuration conf;
 
-    public Watcher(Configuration conf, JobID jobid, InputStream in,
-                   String statusdir, String name)
-            throws IOException {
+    public Watcher(Configuration conf, JobID jobid, InputStream in, String statusdir, String name)
+      throws IOException {
       this.conf = conf;
       this.jobid = jobid;
       this.in = in;

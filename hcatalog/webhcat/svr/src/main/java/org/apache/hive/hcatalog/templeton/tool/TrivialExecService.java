@@ -50,9 +50,6 @@ final class TrivialExecService {
       theSingleton = new TrivialExecService();
     return theSingleton;
   }
-  TrivialExecService() {
-    super();
-  }
   /**
    * See {@link JobSubmissionConstants#CONTAINER_LOG4J_PROPS} file for details.
    */
@@ -76,7 +73,7 @@ final class TrivialExecService {
   }
   public Process run(List<String> cmd, List<String> removeEnv,
              Map<String, String> environmentVariables, boolean overrideContainerLog4jProps)
-          throws IOException {
+    throws IOException {
     logDebugMsg("run(cmd, removeEnv, environmentVariables, " + overrideContainerLog4jProps + ")");
     logDebugMsg("Starting cmd: " + cmd);
     ProcessBuilder pb = new ProcessBuilder(cmd);
