@@ -104,7 +104,6 @@ Running the tests
 Use the following command to run tests -
 
 ant test -Dinpdir.hdfs=<location of inpdir on hdfs>  -Dtest.user.name=<user the tests should run as> \
- -Dtest.other.user.name=<another user who can launch job> \
  -Dsecure.mode=<yes/no>   -Dharness.webhdfs.url=<webhdfs url upto port num>  -Dharness.templeton.url=<templeton url upto port num> 
 
 If you want to run specific test group you can specify the group, for example:  -Dtests.to.run='-t TestHive'
@@ -113,11 +112,11 @@ If you want to run specific test in a group group you can specify the test, for 
 For example, tests/ddl.conf has several groups such as 'name' => 'REST_DDL_TABLE_BASIC'; use REST_DDL_TABLE_BASIC as the name
 
 
-Running the hcat authorization tests
-------------------------------------
-Hcat authorization tests run commands as different users to test if authorization is done right.
+Running the multi users tests
+-----------------------------
+Hcat authorization tests and job status tests run commands as different users.
 
-ant test-hcat-authorization -Dkeytab.dir=<keytab files dir> 
+ant test-multi-users -Dkeytab.dir=<keytab files dir> 
   -Dsecure.mode=<yes/no>  -Dtest.group.name=<common group> -Dinpdir.hdfs=<location of inpdir on hdfs>  
   -Dtest.user.name=<user 1 belonging to common group> -Dtest.group.user.name=<user 2 belonging to common group>  
   -Dtest.other.user.name=<user 3 who does not belong to common group> 
