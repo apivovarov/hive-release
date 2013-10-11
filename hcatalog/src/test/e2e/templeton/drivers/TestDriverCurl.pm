@@ -777,7 +777,8 @@ sub compare
 
     if ( (defined $testCmd->{'check_job_created'})
          || (defined $testCmd->{'check_job_complete'})
-         || (defined $testCmd->{'check_job_exit_value'}) ) {    
+         || (defined $testCmd->{'check_job_exit_value'})
+         || (defined $testCmd->{'check_job_percent_complete'}) ) {    
       my $jobid = $json_hash->{'id'};
       if (!defined $jobid) {
         print $log "$0::$subName WARN check failed: " 
@@ -792,7 +793,8 @@ sub compare
             . "jobresult not defined ";
           $result = 0;
         }
-        if (defined($testCmd->{'check_job_complete'}) || defined($testCmd->{'check_job_exit_value'})) {
+        if (defined($testCmd->{'check_job_complete'}) || defined($testCmd->{'check_job_exit_value'})
+            || defined($testCmd->{'check_job_percent_complete'})) {
           my $jobComplete;
           my $NUM_RETRIES = 60;
           my $SLEEP_BETWEEN_RETRIES = 5;
@@ -827,6 +829,15 @@ sub compare
               my $expectedExitValue = $testCmd->{'check_job_exit_value'};
               if ( (!defined $exitValue) || $exitValue % 128 ne $expectedExitValue) {
                 print $log "check_job_exit_value failed. got exitValue $exitValue,  expected  $expectedExitValue";
+                $result = 0;
+              }
+            }
+            # check the percentComplete value
+            if (defined($testCmd->{'check_job_percent_complete'})) {
+              my $pcValue = $res_hash->{'percentComplete'};
+              my $expectedPercentComplete = $testCmd->{'check_job_percent_complete'};
+              if ( (!defined $pcValue) || $pcValue ne $expectedPercentComplete ) {
+                print $log "check_job_percent_complete failed. got percentComplete $pcValue,  expected  $expectedPercentComplete";
                 $result = 0;
               }
             }
