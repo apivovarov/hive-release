@@ -69,30 +69,46 @@ public class TempletonControllerJob extends Configured implements Tool, JobSubmi
   //file to add to DistributedCache
   private static URI overrideLog4jURI = null;
   private static boolean overrideContainerLog4jProps;
+  //Jar cmd submission likely will be affected, Pig likely not
+  private static final String affectedMsg = "Monitoring of Hadoop jobs submitted through WebHCat " +
+          "may be affected.";
 
   /**
    * Copy the file from local file system to home dir of the user WebHCat is running as
    */
-  private static URI copyLog4JtoFileSystem(final String file) throws IOException, 
+  private static URI copyLog4JtoFileSystem(final String localFile) throws IOException, 
           InterruptedException {
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     return ugi.doAs(new PrivilegedExceptionAction<URI>() {
       @Override
       public URI run() throws IOException {
-        FileSystem fs = FileSystem.get(Main.getAppConfigInstance());
-        Path dst = fs.makeQualified(new Path(CONTAINER_LOG4J_PROPS));
-        fs.copyFromLocalFile(new Path(file), dst);
+        AppConfig appConfig = Main.getAppConfigInstance();
+        String fsTmpDir = appConfig.get("hadoop.tmp.dir");
+        if(fsTmpDir == null || fsTmpDir.length() <= 0) {
+          fsTmpDir = Path.SEPARATOR + "users";
+          LOG.warn("Could not find 'hadoop.tmp.dir'; will try " + fsTmpDir);
+        }
+        FileSystem fs = FileSystem.get(appConfig);  
+        Path dirPath = new Path(fsTmpDir);
+        if(!fs.exists(dirPath)) {
+          fs.mkdirs(dirPath, new FsPermission((short)0775));
+        }
+        Path dst = fs.makeQualified(new Path(fsTmpDir, CONTAINER_LOG4J_PROPS));
+        fs.copyFromLocalFile(new Path(localFile), dst);
         //make readable by all users since TempletonControllerJob#run() is run as submitting user
         fs.setPermission(dst, new FsPermission((short)0644));
         return dst.toUri();
       }
     });
   }
+  /**
+   * local file system
+   * @return
+   */
   private static String getLog4JPropsLocal() {
     return AppConfig.getWebhcatConfDir() + File.separator + CONTAINER_LOG4J_PROPS;
   }
   static {
-    String affectedMsg = "Monitoring of Hadoop jobs submitted through WebHCat may be affected.";
     //initialize once-per-JVM (i.e. one running WebHCat server) state and log it once since it's 
     // the same for every job
     try {
@@ -174,9 +190,17 @@ public class TempletonControllerJob extends Configured implements Tool, JobSubmi
     job.setMapOutputValueClass(Text.class);
     job.setInputFormatClass(SingleInputFormat.class);
     if(overrideContainerLog4jProps && overrideLog4jURI != null) {
-      assert overrideLog4jURI != null : "expected overrideLog4jURI != null";
-      job.addCacheFile(overrideLog4jURI);
-      LOG.debug("added " + overrideLog4jURI + " to Dist Cache");
+      FileSystem fs = FileSystem.get(conf);
+      if(fs.exists(new Path(overrideLog4jURI))) {
+        job.addCacheFile(overrideLog4jURI);
+        LOG.debug("added " + overrideLog4jURI + " to Dist Cache");
+      }
+      else {
+        //in case this file was deleted by someone issue a warning but don't try to add to 
+        // DistributedCache as that will throw and fail job submission
+        LOG.warn("Cannot find " + overrideLog4jURI + " which is created on WebHCat startup/job " +
+                "submission.  " + affectedMsg);
+      }
     }
 
     NullOutputFormat<NullWritable, NullWritable> of = new NullOutputFormat<NullWritable, NullWritable>();
