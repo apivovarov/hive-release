@@ -100,6 +100,7 @@ SELECT COUNT(*) FROM orc_create_people where id between 10 and 20;
 -- test predicate push down with partition pruning
 SELECT COUNT(*) FROM orc_create_people where salary = 200.00 and state = 'Ca';
 SELECT COUNT(*) FROM orc_create_people where id < 10 and state = 'Ca';
+SELECT COUNT(*) FROM orc_create_people where state = 'Ca';
 
 -- test predicate push down with no column projection
 SELECT id, first_name, last_name, address
