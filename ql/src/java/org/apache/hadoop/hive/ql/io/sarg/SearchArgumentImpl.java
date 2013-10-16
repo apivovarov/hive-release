@@ -364,10 +364,10 @@ final class SearchArgumentImpl implements SearchArgument {
                                       List<PredicateLeaf> leafCache,
                                       int variable) {
       String columnName = getColumnName(expression, variable);
-      if (columnName == null) {
+      PredicateLeaf.Type type = getType(expression.getChildren().get(variable));
+      if (columnName == null || type == null) {
         return new ExpressionTree(TruthValue.YES_NO_NULL);
       }
-      PredicateLeaf.Type type = getType(expression.getChildren().get(variable));
       Object literal = null;
       List<Object> literalList = null;
       switch (operator) {
