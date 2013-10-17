@@ -70,8 +70,7 @@ CREATE TABLE orc_create_people_staging (
   first_name string,
   last_name string,
   address string,
-  state string,
-  salary decimal);
+  state string);
 
 LOAD DATA LOCAL INPATH '../data/files/orc_create_people.txt'
   OVERWRITE INTO TABLE orc_create_people_staging;
@@ -80,27 +79,18 @@ CREATE TABLE orc_create_people (
   id int,
   first_name string,
   last_name string,
-  address string,
-  salary decimal)
+  address string)
 PARTITIONED BY (state string)
 STORED AS orc;
 
 set hive.exec.dynamic.partition.mode=nonstrict;
 
 INSERT OVERWRITE TABLE orc_create_people PARTITION (state)
-  SELECT id, first_name, last_name, address, salary, state
-  FROM orc_create_people_staging;
+  SELECT * FROM orc_create_people_staging;
 
 SET hive.optimize.index.filter=true;
-
--- test predicate push down
-SELECT COUNT(*) FROM orc_create_people where salary = 200.00;
-SELECT COUNT(*) FROM orc_create_people where id between 10 and 20;
-
 -- test predicate push down with partition pruning
-SELECT COUNT(*) FROM orc_create_people where salary = 200.00 and state = 'Ca';
 SELECT COUNT(*) FROM orc_create_people where id < 10 and state = 'Ca';
-SELECT COUNT(*) FROM orc_create_people where state = 'Ca';
 
 -- test predicate push down with no column projection
 SELECT id, first_name, last_name, address

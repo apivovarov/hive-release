@@ -81,9 +81,7 @@ public class OrcInputFormat  extends FileInputFormat<NullWritable, OrcStruct>
       LOG.info("included columns names = " +
           conf.get(ColumnProjectionUtils.READ_COLUMN_NAMES_CONF_STR, "null"));
       boolean[] includeColumn = findIncludedColumns(types, conf);
-      if (serializedPushdown != null &&
-          columnNamesString != null &&
-          !columnNamesString.trim().isEmpty()) {
+      if (serializedPushdown != null && columnNamesString != null) {
         sarg = SearchArgument.FACTORY.create
             (Utilities.deserializeExpression(serializedPushdown, conf));
         LOG.info("ORC pushdown predicate: " + sarg);
