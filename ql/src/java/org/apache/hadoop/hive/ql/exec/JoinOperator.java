@@ -94,7 +94,7 @@ public class JoinOperator extends CommonJoinOperator<JoinDesc> implements
       List keyObject = (List) soi.getStructFieldData(row, sf);
       // Are we consuming too much memory
       if (alias == numAliases - 1 && !(handleSkewJoin && skewJoinKeyContext.currBigKeyTag >= 0)) {
-        if (sz == joinEmitInterval) {
+        if (sz == joinEmitInterval && !hasFilter(alias)) {
           // The input is sorted by alias, so if we are already in the last join
           // operand,
           // we can emit some results now.
