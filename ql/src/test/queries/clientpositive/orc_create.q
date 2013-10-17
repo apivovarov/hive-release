@@ -96,6 +96,9 @@ SET hive.optimize.index.filter=true;
 -- test predicate push down
 SELECT COUNT(*) FROM orc_create_people where salary = 200.00;
 SELECT COUNT(*) FROM orc_create_people where id between 10 and 20;
+SELECT COUNT(*) FROM orc_create_people where salary > 100.0 and salary < 200.0;
+SELECT COUNT(*) FROM orc_create_people where (id + 1) = 20;
+SELECT COUNT(*) FROM orc_create_people where (salary + 10) < 200;
 
 -- test predicate push down with partition pruning
 SELECT COUNT(*) FROM orc_create_people where salary = 200.00 and state = 'Ca';
