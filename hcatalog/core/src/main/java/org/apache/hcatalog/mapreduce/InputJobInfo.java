@@ -40,7 +40,7 @@ import java.util.zip.InflaterInputStream;
  * Going forward, we plan on treating InputJobInfo as an implementation detail and no longer
  * expose to end-users. Should you have a need to use InputJobInfo outside HCatalog itself,
  * please contact the developer mailing list before depending on this class.
- * @deprecated Use/modify {@link org.apache.hive.hcatalog.mapreduce.InputJobInfo} instead
+ * @deprecated Use/modify {@link org.apache.hive.hcatalog.mapreduce.HCatInputFormat} directly instead
  */
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
