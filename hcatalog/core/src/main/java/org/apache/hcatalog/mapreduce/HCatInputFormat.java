@@ -27,6 +27,7 @@ import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hcatalog.data.schema.HCatSchema;
 
 /**
  * The InputFormat to use to read data from HCatalog.
@@ -133,4 +134,26 @@ public class HCatInputFormat extends HCatBaseInputFormat {
         }
         return this;
     }
+
+    /**
+     * Return partitioning columns for this input, can only be called after setInput is called.
+     * @return partitioning columns of the table specified by the job.
+     */
+    public HCatSchema getPartitionColumns() {
+        Preconditions.checkNotNull(this.inputJobInfo,
+            "inputJobInfo is null, setInput has not yet been called.");
+        return this.inputJobInfo.getTableInfo().getPartitionColumns();
+
+    }
+
+    /**
+     * Return data columns for this input, can only be called after setInput is called.
+     * @return data columns of the table specified by the job.
+     */
+    public HCatSchema getDataColumns() {
+        Preconditions.checkNotNull(this.inputJobInfo,
+            "inputJobInfo is null, setInput has not yet been called.");
+        return this.inputJobInfo.getTableInfo().getDataColumns();
+    }
+
 }
