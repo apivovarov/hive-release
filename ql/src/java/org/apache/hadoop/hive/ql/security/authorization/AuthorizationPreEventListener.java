@@ -59,9 +59,8 @@ public class AuthorizationPreEventListener extends MetaStorePreEventListener {
   public static final Log LOG = LogFactory.getLog(
       AuthorizationPreEventListener.class);
 
-  private static HiveConf conf;
-  private static HiveMetastoreAuthorizationProvider authorizer;
-  private static HiveMetastoreAuthenticationProvider authenticator;
+  private final HiveMetastoreAuthorizationProvider authorizer;
+  private final HiveMetastoreAuthenticationProvider authenticator;
 
   public AuthorizationPreEventListener(Configuration config) throws HiveException {
     super(config);
