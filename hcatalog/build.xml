@@ -46,13 +46,6 @@
         <equals arg1="${repo}" arg2="staging"/>
     </condition>
     
-    <condition property="hadoopversion" value="20">
-      <equals arg1="${mvn.hadoop.profile}" arg2="hadoop20"/>
-    </condition>
-    <condition property="hadoopversion" value="23">
-      <equals arg1="${mvn.hadoop.profile}" arg2="hadoop23"/>
-    </condition>
- 
     <!-- e2e test properties -->
     <property name="test.e2e.dir" value="${basedir}/src/test/e2e/hcatalog"/>
 
@@ -68,7 +61,6 @@
 
     <target name="init">
         <mkdir dir="${dist.dir}"/>
-        <mkdir dir="${build.dir}"/>
     </target>
 
     <!--
