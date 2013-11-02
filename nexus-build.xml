@@ -7,7 +7,7 @@
     <property name="ant_task_repo_url"
     value="${mvnrepo}/org/apache/maven/maven-ant-tasks/${ant-task.version}/maven-ant-tasks-${ant-task.version}.jar"/>
 
-    <target name="stage" depends="apache.maven-build" description="deploy artifact to a nexus repository">
+    <target name="stage" depends="apache.tar, apache.maven-nexus-deploy" description="deploy artifact to a nexus repository">
       <get src="${ant_task_repo_url}" dest="${basedir}/ivy/maven-ant-tasks-2.1.3.jar" usetimestamp="true"/>
       <path id="mvn-ant-task-classpath" path="${basedir}/ivy/maven-ant-tasks-2.1.3.jar"/>
       <typedef resource="org/apache/maven/artifact/ant/antlib.xml"

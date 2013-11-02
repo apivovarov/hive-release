@@ -765,7 +765,7 @@
   <!-- Make release tarball                                               -->
   <!-- ================================================================== -->
 
-  <target name="tar" depends="package, docs, javadoc" description="Make release tarball">
+  <target name="tar" depends="maven-build" description="Make release tarball">
     <echo message="Project: ${ant.project.name}"/>
     <macro_tar param.destfile="${build.dir.hive}/${tar.final.name}.tar.gz">
       <param.listofitems>
@@ -1107,7 +1107,7 @@
 	     uri="urn:maven-artifact-ant" classpathref="maven-ant-tasks.classpath" />
   </target>
   
-  <target name="maven-build" depends="package" description="Build Maven artifacts">
+  <target name="maven-build" depends="package, docs, javadoc" description="Build Maven artifacts">
     <echo message="Project: ${ant.project.name}"/>
     <!-- create jars, poms licences directory -->
     <mkdir dir="${mvn.jar.dir}" />
@@ -1309,6 +1309,14 @@
         </ant>
       </else>
     </if>
+  </target>
+  
+  <target name="maven-nexus-deploy" description="Publish Maven artifacts">
+      <echo message="Project: ${ant.project.name}"/>
+      <ant dir="hcatalog" target="stage">
+          <property name="mvn.deploy.repo.id" value="${mvn.deploy.id}"/>
+          <property name="mvn.deploy.repo.url" value="${mvn.deploy.url}"/>
+      </ant>
   </target>
 
   <target name="maven-sign" if="staging">
