@@ -22,12 +22,15 @@ package org.apache.hcatalog.mapreduce;
 import java.io.IOException;
 import java.util.Properties;
 
-import com.google.common.base.Preconditions;
-import org.apache.hadoop.classification.InterfaceAudience;
-import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
+import org.apache.hadoop.hive.common.classification.InterfaceStability;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hcatalog.common.HCatConstants;
+import org.apache.hcatalog.common.HCatUtil;
 import org.apache.hcatalog.data.schema.HCatSchema;
+
+import com.google.common.base.Preconditions;
 
 /**
  * The InputFormat to use to read data from HCatalog.
@@ -138,22 +141,28 @@ public class HCatInputFormat extends HCatBaseInputFormat {
     /**
      * Return partitioning columns for this input, can only be called after setInput is called.
      * @return partitioning columns of the table specified by the job.
+     * @throws IOException
      */
-    public HCatSchema getPartitionColumns() {
-        Preconditions.checkNotNull(this.inputJobInfo,
-            "inputJobInfo is null, setInput has not yet been called.");
-        return this.inputJobInfo.getTableInfo().getPartitionColumns();
+    public static HCatSchema getPartitionColumns(Configuration conf) throws IOException {
+        InputJobInfo inputInfo = (InputJobInfo) HCatUtil.deserialize(
+            conf.get(HCatConstants.HCAT_KEY_JOB_INFO));
+        Preconditions.checkNotNull(inputInfo,
+            "inputJobInfo is null, setInput has not yet been called to save job into conf supplied.");
+        return inputInfo.getTableInfo().getPartitionColumns();
 
     }
 
     /**
      * Return data columns for this input, can only be called after setInput is called.
      * @return data columns of the table specified by the job.
+     * @throws IOException
      */
-    public HCatSchema getDataColumns() {
-        Preconditions.checkNotNull(this.inputJobInfo,
-            "inputJobInfo is null, setInput has not yet been called.");
-        return this.inputJobInfo.getTableInfo().getDataColumns();
+    public static HCatSchema getDataColumns(Configuration conf) throws IOException {
+        InputJobInfo inputInfo = (InputJobInfo) HCatUtil.deserialize(
+            conf.get(HCatConstants.HCAT_KEY_JOB_INFO));
+        Preconditions.checkNotNull(inputInfo,
+            "inputJobInfo is null, setInput has not yet been called to save job into conf supplied.");
+        return inputInfo.getTableInfo().getDataColumns();
     }
 
 }
