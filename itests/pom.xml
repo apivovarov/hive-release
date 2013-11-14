@@ -29,6 +29,7 @@
 
   <properties>
     <hive.path.to.root>..</hive.path.to.root>
+    <build.helper.maven.plugin.version>1.8</build.helper.maven.plugin.version>
   </properties>
 
   <modules>
