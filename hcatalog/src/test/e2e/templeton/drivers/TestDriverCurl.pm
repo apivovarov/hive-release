@@ -705,6 +705,11 @@ sub compare
         }
         my $regex_expected_value = $json_matches->{$key};
         print $log "Comparing $key: $json_field_val with regex /$regex_expected_value/\n";
+        
+        #the below code is added due to version change in JSON module
+        if ($key ne "exitcode" && $json_field_val == 1) {
+          $json_field_val = 'true';
+        }
 
         if ($json_field_val !~ /$regex_expected_value/s) {
           print $log "$0::$subName WARN check failed:" 
@@ -813,7 +818,7 @@ sub compare
           #first wait for job completion
           while ($NUM_RETRIES-- > 0) {
             $jobComplete = $res_hash->{'status'}->{'jobComplete'};
-            if (defined $jobComplete && lc($jobComplete) eq "true") {
+            if (defined $jobComplete && (lc($jobComplete) eq "true" || lc($jobComplete) eq "1")) {   
               last;
             }
             sleep $SLEEP_BETWEEN_RETRIES;
@@ -821,7 +826,7 @@ sub compare
             $json = new JSON;
             $res_hash = $json->utf8->decode($jobResult->{'body'});
           }
-          if ( (!defined $jobComplete) || lc($jobComplete) ne "true") {
+          if ( (!defined $jobComplete) || (lc($jobComplete) ne "true" && lc($jobComplete) ne "1")) {  
             print $log "$0::$subName WARN check failed: " 
               . " timeout on wait for job completion ";
             $result = 0;
