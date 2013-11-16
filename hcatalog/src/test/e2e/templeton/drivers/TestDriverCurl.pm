@@ -659,6 +659,10 @@ sub compare
         	$value = $path->value(\@sorted_filtered_body);
         } else {
         	$value = $path->value($testResult->{'body'});
+                #the below if statement is added due to version change in JSON module
+                if ((index($key, 'jobComplete') != -1) && $value == 1) {
+                  $value = 'true';
+                }
         }
         
         if ($value !~ /$regex_expected_value/s) {
