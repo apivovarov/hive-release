@@ -291,10 +291,11 @@ public class ExpressionTree {
       String valString;
       // partitionname ==>  (key=value/)*(key=value)
       if (partitionColumnIndex == (partitionColumnCount - 1)) {
+        // This is an optimization for single partition keys
         valString = "partitionName.substring(partitionName.indexOf(\"" + keyEqual + "\")+" + keyEqualLength + ")";
       }
       else {
-        valString = "partitionName.substring(partitionName.indexOf(\"" + keyEqual + "\")+" + keyEqualLength + ").substring(0, partitionName.substring(partitionName.indexOf(\"" + keyEqual + "\")+" + keyEqualLength + ").indexOf(\"/\"))";
+        valString = "partitionName.substring(partitionName.indexOf(\"" + keyEqual + "\")+" + keyEqualLength + ").substring(0, partitionName.concat(\"/\").substring(partitionName.indexOf(\"" + keyEqual + "\")+" + keyEqualLength + ").indexOf(\"/\"))";
       }
 
       if (operator == Operator.LIKE) {
