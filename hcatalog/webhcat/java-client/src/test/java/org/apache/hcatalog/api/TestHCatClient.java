@@ -34,6 +34,9 @@ import org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
 import org.apache.hadoop.hive.serde2.columnar.ColumnarSerDe;
+import org.apache.hadoop.hive.ql.io.orc.OrcInputFormat;
+import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
+import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
 import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.hcatalog.cli.SemanticAnalysis.HCatSemanticAnalyzer;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -109,6 +112,7 @@ public class TestHCatClient {
     String db = "testdb";
     String tableOne = "testTable1";
     String tableTwo = "testTable2";
+    String tableThree = "testTable3";
     HCatClient client = HCatClient.create(new Configuration(hcatConf));
     client.dropDatabase(db, true, HCatClient.DropDBMode.CASCADE);
 
@@ -161,6 +165,19 @@ public class TestHCatClient {
       IgnoreKeyTextOutputFormat.class.getName()));
     assertTrue(table2.getLocation().equalsIgnoreCase(
       "file:" + warehouseDir + "/" + db + ".db/" + tableTwo));
+
+    HCatCreateTableDesc tableDesc3 = HCatCreateTableDesc.create(db,
+      tableThree, cols).fileFormat("orcfile").build();
+    client.createTable(tableDesc3);
+    HCatTable table3 = client.getTable(db, tableThree);
+    assertTrue(table3.getInputFileFormat().equalsIgnoreCase(
+      OrcInputFormat.class.getName()));
+    assertTrue(table3.getOutputFileFormat().equalsIgnoreCase(
+      OrcOutputFormat.class.getName()));
+    assertTrue(table3.getSerdeLib().equalsIgnoreCase(
+      OrcSerde.class.getName()));
+    assertTrue(table1.getCols().equals(cols));
+
     client.close();
   }
 

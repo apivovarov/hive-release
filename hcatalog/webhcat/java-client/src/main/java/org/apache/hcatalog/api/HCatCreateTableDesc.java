@@ -34,6 +34,9 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileInputFormat;
 import org.apache.hadoop.hive.ql.io.RCFileOutputFormat;
+import org.apache.hadoop.hive.ql.io.orc.OrcInputFormat;
+import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
+import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
@@ -502,6 +505,10 @@ public class HCatCreateTableDesc {
           desc.inputformat = RCFileInputFormat.class.getName();
           desc.outputformat = RCFileOutputFormat.class.getName();
           desc.serde = ColumnarSerDe.class.getName();
+        } else if ("orcfile".equalsIgnoreCase(fileFormat)) {
+          desc.inputformat = OrcInputFormat.class.getName();
+          desc.outputformat = OrcOutputFormat.class.getName();
+          desc.serde = OrcSerde.class.getName();
         }
         desc.storageHandler = StringUtils.EMPTY;
       } else if (!StringUtils.isEmpty(storageHandler)) {
