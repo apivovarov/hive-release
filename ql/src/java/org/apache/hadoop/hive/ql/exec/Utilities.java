@@ -2398,30 +2398,6 @@ public final class Utilities {
   }
 
   /**
-   * Check if a function can be pushed down to JDO for integral types.
-   * Only {=, !=} are supported. lt/gt/etc. to be dealt with in HIVE-4888.
-   * @param func a generic function.
-   * @return true iff this function can be pushed down to JDO filter for integral types.
-   */
-  private static boolean doesJDOFuncSupportIntegral(GenericUDF func) {
-    // AND, OR etc. don't need to be specified here.
-    return func instanceof GenericUDFOPEqual ||
-           func instanceof GenericUDFOPNotEqual;
-  }
-
-  /**
-   * @param type type
-   * @param constant The constant, if any.
-   * @return true iff type is an integral type.
-   */
-  private static boolean isIntegralType(String type) {
-    return type.equals(serdeConstants.TINYINT_TYPE_NAME) ||
-           type.equals(serdeConstants.SMALLINT_TYPE_NAME) ||
-           type.equals(serdeConstants.INT_TYPE_NAME) ||
-           type.equals(serdeConstants.BIGINT_TYPE_NAME);
-  }
-
-  /**
    * Check if the partition pruning expression can be pushed down to JDO filtering.
    * The partition expression contains only partition columns.
    * The criteria that an expression can be pushed down are that:
@@ -2438,40 +2414,29 @@ public final class Utilities {
       Table tab, ExprNodeDesc expr, GenericUDF parent) {
     boolean isConst = expr instanceof ExprNodeConstantDesc;
     boolean isCol = !isConst && (expr instanceof ExprNodeColumnDesc);
-    boolean isIntegralSupported = (parent != null) && (isConst || isCol)
-        && doesJDOFuncSupportIntegral(parent);
 
-    // JDO filter now only support String typed literals, as well as integers
-    // for some operators; see Filter.g and ExpressionTree.java.
+    // JDO filter now only support String typed literals; see Filter.g and ExpressionTree.java.
     if (isConst) {
       Object value = ((ExprNodeConstantDesc)expr).getValue();
       if (value instanceof String) {
         return null;
       }
-      if (isIntegralSupported && isIntegralType(expr.getTypeInfo().getTypeName())) {
-        return null;
-      }
-      return "Constant " + value + " is not string "
-        + (isIntegralSupported ? "or integral ": "") + "type: " + expr.getTypeInfo().getTypeName();
+      return "Constant " + value + " is not string type: " + expr.getTypeInfo().getTypeName();
     } else if (isCol) {
       TypeInfo type = expr.getTypeInfo();
-      if (type.getTypeName().equals(serdeConstants.STRING_TYPE_NAME)
-          || (isIntegralSupported && isIntegralType(type.getTypeName()))) {
+      if (type.getTypeName().equals(serdeConstants.STRING_TYPE_NAME)) {
         String colName = ((ExprNodeColumnDesc)expr).getColumn();
         for (FieldSchema fs: tab.getPartCols()) {
           if (fs.getName().equals(colName)) {
-            if (fs.getType().equals(serdeConstants.STRING_TYPE_NAME)
-                || (isIntegralSupported && isIntegralType(fs.getType()))) {
+            if (fs.getType().equals(serdeConstants.STRING_TYPE_NAME)) {
               return null;
             }
-            return "Partition column " + fs.getName() + " is not string "
-              + (isIntegralSupported ? "or integral ": "") + "type: " + fs.getType();
+            return "Partition column " + fs.getName() + " is not string type: " + fs.getType();
           }
         }
         assert(false); // cannot find the partition column!
      } else {
-        return "Column " + expr.getExprString() + " is not string "
-          + (isIntegralSupported ? "or integral ": "") + "type: " + type.getTypeName();
+        return "Column " + expr.getExprString() + " is not string type: " + type.getTypeName();
      }
     } else if (expr instanceof ExprNodeGenericFuncDesc) {
       ExprNodeGenericFuncDesc funcDesc = (ExprNodeGenericFuncDesc) expr;
