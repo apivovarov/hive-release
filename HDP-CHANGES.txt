@@ -10,3 +10,5 @@ bigwheel-m16-0.96.0 branched from hortonworks bigwheel-GA-0.12.0  (SHA1 dc81475e
 
 
  BUG FIXES
+
+ HIVE-6117 - mapreduce.RecordReader instance needs to be initialized (Nick Dimiduk via Brock Noland)
