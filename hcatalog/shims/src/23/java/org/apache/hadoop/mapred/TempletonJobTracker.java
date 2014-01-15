@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 
 /*
  * Communicate with the JobTracker as a specific user.
@@ -32,11 +33,24 @@ public class TempletonJobTracker {
     /**
      * Create a connection to the Job Tracker.
      */
-    public TempletonJobTracker(InetSocketAddress addr,
-                               Configuration conf)
+    public TempletonJobTracker(Configuration conf, UserGroupInformation ugi)
         throws IOException {
         
-        jc = new JobClient(conf);
+        try {
+            jc = ugi.doAs(new PrivilegedExceptionAction<JobClient>() {
+            public JobClient run() throws IOException, InterruptedException  {
+                return ugi.doAs(new PrivilegedExceptionAction<JobClient>() {
+                public JobClient run() throws IOException {
+                    //create this in doAs() so that it gets a security context based passed in 'ugi'
+                    return new JobClient(conf);
+                }
+                });
+            }
+            });
+        }
+        catch(InterruptedException ex) {
+            throw new RuntimeException("Failed to create JobClient", ex);
+        }
     }
 
     /**

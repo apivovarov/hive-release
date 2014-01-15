@@ -35,12 +35,11 @@ public class DeleteDelegator extends TempletonDelegator {
     public QueueStatusBean run(String user, String id)
         throws NotAuthorizedException, BadParam, IOException, InterruptedException
     {
-        UserGroupInformation ugi = UserGroupInformation.createRemoteUser(user);
+        UserGroupInformation ugi = UgiFactory.getUgi(user);
         TempletonJobTracker tracker = null;
         JobState state = null;
         try {
-            tracker = new TempletonJobTracker(getAddress(appConf),
-                                              appConf);
+            tracker = new TempletonJobTracker(appConf, ugi);
             JobID jobid = StatusDelegator.StringToJobID(id);
             if (jobid == null)
                 throw new BadParam("Invalid jobid: " + id);

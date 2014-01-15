@@ -35,14 +35,12 @@ public class TempletonJobTracker {
     /**
      * Create a connection to the Job Tracker.
      */
-    public TempletonJobTracker(InetSocketAddress addr,
-                               Configuration conf)
+    public TempletonJobTracker(Configuration conf, UserGroupInformation ugi)
         throws IOException {
-        UserGroupInformation ugi = UserGroupInformation.getLoginUser();
         cnx = (JobSubmissionProtocol)
             RPC.getProxy(JobSubmissionProtocol.class,
                 JobSubmissionProtocol.versionID,
-                addr,
+                getAddress(conf),
                 ugi,
                 conf,
                 NetUtils.getSocketFactory(conf,
@@ -91,5 +89,9 @@ public class TempletonJobTracker {
      */
     public void close() {
         RPC.stopProxy(cnx);
+    }
+    private InetSocketAddress getAddress(Configuration conf) {
+        String jobTrackerStr = conf.get("mapred.job.tracker", "localhost:8012");
+        return NetUtils.createSocketAddr(jobTrackerStr);
     }
 }

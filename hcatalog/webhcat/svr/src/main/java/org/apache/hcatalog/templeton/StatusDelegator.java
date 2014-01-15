@@ -26,6 +26,7 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.JobProfile;
 import org.apache.hadoop.mapred.JobStatus;
 import org.apache.hadoop.mapred.TempletonJobTracker;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hcatalog.templeton.tool.JobState;
 
 /**
@@ -41,11 +42,11 @@ public class StatusDelegator extends TempletonDelegator {
     public QueueStatusBean run(String user, String id)
         throws NotAuthorizedException, BadParam, IOException, InterruptedException
     {
+        UserGroupInformation ugi = UgiFactory.getUgi(user);
         TempletonJobTracker tracker = null;
         JobState state = null;
         try {
-            tracker = new TempletonJobTracker(getAddress(appConf),
-                                              appConf);
+            tracker = new TempletonJobTracker(appConf, ugi);
             JobID jobid = StatusDelegator.StringToJobID(id);
             if (jobid == null)
                 throw new BadParam("Invalid jobid: " + id);
