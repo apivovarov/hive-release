@@ -34,6 +34,7 @@ import java.util.Properties;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.hive.common.JavaUtils;
@@ -79,7 +80,6 @@ public class HCatUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(HCatUtil.class);
     private static volatile HiveClientCache hiveClientCache;
-    private final static int DEFAULT_HIVE_CACHE_EXPIRY_TIME_SECONDS = 2 * 60;
 
     public static boolean checkJobContextIfRunningFromBackend(JobContext j) {
         if (j.getConfiguration().get("mapred.task.id", "").equals("") &&
@@ -471,7 +471,7 @@ public class HCatUtil {
 
             storageHandler.configureInputJobProperties(tableDesc,
                 jobProperties);
-            
+
         } catch (IOException e) {
             throw new IllegalStateException(
                 "Failed to configure StorageHandler", e);
@@ -544,6 +544,11 @@ public class HCatUtil {
     public static HiveMetaStoreClient getHiveClient(HiveConf hiveConf)
         throws MetaException, IOException {
 
+        if (hiveConf.getBoolean(HCatConstants.HCAT_HIVE_CLIENT_DISABLE_CACHE, false)){
+          // If cache is disabled, don't use it.
+          return getNonCachedHiveClient(hiveConf);
+        }
+
         // Singleton behaviour: create the cache instance if required. The cache needs to be created lazily and
         // using the expiry time available in hiveConf.
 
@@ -551,7 +556,7 @@ public class HCatUtil {
             synchronized (HiveMetaStoreClient.class) {
                 if (hiveClientCache == null) {
                     hiveClientCache = new HiveClientCache(hiveConf.getInt(HCatConstants.HCAT_HIVE_CLIENT_EXPIRY_TIME,
-                        DEFAULT_HIVE_CACHE_EXPIRY_TIME_SECONDS));
+                        HiveClientCache.DEFAULT_HIVE_CACHE_EXPIRY_TIME_SECONDS));
                 }
             }
         }
@@ -560,6 +565,10 @@ public class HCatUtil {
         } catch (LoginException e) {
             throw new IOException("Couldn't create hiveMetaStoreClient, Error getting UGI for user", e);
         }
+    }
+
+    private static HiveMetaStoreClient getNonCachedHiveClient(HiveConf hiveConf) throws MetaException{
+        return new HiveMetaStoreClient(hiveConf);
     }
 
     public static void closeHiveClientQuietly(HiveMetaStoreClient client) {
