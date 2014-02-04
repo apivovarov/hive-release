@@ -1,0 +1,60 @@
+
+Baikal Build instructions (see BUG-12887)
+=========================================
+
+To build hive for Baikal, we need to do two things:
+
+a) Firstly, we need to tell maven to look at nexus for all the dependencies, by telling it to use nexus as a mirror for all lookups. This requires a change in your ~/.m2/settings.xml file, creating it if it does not already exist.
+b) Then, we need to replace version numbers for the appropriate build number we're targetting in all our pom.xml files.
+
+Once that's done, we can build, passing in appropriate version numbers to the maven commandline.
+
+
+SETTINGS.XML CHANGE:
+--------------------
+
+Add the following config entry to your ~/.m2/settings.xml (merging appropriately if it already exists, or copy-pasting the following contents if it does not:
+==
+<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"  
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
+      xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">
+  <mirrors>
+    <mirror>
+      <id>public</id>
+      <mirrorOf>*</mirrorOf>
+      <url>http://54.235.92.15/nexus/content/groups/public/</url>
+    </mirror>
+  </mirrors>
+</settings>
+==
+
+POM.XML CHANGES:
+----------------
+
+The script below can be used easily to change all the appropriate version numbers when run from the hive build root. If you're copy-pasting instructions instead, make sure to replace or set BUILD_NO appropriately. 50 is a good current build version as of writing this doc. Refer to the nexus build dir to see what new build numbers look like.
+
+==
+test "x$1" == 'x' && { echo "Please specify a build number as an arugment."; exit 1; }
+
+BUILD_NO=$1
+
+set -x
+
+find ./ -name pom.xml -type f -exec perl -pi -e "s/<hadoop-23.version>[^<]+</<hadoop-23.version>2.4.0.2.1.1.0-${BUILD_NO}</g" '{}' ';'
+find ./ -name pom.xml -type f -exec perl -pi -e "s/<hbase.version>[^<]+</<hbase.version>0.98.0.2.1.1.0-${BUILD_NO}-hadoop2</g" '{}' ';'
+find ./ -name pom.xml -type f -exec perl -pi -e "s/<zookeeper.version>[^<]+</<zookeeper.version>3.4.5.2.1.1.0-${BUILD_NO}</g" '{}' ';'
+find ./ -name pom.xml -type f -exec perl -pi -e "s/<tez.version>[^<]+</<tez.version>0.4.0.2.1.1.0-${BUILD_NO}</g" '{}' ';'
+find ./ -name pom.xml -type f -exec perl -pi -e "s/<hbase.hadoop2.version>[^<]+</<hbase.hadoop2.version>0.98.0.2.1.1.0-${BUILD_NO}-hadoop2</g" '{}' ';'
+
+mvn -q versions:set -DnewVersion=0.13.0.2.1.1.0-${BUILD_NO}
+==
+
+
+BUILDING:
+---------
+
+Finally, we're ready to build. The underlying build command will build hive with a defined BUILD_NO, with debug and stacktrace printing. Change targets appropriately as desired.
+
+mvn -X -e -Dversion=0.13.0.2.1.1.0-${BUILD_NO} -Dhbase.version=0.98.0.2.1.1.0-${BUILD_NO}-hadoop2 -Dzookeeper.version=3.4.5.2.1.1.0-${BUILD_NO} -Dtez.version=0.4.0.2.1.1.0-${BUILD_NO} -Dhadoop.mr.rev=23 -Dhadoop.version=2.4.0.2.1.1.0-${BUILD_NO} -Dhadoop.security.version=2.4.0.2.1.1.0-${BUILD_NO} -Dhadoop-0.23.version=2.4.0.2.1.1.0-${BUILD_NO} -Dhbase.hadoop2.version=0.98.0.2.1.1.0-${BUILD_NO}-hadoop2 -DskipTests -Phadoop-2,dist -Dmaven.javadoc.skip=true -Dhbase-test.version=0.98.0.2.1.1.0-${BUILD_NO}-hadoop2 -Dhadoopversion=23 -Dhbase.version.with.hadoop.version=0.98.0.2.1.1.0-${BUILD_NO}-hadoop2 -Dtest.junit.output.format=xml -Dmvn.hadoop.profile=hadoop23 -DskipTests clean install
+
