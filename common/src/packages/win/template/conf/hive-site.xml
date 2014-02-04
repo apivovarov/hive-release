@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+
+<!-- Hive Configuration can either be stored in this file or in the hadoop configuration files  -->
+<!-- that are implied by Hadoop setup variables.                                                -->
+<!-- Aside from Hadoop setup variables - this file is provided as a convenience so that Hive    -->
+<!-- users do not have to edit hadoop configuration files (that may be managed as a centralized -->
+<!-- resource).                                                                                 -->
+
+<!-- Hive Execution Parameters -->
+
+<property>
+  <name>hive.metastore.uris</name>
+  <value>thrift://localhost:9083</value>
+</property>
+
+<property>
+  <name>hive.metastore.connect.retries</name>
+  <value>5</value>
+  <description>Number of retries while opening a connection to metastore</description>
+</property>
+
+<property>
+  <name>hive.metastore.ds.retry.attempts</name>
+  <value>0</value>
+  <description>The number of times to retry a metastore call if there were a connection error</description>
+</property>
+
+<property>
+   <name>hive.metastore.ds.retry.interval</name>
+   <value>1000</value>
+   <description>The number of miliseconds between metastore retry attempts</description>
+</property>
+
+<property>
+  <name>hive.metastore.execute.setugi</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.hmshandler.retry.attempts</name>
+  <value>5</value>
+  <description>The number of times to retry a HMSHandler call if there were a connection error</description>
+</property>
+
+<property>
+   <name>hive.hmshandler.retry.interval</name>
+   <value>1000</value>
+   <description>The number of miliseconds between HMSHandler retry attempts</description>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionURL</name>
+  <value>jdbc:derby://localhost:1527/metastore_db;create=true</value>
+  <description>JDBC connect string for a JDBC metastore</description>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionDriverName</name>
+  <value>org.apache.derby.jdbc.ClientDriver</value>
+  <description>Driver class name for a JDBC metastore</description>
+</property>
+
+<property>
+  <name>hive.metastore.warehouse.dir</name>
+  <value>/hive/warehouse</value>
+  <description>location of default database for the warehouse</description>
+</property>
+
+<property>
+  <name>hive.hwi.listen.host</name>
+  <value>0.0.0.0</value>
+  <description>This is the host address the Hive Web Interface will listen on</description>
+</property>
+
+<property>
+  <name>hive.hwi.listen.port</name>
+  <value>9999</value>
+  <description>This is the port the Hive Web Interface will listen on</description>
+</property>
+
+<property>
+  <name>hive.hwi.war.file</name>
+  <value>lib\hive-hwi-@hive.version@.war</value>
+  <description>This is the WAR file with the jsp content for Hive Web Interface</description>
+</property>
+
+<property>
+  <name>hive.server2.transport.mode</name>
+  <value>binary</value>
+  <description>Server transport mode. "binary" or "http".</description>
+</property>
+
+<property>
+  <name>hive.server2.thrift.http.port</name>
+  <value>10001</value>
+  <description>Port number when in HTTP mode.</description>
+</property>
+
+<property>
+  <name>hive.server2.thrift.http.path</name>
+  <value>/</value>
+  <description>Path component of URL endpoint when in HTTP mode.</description>
+</property>
+
+<property>
+  <name>hive.server2.thrift.http.min.worker.threads</name>
+  <value>5</value>
+  <description>Minimum number of worker threads when in HTTP mode.</description>
+</property>
+
+<property>
+  <name>hive.server2.thrift.http.max.worker.threads</name>
+  <value>100</value>
+  <description>Maximum number of worker threads when in HTTP mode.</description>
+</property>
+
+<property>
+  <name>hive.server2.thrift.port</name>
+  <value>10001</value>
+  <description>HiveServer2 thrift port</description>
+</property>
+
+<property>
+  <name>hive.server2.enable.doAs</name>
+  <value>false</value>
+</property>
+
+<property>
+  <name>hive.security.authorization.enabled</name>
+  <value>true</value>
+  <description>enable or disable the hive client authorization</description>
+</property>
+
+<property>
+  <name>hive.security.authorization.manager</name>
+  <value>org.apache.hadoop.hive.ql.security.authorization.StorageBasedAuthorizationProvider</value>
+</property>
+
+</configuration>
