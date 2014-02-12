@@ -23,7 +23,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
-import org.apache.hadoop.hive.ql.io.RCFile;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.security.authorization.DefaultHiveAuthorizationProvider;
@@ -94,7 +93,6 @@ public class FosterStorageHandler extends HCatStorageHandler {
     @Override
     public void configureInputJobProperties(TableDesc tableDesc,
                                             Map<String, String> jobProperties) {
-
     }
 
     @Override
@@ -149,12 +147,7 @@ public class FosterStorageHandler extends HCatStorageHandler {
                 jobProperties.put("mapred.output.dir", jobInfo.getLocation());
             }
 
-            //TODO find a better home for this, RCFile specifc
-            jobProperties.put(RCFile.COLUMN_NUMBER_CONF_STR,
-                Integer.toOctalString(
-                    jobInfo.getOutputSchema().getFields().size()));
-            jobProperties.put(HCatConstants.HCAT_KEY_OUTPUT_INFO,
-                HCatUtil.serialize(jobInfo));
+            SpecialCases.addSpecialCasesParametersToOutputJobProperties(jobProperties, jobInfo, ofClass);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to set output path", e);
         }

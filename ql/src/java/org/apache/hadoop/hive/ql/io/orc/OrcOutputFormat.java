@@ -113,9 +113,19 @@ public class OrcOutputFormat extends FileOutputFormat<NullWritable, OrcSerdeRow>
   public RecordWriter<NullWritable, OrcSerdeRow>
       getRecordWriter(FileSystem fileSystem, JobConf conf, String name,
                       Progressable reporter) throws IOException {
-    return new OrcRecordWriter(fileSystem,  new Path(name), conf,
-      OrcFile.DEFAULT_STRIPE_SIZE, OrcFile.DEFAULT_COMPRESSION,
-      OrcFile.DEFAULT_COMPRESSION_BLOCK_SIZE, OrcFile.DEFAULT_ROW_INDEX_STRIDE);
+    String stripeSize = conf.get(OrcFile.STRIPE_SIZE,
+        OrcFile.DEFAULT_STRIPE_SIZE);
+    String compression = conf.get(OrcFile.COMPRESSION,
+        OrcFile.DEFAULT_COMPRESSION);
+    String compressionSize = conf.get(OrcFile.COMPRESSION_BLOCK_SIZE,
+        OrcFile.DEFAULT_COMPRESSION_BLOCK_SIZE);
+    String rowIndexStride = conf.get(OrcFile.ROW_INDEX_STRIDE,
+            OrcFile.DEFAULT_ROW_INDEX_STRIDE);
+    if ("false".equals(conf.get(OrcFile.ENABLE_INDEXES))) {
+      rowIndexStride = "0";
+    }
+    return new OrcRecordWriter(fileSystem, new Path(name), conf,
+      stripeSize, compression, compressionSize, rowIndexStride);
   }
 
   @Override
