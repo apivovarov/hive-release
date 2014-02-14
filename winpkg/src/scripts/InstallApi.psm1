@@ -111,6 +111,124 @@ function Install(
         "hive.log.dir" = "$hivelogsdir";
         "hive.querylog.location" = "$hivelogsdir\history"}
     }
+    elseif ( $component -eq "hcatalog" )
+	{
+        $FinalName = "hcatalog"
+        $WebHCatVersion = "@version@"
+        $HDP_INSTALL_PATH, $HDP_RESOURCES_DIR = Initialize-InstallationEnv $scriptDir "$FinalName.winpkg.log"
+        Write-Log "Checking the JAVA Installation."
+        if( -not (Test-Path $ENV:JAVA_HOME\bin\java.exe))
+        {
+            Write-Log "JAVA_HOME not set properly; $ENV:JAVA_HOME\bin\java.exe does not exist" "Failure"
+            throw "Install: JAVA_HOME not set properly; $ENV:JAVA_HOME\bin\java.exe does not exist."
+        }
+
+        Write-Log "Checking the Hadoop Installation."
+        if( -not (Test-Path $ENV:HADOOP_HOME\bin\hadoop.cmd))
+        {
+          Write-Log "HADOOP_HOME not set properly; $ENV:HADOOP_HOME\bin\hadoop.cmd does not exist" "Failure"
+          throw "Install: HADOOP_HOME not set properly; $ENV:HADOOP_HOME\bin\hadoop.cmd does not exist."
+        }
+
+        ### $hcatInstallPath: the name of the folder containing the application, after unzipping
+        $hcatInstallPath = Join-Path $env:HIVE_HOME "$FinalName"
+
+        Write-Log "Installing Apache Hcatalog $FinalName to $hcatInstallPath"
+
+        ### Create Node Install Root directory
+        if( -not (Test-Path "$nodeInstallRoot"))
+        {
+            Write-Log "Creating Node Install Root directory: `"$nodeInstallRoot`""
+            $cmd = "mkdir `"$nodeInstallRoot`""
+            Invoke-CmdChk $cmd
+        }
+        ### $installToDir: the directory that contains the appliation, after unzipping
+        $installToDir = Join-Path $env:HIVE_HOME "$FinalName"
+        $installToBin = Join-Path "$installToDir" "bin"
+
+
+        [Environment]::SetEnvironmentVariable( "TEMPLETON_HOME", "$installToDir", [EnvironmentVariableTarget]::Machine )
+        $ENV:TEMPLETON_HOME = "$installToDir"
+
+        $webhcatConfDir = Join-Path "$installToDir" "etc/webhcat"
+        [Environment]::SetEnvironmentVariable( "WEBHCAT_CONF_DIR", "$webhcatConfDir", [EnvironmentVariableTarget]::Machine )
+
+        ###
+        ### Set HCATALOG_HOME environment variable
+        ###
+        Write-Log "Setting the HCATALOG_HOME environment variable at machine scope to `"$hcatInstallPath`""
+        [Environment]::SetEnvironmentVariable("HCATALOG_HOME", $hcatInstallPath, [EnvironmentVariableTarget]::Machine)
+        $ENV:HCATALOG_HOME = "$hcatInstallPath"
+        Write-Log "Copying template files"
+        $xcopy_cmd = "xcopy /EIYF `"$HDP_INSTALL_PATH\..\template\conf\*`" `"$installToDir\etc\webhcat`""
+        Invoke-CmdChk $xcopy_cmd
+
+        ###
+        ###  Setup default configuration
+        ###
+        $streamingJarUriPath = $ENV:HADOOP_HOME + "/share/hadoop/tools/lib/hadoop-streaming-@hadoop.version@.jar"
+        $streamingJarUriPath = ConvertAbsolutePathToUri $streamingJarUriPath
+        $templetonLibJarsPath = $ENV:TEMPLETON_HOME + "/share/webhcat/svr/lib/zookeeper-@zookeeper.version@.jar"
+        $templetonLibJarsPath = ConvertAbsolutePathToUri $templetonLibJarsPath
+        $templetonJar = "$ENV:TEMPLETON_HOME\share\webhcat\svr\webhcat-$WebHCatVersion.jar"
+
+        Configure "hcatalog" $NodeInstallRoot $serviceCredential @{
+            "templeton.streaming.jar" = $streamingJarUriPath;
+            "templeton.libjars" = $templetonLibJarsPath;
+            "templeton.jar" = $templetonJar;}
+
+        $pythonExePath = $env:SystemDrive + "\python27\python.exe"
+        if ( Test-Path "$pythonExePath" )
+        {
+            Write-Log "Using python.exe from '$pythonExePath'"
+            Configure "hcatalog" $NodeInstallRoot $serviceCredential @{
+                "templeton.python" = $pythonExePath;}
+        }
+
+        ###
+        ### Grant Hadoop user full access to $hadoopInstallToDir
+        ###
+        Write-Log "Granting hadoop user full permissions on $installToDir"
+        $username = $serviceCredential.UserName
+        GiveFullPermissions $installToDir $username
+
+        ###
+        ### Create the log directory
+        ###
+        $ttlogsdir = "$installToDir\logs"
+        if (Test-Path ENV:TEMPLETON_LOG_DIR)
+        {
+            $ttlogsdir = "$ENV:TEMPLETON_LOG_DIR"
+        }
+        if ( -not (Test-Path "$ttlogsdir"))
+        {
+            Write-Log "Creating Templeton logs folder"
+            New-Item -Path "$ttlogsdir" -type directory | Out-Null
+        }
+        GiveFullPermissions "$ttlogsdir" "Users"
+        Write-Log "Finished installing Apache Hcatalog"
+
+        if ($roles){
+            CheckRole $roles @("templeton")
+            ###
+            ### Create Templeton Server service and grant user ACLS to start/stop
+            ###
+            Write-Log "Templeton Role Services: $roles"
+            $allServices = $roles
+
+            Write-Log "Installing services $allServices"
+
+            foreach( $service in empty-null $allServices.Split(' '))
+            {
+              CreateAndConfigureHadoopService $service $HDP_RESOURCES_DIR $installToBin $serviceCredential
+
+              Write-Log "Creating service config ${installToBin}\$service.xml"
+              $cmd = "$installToBin\templeton.cmd --service $service > `"$installToBin\$service.xml`""
+              Invoke-CmdChk $cmd
+            }
+        }
+
+    }
     else
     {
         throw "Install: Unsupported compoment argument."
@@ -167,6 +285,44 @@ function Uninstall(
         [Environment]::SetEnvironmentVariable( "HIVE_OPTS", $null, [EnvironmentVariableTarget]::Machine )
         [Environment]::SetEnvironmentVariable( "HIVE_LIB_DIR", $null, [EnvironmentVariableTarget]::Machine )
 	    [Environment]::SetEnvironmentVariable( "HIVE_CONF_DIR", $null, [EnvironmentVariableTarget]::Machine )
+    }
+    elseif ( $component -eq "hcatalog" )
+    {
+        $FinalName = "hcatalog"
+        $HDP_INSTALL_PATH, $HDP_RESOURCES_DIR = Initialize-InstallationEnv $scriptDir "$FinalName.winpkg.log"
+
+        Write-Log "Uninstalling Apache hcatalog $FinalName"
+        ### $installToDir: the directory that contains the application, after unzipping
+        $installToDir = Join-Path  $env:HIVE_HOME "$FinalName"
+        Write-Log "installToDir: $installToDir"
+
+        ###
+        ### Stop and delete services
+        ###
+        foreach( $service in ("templeton"))
+        {
+            StopAndDeleteHadoopService $service
+        }
+
+        ###
+        ### Delete install dir
+        ###
+        Write-Log "Deleting $installToDir"
+        $cmd = "rd /s /q `"$installToDir`""
+        Invoke-Cmd $cmd
+
+        ### Removing HCATALOG_HOME environment variable
+        Write-Log "Removing the HCATALOG_HOME environment variable"
+        [Environment]::SetEnvironmentVariable( "HCATALOG_HOME", $null, [EnvironmentVariableTarget]::Machine )
+
+        Write-Log "Successfully uninstalled Hcatalog"
+
+        ###
+        ### Removing Templeton environment variables
+        ###
+        Write-Log "Removing Templeton environment variables at machine scope"
+        [Environment]::SetEnvironmentVariable( "TEMPLETON_HOME", $null, [EnvironmentVariableTarget]::Machine )
+        [Environment]::SetEnvironmentVariable( "WEBHCAT_CONF_DIR", $null, [EnvironmentVariableTarget]::Machine )
     }
     else
     {
@@ -229,6 +385,27 @@ function Configure(
         ### Apply configuration changes to hive-site.xml
         ###
         $xmlFile = Join-Path $hiveInstallToDir "conf\hive-site.xml"
+        UpdateXmlConfig $xmlFile $configs
+    }
+    elseif ( $component -eq "hcatalog" )
+    {
+        $FinalName = "hcatalog"
+        $HDP_INSTALL_PATH, $HDP_RESOURCES_DIR = Initialize-InstallationEnv $scriptDir "$FinalName.winpkg.log"
+
+        ### $installToDir: the directory that contains the application, after unzipping
+        $installToDir = Join-Path $env:HIVE_HOME "$FinalName"
+        $installToBin = Join-Path "$installToDir" "bin"
+        Write-Log "installToDir: $installToDir"
+
+        if( -not (Test-Path $installToDir ))
+        {
+            throw "Configure: Install Templeton before configuring it"
+        }
+
+        ###
+        ### Apply configuration changes to templeton-site.xml
+        ###
+        $xmlFile = Join-Path $installToDir "etc\webhcat\webhcat-site.xml"
         UpdateXmlConfig $xmlFile $configs
     }
     else
@@ -331,6 +508,31 @@ function StopService(
                 {
                     Write-Host "Can't stop service $role"
                 }
+            }
+        }
+    }
+    elseif ( $component -eq "hcatalog" )
+    {
+        ### Verify that roles are in the supported set
+        CheckRole $roles @("templeton")
+        foreach ( $role in $roles.Split(" ") )
+        {
+            try
+            {
+                Write-Log "Stopping $role "
+                if (Get-Service "$role" -ErrorAction SilentlyContinue)
+                {
+                    Write-Log "Service $role exists, stopping it"
+                    Stop-Service $role
+                }
+                else
+                {
+                    Write-Log "Service $role does not exist, moving to next"
+                }
+            }
+            catch [Exception]
+            {
+                Write-Host "Can't stop service $role"
             }
         }
     }
@@ -653,7 +855,14 @@ function ProcessAliasConfigOptions(
 
     return $result
 }
-
+### Simple routine that converts a Windows absolute path to an URI
+### For example: c:\some\path will be converted to file:///c:/some/path
+function ConvertAbsolutePathToUri( $path )
+{
+    $path = $path.Replace("\", "/")
+    $path = "file:///" + $path
+    $path
+}
 ### Returns the value of the given propertyName from the given xml file.
 ###
 ### Arguments:
@@ -724,6 +933,12 @@ function UpdateXmlConfig(
     $xml.ReleasePath
 }
 
+### Helper routine to emulate which
+function Which($command)
+{
+    (Get-Command $command | Select-Object -first 1).Path
+}
+
 ### Helper routine that ACLs the folders defined in folderList properties.
 ### The routine will look for the property value in the given xml config file
 ### and give full permissions on that folder to the given username.
@@ -777,3 +992,5 @@ Export-ModuleMember -Function Uninstall
 Export-ModuleMember -Function Configure
 Export-ModuleMember -Function StartService
 Export-ModuleMember -Function StopService
+Export-ModuleMember -Function UpdateXmlConfig
+Export-ModuleMember -Function Which

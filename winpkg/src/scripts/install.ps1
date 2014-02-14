@@ -92,6 +92,84 @@ function Main( $scriptDir )
     Install "hive" $nodeInstallRoot $serviceCredential $hiveRoles
 
     Write-Log "Installation of Hive completed successfully"
+    ###
+    ### Install Hcatalog/webhcat
+    ###
+    Write-Log "Installing Hcatalog"
+
+    $FinalName = "hcatalog"
+    $ENV:HCATALOG_HOME = Join-Path $env:HIVE_HOME "$FinalName"
+    ###
+    ### Install webhcat
+    ###
+    $ENV:TEMPLETON_HOME = "$ENV:HCATALOG_HOME"
+    $ENV:TEMPLETON_LOG_DIR="$ENV:HDP_LOG_DIR\webhcat"
+    Write-Log "Setting TEMPLETON_LOG_DIR to $ENV:TEMPLETON_LOG_DIR at machine scope"
+    [Environment]::SetEnvironmentVariable( "TEMPLETON_LOG_DIR", "$ENV:TEMPLETON_LOG_DIR", [EnvironmentVariableTarget]::Machine )
+
+    if ( -not (Test-Path ENV:WINPKG_LOG))
+    {
+        $ENV:WINPKG_LOG = "$FinalName.winpkg.log"
+    }
+    $HDP_INSTALL_PATH, $HDP_RESOURCES_DIR = Initialize-InstallationEnv $scriptDir "$FinalName.winpkg.log"
+    $nodeInstallRoot = $ENV:HADOOP_NODE_INSTALL_ROOT
+    $templetonInstallToDir = Join-Path $env:HIVE_HOME "$FinalName"
+
+    Write-Log "Installing Apache Hcatalog $FinalName to $nodeInstallRoot"
+    Write-Log "Installing Apache Templeton $FinalName to $templetonInstallToDir"
+
+    ###
+    ### Create the Credential object from the given username and password or the provided credentials file
+    ###
+    $serviceCredential = Get-HadoopUserCredentials -credentialsHash @{"username" = $username; "password" = $password; `
+        "passwordBase64" = $passwordBase64; "credentialFilePath" = $credentialFilePath}
+    $username = $serviceCredential.UserName
+    Write-Log "Username: $username"
+    Write-Log "CredentialFilePath: $credentialFilePath"
+
+    ###
+    ### Stop templeton services before proceeding with the install step, otherwise
+    ### files will be in-use and installation can fail
+    ###
+    Write-Log "Stopping Templeton services if already running before proceeding with install"
+    StopService "hcatalog" "templeton"
+
+    if ( "$ENV:IS_WEBHCAT" -eq "yes" ) {
+    $templetonRole="templeton"
+    }
+    Install "hcatalog" $nodeInstallRoot $serviceCredential $templetonRole
+
+    Write-Log "Done installing Hcatalog"
+    ###
+    ### Configure a separate MapReduce capacity-scheduler queue for Templeton.
+    ### This is required to avoid deadlock, where all map slots are currently
+    ### taken by the Templeton map-only jobs.
+    ### For single-node we set cap on the templeton queue capacity to 50% and
+    ### leave 50% of map slots available for jobs to complete.
+    ###
+
+    $xmlFile = Join-Path $ENV:HADOOP_HOME "etc\hadoop\capacity-scheduler.xml"
+    UpdateXmlConfig $xmlFile @{
+        "yarn.scheduler.capacity.root.queues" = "default,joblauncher";
+        "yarn.scheduler.capacity.root.default.capacity" = "95";
+        "yarn.scheduler.capacity.root.default.user-limit-factor" = "10";
+        "yarn.scheduler.capacity.root.joblauncher.capacity" = "5";
+        "yarn.scheduler.capacity.root.joblauncher.maximum-capacity" = "50";
+        "yarn.scheduler.capacity.root.joblauncher.user-limit-factor" = "10" }
+
+    ###
+    ### Configure Templeton to use a separate "joblauncher" queue
+    ###
+    Configure "hcatalog" $NodeInstallRoot $ServiceCredential @{
+        "templeton.hadoop.queue.name" = "joblauncher" }
+    Write-Log "Configuring the Templeton configurations"
+    $pythonpath = Which python
+    Write-Log "Using python from $pythonpath"
+    $xmlFile = Join-Path $ENV:TEMPLETON_HOME "etc\webhcat\webhcat-site.xml"
+    UpdateXmlConfig $xmlFile @{
+        "templeton.hive.properties" = "hive.metastore.local=false,hive.metastore.uris=thrift://${ENV:HIVE_SERVER_HOST}:9083";
+        "templeton.python" = "$pythonpath" }
+    Write-Log "Finished installing Apache Templeton"
 }
 
 try

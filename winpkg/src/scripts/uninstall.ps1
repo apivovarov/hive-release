@@ -25,8 +25,18 @@ function Main( $scriptDir )
     $nodeInstallRoot = "$ENV:HADOOP_NODE_INSTALL_ROOT"
 
     ###
+    ### Uninstall Hcatalog
+    ###
+    $FinalName = "hcatalog"
+    Write-Log "Uninstalling Apache hcatalog $FinalName"
+
+    Uninstall "hcatalog" $ENV:HADOOP_NODE_INSTALL_ROOT
+    Write-Log "Finished Uninstalling Apache hcatalog"
+
+    ###
     ### Uninstall Hive
     ###
+    $FinalName = "@final.name@"
     Uninstall "hive" $nodeInstallRoot
 
     Write-Log "Successfully uninstalled Hive."
