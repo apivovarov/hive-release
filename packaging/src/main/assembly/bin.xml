@@ -251,10 +251,10 @@
       <fileMode>755</fileMode>
       <includes>
         <include>hcat</include>
+        <include>hcat_server.py</include>
         <include>hcatcfg.py</include>
         <include>hcat.py</include>
-        <include>templeton.cmd</include>
-        <include>common.sh</include>
+        <include>*.${file.extension}</include>
       </includes>
       <outputDirectory>hcatalog/bin</outputDirectory>
     </fileSet>
