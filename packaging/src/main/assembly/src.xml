@@ -24,7 +24,7 @@
 
   <id>src</id>
 
-  <baseDirectory>{final.name}-${project.version}-src</baseDirectory>
+  <baseDirectory>${final.name}-${project.version}-src</baseDirectory>
 
   <fileSets>
     <fileSet>

@@ -24,7 +24,7 @@
 
   <id>bin</id>
   
-  <baseDirectory>{final.name}-${project.version}-bin</baseDirectory>
+  <baseDirectory>${final.name}-${project.version}-bin</baseDirectory>
 
   <dependencySets>
     <dependencySet>
