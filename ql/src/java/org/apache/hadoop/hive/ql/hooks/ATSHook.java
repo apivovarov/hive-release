@@ -32,6 +32,7 @@ import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.apptimeline.ATSEntity;
 import org.apache.hadoop.yarn.api.records.apptimeline.ATSEvent;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
 import org.json.JSONObject;
 
@@ -46,12 +47,14 @@ public class ATSHook implements ExecuteWithHookContext {
   private final ExecutorService executor;
   private enum EntityTypes { HIVE_QUERY_ID };
   private enum EventTypes { QUERY_SUBMITTED, QUERY_COMPLETED };
-  private enum OtherInfoTypes { query };
+  private enum OtherInfoTypes { query, status };
   private enum PrimaryFilterTypes { user };
+  private YarnConfiguration yarnConf;
 
   public ATSHook() {
     executor = Executors.newSingleThreadExecutor(
          new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build());
+    yarnConf = new YarnConfiguration();
   }
 
   @Override
@@ -77,7 +80,10 @@ public class ATSHook implements ExecuteWithHookContext {
                    explainPlan, queryStartTime, user));
               break;
             case POST_EXEC_HOOK:
-              fireAndForget(hookContext.getConf(), createPostHookEvent(queryId, currentTime, user));
+              fireAndForget(hookContext.getConf(), createPostHookEvent(queryId, currentTime, user, true));
+              break;
+            case ON_FAILURE_HOOK:
+              fireAndForget(hookContext.getConf(), createPostHookEvent(queryId, currentTime, user, false));
               break;
             default:
               //ignore
@@ -93,14 +99,14 @@ public class ATSHook implements ExecuteWithHookContext {
   ATSEntity createPreHookEvent(String queryId, String query, JSONObject explainPlan, 
       long startTime, String user) throws Exception {
 
-    JSONObject otherInfo = new JSONObject();
     JSONObject queryObj = new JSONObject();
     queryObj.put("queryText", query);
     queryObj.put("queryPlan", explainPlan);
-    otherInfo.put("query", queryObj);
   
-    LOG.warn("Otherinfo: "+otherInfo.toString());
-    
+    if (LOG.isDebugEnabled()) {
+      LOG.warn("Otherinfo: "+queryObj.toString());
+    }
+
     ATSEntity atsEntity = new ATSEntity();
     atsEntity.setEntityId(queryId);
     atsEntity.setEntityType(EntityTypes.HIVE_QUERY_ID.name());
@@ -111,11 +117,11 @@ public class ATSHook implements ExecuteWithHookContext {
     startEvt.setTimestamp(startTime);
     atsEntity.addEvent(startEvt);
 
-    atsEntity.addOtherInfo(OtherInfoTypes.query.name(), otherInfo.toString());
+    atsEntity.addOtherInfo(OtherInfoTypes.query.name(), queryObj.toString());
     return atsEntity;
   }
 
-  ATSEntity createPostHookEvent(String queryId, long stopTime, String user) {
+  ATSEntity createPostHookEvent(String queryId, long stopTime, String user, boolean success) {
 
     ATSEntity atsEntity = new ATSEntity();
     atsEntity.setEntityId(queryId);
@@ -127,12 +133,14 @@ public class ATSHook implements ExecuteWithHookContext {
     stopEvt.setTimestamp(stopTime);
     atsEntity.addEvent(stopEvt);
     
+    atsEntity.addOtherInfo(OtherInfoTypes.status.name(), success);
+
     return atsEntity;
   }
   
   void fireAndForget(Configuration conf, ATSEntity entity) throws Exception {
     TimelineClient timelineClient = TimelineClient.createTimelineClient();
-    timelineClient.init(conf);
+    timelineClient.init(yarnConf);
     timelineClient.start();
     timelineClient.postEntities(entity);
     timelineClient.stop();
