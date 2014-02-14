@@ -34,6 +34,12 @@
   <profiles>
     <profile>
       <id>dist</id>
+      <properties>
+        <package.format>tar.gz</package.format>
+        <package.includeBaseDirectory>true</package.includeBaseDirectory>
+        <file.extension>sh</file.extension>
+        <final.name>apache-hive</final.name>
+      </properties>
       <build>
         <plugins>
     <!-- plugins are always listed in sorted order by groupId, artifectId -->
@@ -48,12 +54,15 @@
                   <goal>single</goal>
                 </goals>
                 <configuration>
-                  <finalName>apache-hive-${project.version}</finalName>
+                  <finalName>${final.name}-${project.version}</finalName>
                   <descriptors>
                     <descriptor>src/main/assembly/bin.xml</descriptor>
                     <descriptor>src/main/assembly/src.xml</descriptor>
                   </descriptors>
                   <tarLongFileMode>gnu</tarLongFileMode>
+                  <formats>
+                    <format>${package.format}</format>
+                  </formats>
                 </configuration>
               </execution>
             </executions>
