@@ -404,6 +404,8 @@ function InstallBinaries(
         Write-Log "Creating Node Install Root directory: `"$nodeInstallRoot`""
         New-Item -Path "$nodeInstallRoot" -type directory | Out-Null
     }
+    #Rename zip file
+    Rename-Item "$HDP_RESOURCES_DIR\$FinalName-bin.zip" "$HDP_RESOURCES_DIR\$FinalName.zip"
 
     ###
     ###  Unzip Hadoop distribution from compressed archive
@@ -425,6 +427,9 @@ function InstallBinaries(
         $destinationFolder = $shellApplication.NameSpace($nodeInstallRoot)
         $destinationFolder.CopyHere($zipPackage.Items(), 20)
     }
+
+    #Rename apache-$FinalName-bin to $FinalName
+    Move-Item -Path "$nodeInstallRoot\$FinalName-bin" -destination "$nodeInstallRoot\$FinalName"
 
     ###
     ###  Copy template config files
