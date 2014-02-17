@@ -26,7 +26,7 @@ setlocal enabledelayedexpansion
 
   @rem Init hadoop env variables (CLASSPATH, HADOOP_OPTS, etc)
   set HADOOP_OPTS=
-  call %HADOOP_HOME%\bin\hadoop-config.cmd
+  call %HADOOP_HOME%\libexec\hadoop-config.cmd
 
   set templeton-service-name=%1
 
