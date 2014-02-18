@@ -103,7 +103,7 @@ public class Hadoop23Shims extends HadoopShimsSecure {
     } else {
       // if the cluster is running in MR1 mode, using HostUtil to construct TaskLogURL
       URL taskTrackerHttpURL = new URL(taskTrackerHttpAddress);
-      return HostUtil.getTaskLogUrl(taskTrackerHttpURL.getHost(),
+      return HostUtil.getTaskLogUrl(taskTrackerHttpURL.getProtocol()+"://",taskTrackerHttpURL.getHost(),
         Integer.toString(taskTrackerHttpURL.getPort()),
         taskAttemptId);
     }
