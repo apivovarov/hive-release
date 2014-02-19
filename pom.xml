@@ -146,9 +146,9 @@
 
   <repositories>
      <repository>
-       <id>conjars</id>
-       <name>Conjars</name>
-       <url>http://conjars.org/repo/</url>
+       <id>nexus</id>
+       <name>nexus</name>
+       <url>http://54.235.92.15/nexus/content/repositories/optiq/</url>
        <layout>default</layout>
        <releases>
           <enabled>true</enabled>
