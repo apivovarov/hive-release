@@ -370,6 +370,13 @@ public interface HadoopShims {
    */
   public long getDefaultBlockSize(FileSystem fs, Path path);
 
+  /***
+   * Check if the current UGI is keytab based
+   * @return
+   * @throws IOException
+   */
+  public boolean isLoginKeytabBased() throws IOException;
+
   /**
    * Get the default replication for a path. In case of CSMT the given path will be used to
    * locate the actual filesystem.

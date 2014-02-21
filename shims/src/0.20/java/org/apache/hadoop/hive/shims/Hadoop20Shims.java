@@ -578,6 +578,11 @@ public class Hadoop20Shims implements HadoopShims {
   }
 
   @Override
+  public boolean isLoginKeytabBased() throws IOException {
+    return false;
+  }
+
+  @Override
   public void setTokenStr(UserGroupInformation ugi, String tokenStr, String tokenService)
     throws IOException {
     throw new UnsupportedOperationException("Tokens are not supported in current hadoop version");

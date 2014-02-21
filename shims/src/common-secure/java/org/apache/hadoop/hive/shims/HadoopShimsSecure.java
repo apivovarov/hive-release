@@ -583,6 +583,11 @@ public abstract class HadoopShimsSecure implements HadoopShims {
   }
 
   @Override
+  public boolean isLoginKeytabBased() throws IOException {
+    return UserGroupInformation.isLoginKeytabBased();
+  }
+
+  @Override
   abstract public JobTrackerState getJobTrackerState(ClusterStatus clusterStatus) throws Exception;
 
   @Override
