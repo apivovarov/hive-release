@@ -29,8 +29,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.exec.ExplainTask;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.hadoop.yarn.api.records.apptimeline.ATSEntity;
-import org.apache.hadoop.yarn.api.records.apptimeline.ATSEvent;
+import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
 import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 
@@ -96,7 +96,7 @@ public class ATSHook implements ExecuteWithHookContext {
       });
   }
 
-  ATSEntity createPreHookEvent(String queryId, String query, JSONObject explainPlan, 
+  TimelineEntity createPreHookEvent(String queryId, String query, JSONObject explainPlan, 
       long startTime, String user) throws Exception {
 
     JSONObject queryObj = new JSONObject();
@@ -107,12 +107,12 @@ public class ATSHook implements ExecuteWithHookContext {
       LOG.warn("Otherinfo: "+queryObj.toString());
     }
 
-    ATSEntity atsEntity = new ATSEntity();
+    TimelineEntity atsEntity = new TimelineEntity();
     atsEntity.setEntityId(queryId);
     atsEntity.setEntityType(EntityTypes.HIVE_QUERY_ID.name());
     atsEntity.addPrimaryFilter(PrimaryFilterTypes.user.name(), user);
     
-    ATSEvent startEvt = new ATSEvent();
+    TimelineEvent startEvt = new TimelineEvent();
     startEvt.setEventType(EventTypes.QUERY_SUBMITTED.name());
     startEvt.setTimestamp(startTime);
     atsEntity.addEvent(startEvt);
@@ -121,14 +121,14 @@ public class ATSHook implements ExecuteWithHookContext {
     return atsEntity;
   }
 
-  ATSEntity createPostHookEvent(String queryId, long stopTime, String user, boolean success) {
+  TimelineEntity createPostHookEvent(String queryId, long stopTime, String user, boolean success) {
 
-    ATSEntity atsEntity = new ATSEntity();
+    TimelineEntity atsEntity = new TimelineEntity();
     atsEntity.setEntityId(queryId);
     atsEntity.setEntityType(EntityTypes.HIVE_QUERY_ID.name());
     atsEntity.addPrimaryFilter(PrimaryFilterTypes.user.name(), user);
     
-    ATSEvent stopEvt = new ATSEvent();
+    TimelineEvent stopEvt = new TimelineEvent();
     stopEvt.setEventType(EventTypes.QUERY_COMPLETED.name());
     stopEvt.setTimestamp(stopTime);
     atsEntity.addEvent(stopEvt);
@@ -138,11 +138,11 @@ public class ATSHook implements ExecuteWithHookContext {
     return atsEntity;
   }
   
-  void fireAndForget(Configuration conf, ATSEntity entity) throws Exception {
+  void fireAndForget(Configuration conf, TimelineEntity entity) throws Exception {
     TimelineClient timelineClient = TimelineClient.createTimelineClient();
     timelineClient.init(yarnConf);
     timelineClient.start();
-    timelineClient.postEntities(entity);
+    timelineClient.putEntities(entity);
     timelineClient.stop();
   }
 }
