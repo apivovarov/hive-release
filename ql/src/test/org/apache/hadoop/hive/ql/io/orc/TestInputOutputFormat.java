@@ -26,11 +26,12 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
@@ -56,7 +57,6 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.FileInputFormat;
-import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -160,7 +160,7 @@ public class TestInputOutputFormat {
         new MockFile("/a/b/.part-03", 1000, new byte[0]),
         new MockFile("/a/b/part-04", 1000, new byte[0]));
     OrcInputFormat.FileGenerator gen =
-      new OrcInputFormat.FileGenerator(context, fs, new Path("/a/b"));
+      new OrcInputFormat.FileGenerator(context, fs, new MockPath(fs, "/a/b"));
     gen.run();
     if (context.getErrors().size() > 0) {
       for(Throwable th: context.getErrors()) {
@@ -178,26 +178,25 @@ public class TestInputOutputFormat {
         ((OrcInputFormat.SplitGenerator) context.queue.get(2)).getPath());
   }
 
-  static final Charset UTF8 = Charset.forName("UTF-8");
-
-  static class MockBlock {
+  public static class MockBlock {
     int offset;
     int length;
     final String[] hosts;
 
-    MockBlock(String... hosts) {
+    public MockBlock(String... hosts) {
       this.hosts = hosts;
     }
   }
 
-  static class MockFile {
+  public static class MockFile {
     final Path path;
     final int blockSize;
     final int length;
     final MockBlock[] blocks;
     final byte[] content;
 
-    MockFile(String path, int blockSize, byte[] content, MockBlock... blocks) {
+    public MockFile(String path, int blockSize, byte[] content,
+                    MockBlock... blocks) {
       this.path = new Path(path);
       this.blockSize = blockSize;
       this.blocks = blocks;
@@ -244,11 +243,23 @@ public class TestInputOutputFormat {
     }
   }
 
-  static class MockFileSystem extends FileSystem {
+  public static class MockPath extends Path {
+    private final FileSystem fs;
+    public MockPath(FileSystem fs, String path) {
+      super(path);
+      this.fs = fs;
+    }
+    @Override
+    public FileSystem getFileSystem(Configuration conf) {
+      return fs;
+    }
+  }
+
+  public static class MockFileSystem extends FileSystem {
     final MockFile[] files;
     Path workingDir = new Path("/");
 
-    MockFileSystem(Configuration conf, MockFile... files) {
+    public MockFileSystem(Configuration conf, MockFile... files) {
       setConf(conf);
       this.files = files;
     }
@@ -305,10 +316,28 @@ public class TestInputOutputFormat {
     @Override
     public FileStatus[] listStatus(Path path) throws IOException {
       List<FileStatus> result = new ArrayList<FileStatus>();
+      String pathname = path.toString();
+      String pathnameAsDir = pathname + "/";
+      Set<String> dirs = new TreeSet<String>();
       for(MockFile file: files) {
-        if (file.path.getParent().equals(path)) {
-          result.add(getFileStatus(file.path));
+        String filename = file.path.toString();
+        if (pathname.equals(filename)) {
+          return new FileStatus[]{createStatus(file)};
+        } else if (filename.startsWith(pathnameAsDir)) {
+          String tail = filename.substring(pathnameAsDir.length());
+          int nextSlash = tail.indexOf('/');
+          if (nextSlash > 0) {
+            dirs.add(tail.substring(0, nextSlash));
+          } else {
+            result.add(createStatus(file));
+          }
         }
+      }
+      // for each directory add it once
+      for(String dir: dirs) {
+        result.add(new FileStatus(0, true, 0, 0, 0, 0,
+            FsPermission.createImmutable((short) 755), "owen", "group",
+            new MockPath(this, pathnameAsDir + dir)));
       }
       return result.toArray(new FileStatus[result.size()]);
     }
@@ -328,13 +357,17 @@ public class TestInputOutputFormat {
       return false;
     }
 
+    private FileStatus createStatus(MockFile file) {
+      return new FileStatus(file.length, false, 1, file.blockSize, 0, 0,
+          FsPermission.createImmutable((short) 644), "owen", "group",
+          file.path);
+    }
+
     @Override
     public FileStatus getFileStatus(Path path) throws IOException {
       for(MockFile file: files) {
         if (file.path.equals(path)) {
-          return new FileStatus(file.length, false, 1, file.blockSize, 0, 0,
-              FsPermission.createImmutable((short) 644), "owen", "group",
-              file.path);
+          return createStatus(file);
         }
       }
       return null;
@@ -426,9 +459,10 @@ public class TestInputOutputFormat {
     OrcInputFormat.Context context = new OrcInputFormat.Context(conf);
     OrcInputFormat.SplitGenerator splitter =
         new OrcInputFormat.SplitGenerator(context, fs,
-            fs.getFileStatus(new Path("/a/file")), null);
+            fs.getFileStatus(new Path("/a/file")), null, true,
+            new ArrayList<Long>(), true);
     splitter.createSplit(0, 200, null);
-    OrcInputFormat.Context.FileSplitInfo result = context.getResult(-1);
+    OrcSplit result = context.getResult(-1);
     assertEquals(0, result.getStart());
     assertEquals(200, result.getLength());
     assertEquals("/a/file", result.getPath().toString());
@@ -469,7 +503,8 @@ public class TestInputOutputFormat {
     OrcInputFormat.Context context = new OrcInputFormat.Context(conf);
     OrcInputFormat.SplitGenerator splitter =
         new OrcInputFormat.SplitGenerator(context, fs,
-            fs.getFileStatus(new Path("/a/file")), null);
+            fs.getFileStatus(new Path("/a/file")), null, true,
+            new ArrayList<Long>(), true);
     splitter.run();
     if (context.getErrors().size() > 0) {
       for(Throwable th: context.getErrors()) {
@@ -477,7 +512,7 @@ public class TestInputOutputFormat {
       }
       throw new IOException("Errors during splitting");
     }
-    OrcInputFormat.Context.FileSplitInfo result = context.getResult(0);
+    OrcSplit result = context.getResult(0);
     assertEquals(3, result.getStart());
     assertEquals(497, result.getLength());
     result = context.getResult(1);
@@ -497,7 +532,8 @@ public class TestInputOutputFormat {
     conf.setInt(OrcInputFormat.MAX_SPLIT_SIZE, 0);
     context = new OrcInputFormat.Context(conf);
     splitter = new OrcInputFormat.SplitGenerator(context, fs,
-      fs.getFileStatus(new Path("/a/file")), null);
+      fs.getFileStatus(new Path("/a/file")), null, true, new ArrayList<Long>(),
+        true);
     splitter.run();
     if (context.getErrors().size() > 0) {
       for(Throwable th: context.getErrors()) {
@@ -512,6 +548,7 @@ public class TestInputOutputFormat {
   }
 
   @Test
+  @SuppressWarnings("unchecked,deprecation")
   public void testInOutFormat() throws Exception {
     Properties properties = new Properties();
     StructObjectInspector inspector;
@@ -625,8 +662,8 @@ public class TestInputOutputFormat {
   }
 
   @Test
+  @SuppressWarnings("unchecked,deprecation")
   public void testMROutput() throws Exception {
-    JobConf job = new JobConf(conf);
     Properties properties = new Properties();
     StructObjectInspector inspector;
     synchronized (TestOrcFile.class) {
@@ -682,8 +719,8 @@ public class TestInputOutputFormat {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testEmptyFile() throws Exception {
-    JobConf job = new JobConf(conf);
     Properties properties = new Properties();
     HiveOutputFormat<?, ?> outFormat = new OrcOutputFormat();
     FSRecordWriter writer =
@@ -720,8 +757,8 @@ public class TestInputOutputFormat {
   }
 
   @Test
+  @SuppressWarnings("unchecked,deprecation")
   public void testDefaultTypes() throws Exception {
-    JobConf job = new JobConf(conf);
     Properties properties = new Properties();
     StructObjectInspector inspector;
     synchronized (TestOrcFile.class) {

@@ -74,8 +74,8 @@ final class OrcUnion implements UnionObject {
 
   @Override
   public String toString() {
-    return "union(" + Integer.toString(tag & 0xff) + ", " + object.toString() +
-        ")";
+    return "union(" + Integer.toString(tag & 0xff) + ", " +
+        (object == null ? "null" : object.toString()) + ")";
   }
 
   static class OrcUnionObjectInspector implements UnionObjectInspector {
