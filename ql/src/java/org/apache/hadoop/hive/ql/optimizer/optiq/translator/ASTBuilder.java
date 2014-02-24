@@ -77,6 +77,13 @@ class ASTBuilder {
     return b.node();
   }
 
+  static ASTNode unqualifiedName(String colName) {
+    ASTBuilder b = ASTBuilder
+.construct(HiveParser.TOK_TABLE_OR_COL,
+        "TOK_TABLE_OR_COL").add(HiveParser.Identifier, colName);
+    return b.node();
+  }
+
   static ASTNode where(ASTNode cond) {
     return ASTBuilder.construct(HiveParser.TOK_WHERE, "TOK_WHERE").add(cond).node();
   }
@@ -118,7 +125,12 @@ class ASTBuilder {
       type = HiveParser.Number;
       break;
     case VARCHAR:
+    case CHAR:
       type = HiveParser.StringLiteral;
+      break;
+    case BOOLEAN:
+      type = ((Boolean) val).booleanValue() ? HiveParser.KW_TRUE
+          : HiveParser.KW_FALSE;
       break;
 
     default:
