@@ -36,17 +36,25 @@ import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.Serializer;
+import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
+import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
+import org.apache.hadoop.hive.serde2.lazy.LazyObject;
+import org.apache.hadoop.hive.serde2.lazy.LazyPrimitive;
+import org.apache.hadoop.hive.serde2.lazy.LazyString;
 import org.apache.hadoop.hive.serde2.objectinspector.InspectableObject;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory.ObjectInspectorOptions;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.StandardUnionObjectInspector.StandardUnion;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.UnionObjectInspector;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.OutputCollector;
 
 /**
@@ -67,13 +75,28 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
    * The evaluators for the value columns. Value columns are passed to reducer
    * in the "value".
    */
-  protected transient ExprNodeEvaluator[] valueEval;
+  protected transient ExprNodeEvaluator[] outputValueEval;
+  /**
+   * This is used by hive.optimize.sort.dynamic.partition case where bucket
+   * number is appended to value. outputValueEval will have one column more than
+   * inputValueEval.
+   */
+  protected transient ExprNodeEvaluator[] inputValueEval;
   /**
    * The evaluators for the partition columns (CLUSTER BY or DISTRIBUTE BY in
    * Hive language). Partition columns decide the reducer that the current row
    * goes to. Partition columns are not passed to reducer.
    */
   protected transient ExprNodeEvaluator[] partitionEval;
+  /**
+   * Evaluators for bucketing columns. This is used to compute bucket number.
+   */
+  protected transient ExprNodeEvaluator[] bucketEval = null;
+  /**
+   * OI for outputValueEval. Since new column is added to value new OI is
+   * required.
+   */
+  protected transient ArrayList<ObjectInspector> objectInspectors;
 
   // TODO: we use MetadataTypedColumnsetSerDe for now, till DynamicSerDe is
   // ready
@@ -115,10 +138,10 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
       distinctColIndices = conf.getDistinctColumnIndices();
       numDistinctExprs = distinctColIndices.size();
 
-      valueEval = new ExprNodeEvaluator[conf.getValueCols().size()];
+      outputValueEval = new ExprNodeEvaluator[conf.getValueCols().size()];
       i = 0;
       for (ExprNodeDesc e : conf.getValueCols()) {
-        valueEval[i++] = ExprNodeEvaluatorFactory.get(e);
+        outputValueEval[i++] = ExprNodeEvaluatorFactory.get(e);
       }
 
       partitionEval = new ExprNodeEvaluator[conf.getPartitionCols().size()];
@@ -126,6 +149,38 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
       for (ExprNodeDesc e : conf.getPartitionCols()) {
         int index = ExprNodeDescUtils.indexOf(e, keys);
         partitionEval[i++] = index < 0 ? ExprNodeEvaluatorFactory.get(e): keyEval[index];
+      }
+
+      if (conf.getBucketCols() != null && !conf.getBucketCols().isEmpty()) {
+        bucketEval = new ExprNodeEvaluator[conf.getBucketCols().size()];
+
+        i = 0;
+        for (ExprNodeDesc e : conf.getBucketCols()) {
+          int index = ExprNodeDescUtils.indexOf(e, keys);
+          bucketEval[i++] = index < 0 ? ExprNodeEvaluatorFactory.get(e) : keyEval[index];
+        }
+
+        // input value will not have bucket column
+        inputValueEval = new ExprNodeEvaluator[outputValueEval.length - 1];
+        System.arraycopy(outputValueEval, 0, inputValueEval, 0, outputValueEval.length - 1);
+
+        List<String> inputColNames = conf.getOutputValueColumnNames().subList(0,
+            conf.getOutputValueColumnNames().size() - 1);
+
+        // prepare OI for output row/value
+        objectInspectors = new ArrayList<ObjectInspector>(outputValueEval.length);
+        valueObjectInspector = initEvaluatorsAndReturnStruct(inputValueEval, inputColNames,
+            inputObjInspectors[0]);
+        List<String> outColNames = conf.getOutputValueColumnNames();
+        for (ExprNodeEvaluator<?> ev : inputValueEval) {
+          objectInspectors.add(ev.getOutputOI());
+        }
+        objectInspectors.add(ObjectInspectorFactory.getReflectionObjectInspector(Integer.class,
+            ObjectInspectorOptions.JAVA));
+        outputObjInspector = ObjectInspectorFactory.getStandardStructObjectInspector(outColNames,
+            objectInspectors);
+        buckColIdxInKey = ExprNodeDescUtils.indexOf(conf.getBucketCols().get(0), conf.getKeyCols());
+        valueObjectInspector = outputObjInspector;
       }
 
       tag = conf.getTag();
@@ -163,6 +218,8 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
   protected transient ObjectInspector keyObjectInspector;
   protected transient ObjectInspector valueObjectInspector;
   transient ObjectInspector[] partitionObjectInspectors;
+  transient ObjectInspector[] bucketObjectInspectors = null;
+  transient int buckColIdxInKey;
 
   protected transient Object[] cachedValues;
   protected transient List<List<Integer>> distinctColIndices;
@@ -241,17 +298,35 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
         keyObjectInspector = initEvaluatorsAndReturnStruct(keyEval,
             distinctColIndices,
             conf.getOutputKeyColumnNames(), numDistributionKeys, rowInspector);
-        valueObjectInspector = initEvaluatorsAndReturnStruct(valueEval, conf
-            .getOutputValueColumnNames(), rowInspector);
+        if (bucketEval == null) {
+          valueObjectInspector = initEvaluatorsAndReturnStruct(outputValueEval,
+              conf.getOutputValueColumnNames(), rowInspector);
+        } else {
+          bucketObjectInspectors = initEvaluators(bucketEval, rowInspector);
+          rowInspector = outputObjInspector;
+        }
         partitionObjectInspectors = initEvaluators(partitionEval, rowInspector);
         int numKeys = numDistinctExprs > 0 ? numDistinctExprs : 1;
         int keyLen = numDistinctExprs > 0 ? numDistributionKeys + 1 : numDistributionKeys;
         cachedKeys = new Object[numKeys][keyLen];
-        cachedValues = new Object[valueEval.length];
+        cachedValues = new Object[outputValueEval.length];
       }
 
       // Determine distKeyLength (w/o distincts), and then add the first if present.
       populateCachedDistributionKeys(row, 0);
+
+      // replace bucketing columns with hashcode % numBuckets
+      int buckNum = 0;
+      if (bucketEval != null) {
+        buckNum = computeBucketNumber(row, conf.getNumBuckets());
+        cachedKeys[0][buckColIdxInKey] = getLazyObject(buckNum, bucketEval[0].getOutputOI());
+
+        // in case if there are more bucketing cols, set their values in key to -1
+        for (int i = 1; i < bucketEval.length; i++) {
+          cachedKeys[0][buckColIdxInKey + i] = getLazyObject(-1, bucketEval[i].getOutputOI());
+        }
+      }
+
       HiveKey firstKey = toHiveKey(cachedKeys[0], tag, null);
       int distKeyLength = firstKey.getDistKeyLength();
       if (numDistinctExprs > 0) {
@@ -263,8 +338,16 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
       int firstIndex = reducerHash.tryStoreKey(firstKey);
       if (firstIndex == TopNHash.EXCLUDE) return; // Nothing to do.
       // Compute value and hashcode - we'd either store or forward them.
-      BytesWritable value = makeValueWritable(row);
-      int hashCode = computeHashCode(row);
+      BytesWritable value;
+      int hashCode;
+      if (bucketEval == null) {
+        value = makeValueWritable(row);
+        hashCode = computeHashCode(row);
+      } else {
+        value = makeValueWritable(row, buckNum);
+        hashCode = computeHashCode(row, buckNum);
+      }
+
       if (firstIndex == TopNHash.FORWARD) {
         firstKey.setHashCode(hashCode);
         collect(firstKey, value);
@@ -286,6 +369,38 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
     } catch (Exception e) {
       throw new HiveException(e);
     }
+  }
+
+  private LazyObject<? extends ObjectInspector> getLazyObject(int buckNum, ObjectInspector oi) {
+    byte[] ba = stringToBytesASCII(String.valueOf(buckNum));
+    LazyObject<? extends ObjectInspector> lo = LazyFactory.createLazyObject(oi);
+    ByteArrayRef b = new ByteArrayRef();
+    b.setData(ba);
+    lo.init(b, 0, ba.length);
+    return lo;
+  }
+
+  public static byte[] stringToBytesASCII(String str) {
+    char[] buffer = str.toCharArray();
+    byte[] b = new byte[buffer.length];
+    for (int i = 0; i < b.length; i++) {
+      b[i] = (byte) buffer[i];
+    }
+    return b;
+  }
+
+  private int computeBucketNumber(Object row, int numBuckets) throws HiveException {
+    int buckNum = 0;
+    for (int i = 0; i < bucketEval.length; i++) {
+      Object o = bucketEval[i].evaluate(row);
+      buckNum = buckNum * 31 + ObjectInspectorUtils.hashCode(o, bucketObjectInspectors[i]);
+    }
+
+    if (buckNum < 0) {
+      buckNum = -1 * buckNum;
+    }
+
+    return buckNum % numBuckets;
   }
 
   private void populateCachedDistributionKeys(Object row, int index) throws HiveException {
@@ -336,6 +451,33 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
     return keyHashCode;
   }
 
+  private int computeHashCode(Object row, int buckNum) throws HiveException {
+    // Evaluate the HashCode
+    int keyHashCode = 0;
+    if (partitionEval.length == 0) {
+      // If no partition cols, just distribute the data uniformly to provide better
+      // load balance. If the requirement is to have a single reducer, we should set
+      // the number of reducers to 1.
+      // Use a constant seed to make the code deterministic.
+      if (random == null) {
+        random = new Random(12345);
+      }
+      keyHashCode = random.nextInt();
+    } else {
+      // partitionEval will include all columns from distribution columns i.e;
+      // partition columns + bucket columns. Hence do not include the bucket
+      // column value in hashcode computation, instead bucket number will be used
+      for (int i = 0; i < partitionEval.length - conf.getBucketCols().size(); i++) {
+        Object o = partitionEval[i].evaluate(row);
+        keyHashCode = keyHashCode * 31
+            + ObjectInspectorUtils.hashCode(o, partitionObjectInspectors[i]);
+      }
+
+      keyHashCode = keyHashCode * 31 + buckNum;
+    }
+    return keyHashCode;
+  }
+
   // Serialize the keys and append the tag
   protected HiveKey toHiveKey(Object obj, int tag, Integer distLength) throws SerDeException {
     BinaryComparable key = (BinaryComparable)keySerializer.serialize(obj, keyObjectInspector);
@@ -367,9 +509,22 @@ public class ReduceSinkOperator extends TerminalOperator<ReduceSinkDesc>
 
   private BytesWritable makeValueWritable(Object row) throws Exception {
     // Evaluate the value
-    for (int i = 0; i < valueEval.length; i++) {
-      cachedValues[i] = valueEval[i].evaluate(row);
+    for (int i = 0; i < outputValueEval.length; i++) {
+      cachedValues[i] = outputValueEval[i].evaluate(row);
     }
+    // Serialize the value
+    return (BytesWritable) valueSerializer.serialize(cachedValues, valueObjectInspector);
+  }
+
+  private BytesWritable makeValueWritable(Object row, int buckNum) throws Exception {
+    // Evaluate the value
+    int i;
+    for (i = 0; i < inputValueEval.length; i++) {
+      cachedValues[i] = inputValueEval[i].evaluate(row);
+    }
+
+    cachedValues[i] = buckNum;
+
     // Serialize the value
     return (BytesWritable) valueSerializer.serialize(cachedValues, valueObjectInspector);
   }
