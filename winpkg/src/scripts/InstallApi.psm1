@@ -170,7 +170,7 @@ function Install(
         $streamingJarUriPath = ConvertAbsolutePathToUri $streamingJarUriPath
         $templetonLibJarsPath = $ENV:TEMPLETON_HOME + "/share/webhcat/svr/lib/zookeeper-@zookeeper.version@.jar"
         $templetonLibJarsPath = ConvertAbsolutePathToUri $templetonLibJarsPath
-        $templetonJar = "$ENV:TEMPLETON_HOME\share\webhcat\svr\hive-webhcat-$WebHCatVersion.jar"
+        $templetonJar = "$ENV:TEMPLETON_HOME\share\webhcat\svr\lib\hive-webhcat-$WebHCatVersion.jar"
 
         Configure "hcatalog" $NodeInstallRoot $serviceCredential @{
             "templeton.streaming.jar" = $streamingJarUriPath;
