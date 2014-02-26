@@ -40,7 +40,7 @@ public class ThriftBinaryCLIService extends ThriftCLIService {
   public void run() {
     try {
       hiveAuthFactory = new HiveAuthFactory();
-      TTransportFactory  transportFactory = hiveAuthFactory.getAuthTransFactory();
+      TTransportFactory transportFactory = hiveAuthFactory.getAuthTransFactory();
       TProcessorFactory processorFactory = hiveAuthFactory.getAuthProcFactory(this);
 
       String portString = System.getenv("HIVE_SERVER2_THRIFT_PORT");

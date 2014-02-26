@@ -157,7 +157,11 @@ public class SessionManager extends CompositeService {
     threadLocalIpAddress.set(ipAddress);
   }
 
-  private void clearIpAddress() {
+  public static String getIpAddress() {
+    return threadLocalIpAddress.get();
+  }
+
+  public static void clearIpAddress() {
     threadLocalIpAddress.remove();
   }
 
@@ -172,7 +176,11 @@ public class SessionManager extends CompositeService {
     threadLocalUserName.set(userName);
   }
 
-  private void clearUserName() {
+  public static String getUserName() {
+    return threadLocalUserName.get();
+  }
+
+  public static void clearUserName() {
     threadLocalUserName.remove();
   }
 

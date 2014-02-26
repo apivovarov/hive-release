@@ -20,35 +20,37 @@ package org.apache.hive.jdbc;
 
 import java.io.IOException;
 
-import org.apache.http.Header;
+import org.apache.hive.service.auth.HttpAuthUtils;
 import org.apache.http.HttpException;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.impl.auth.AuthSchemeBase;
-import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.message.BufferedHeader;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.CharArrayBuffer;
 
 /**
- * The class is instantiated with the username and password, it is then
- * used to add header with these credentials to HTTP requests
+ *
+ * Authentication interceptor which adds Base64 encoded payload,
+ * containing the username and kerberos service ticket,
+ * to the outgoing http request header.
  *
  */
-public class HttpBasicAuthInterceptor implements HttpRequestInterceptor {
-  UsernamePasswordCredentials credentials;
-  AuthSchemeBase authScheme;
+public class HttpKerberosRequestInterceptor implements HttpRequestInterceptor {
 
-  public HttpBasicAuthInterceptor(String username, String password) {
-    if(username != null){
-      credentials = new UsernamePasswordCredentials(username, password);
-    }
-    authScheme = new BasicScheme();
+  String kerberosAuthHeader;
+
+  public HttpKerberosRequestInterceptor(String kerberosAuthHeader) {
+    this.kerberosAuthHeader = kerberosAuthHeader;
   }
 
   @Override
   public void process(HttpRequest httpRequest, HttpContext httpContext) throws HttpException, IOException {
-    Header basicAuthHeader = authScheme.authenticate(credentials, httpRequest, httpContext);
-    httpRequest.addHeader(basicAuthHeader);
+    // Set the session key token (Base64 encoded) in the header
+    CharArrayBuffer buffer = new CharArrayBuffer(32);
+    buffer.append(HttpAuthUtils.AUTHORIZATION);
+    buffer.append(": " + HttpAuthUtils.NEGOTIATE);
+    buffer.append(kerberosAuthHeader);
+    httpRequest.addHeader(new BufferedHeader(buffer));
   }
 
 }

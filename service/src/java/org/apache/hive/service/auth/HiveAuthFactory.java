@@ -53,7 +53,7 @@ public class HiveAuthFactory {
     KERBEROS("KERBEROS"),
     CUSTOM("CUSTOM");
 
-    private String authType; // Auth type for SASL
+    private String authType;
 
     AuthTypes(String authType) {
       this.authType = authType;
@@ -62,42 +62,50 @@ public class HiveAuthFactory {
     public String getAuthName() {
       return authType;
     }
-
   };
 
   private HadoopThriftAuthBridge.Server saslServer = null;
   private String authTypeStr;
+  private String transportMode;
   HiveConf conf;
 
   public HiveAuthFactory() throws TTransportException {
     conf = new HiveConf();
-
+    transportMode = conf.getVar(HiveConf.ConfVars.HIVE_SERVER2_TRANSPORT_MODE);
     authTypeStr = conf.getVar(HiveConf.ConfVars.HIVE_SERVER2_AUTHENTICATION);
-    if (authTypeStr == null) {
-      authTypeStr = AuthTypes.NONE.getAuthName();
+
+    // In http mode we use NOSASL as the default auth type
+    if (transportMode.equalsIgnoreCase("http")) {
+      if (authTypeStr == null) {
+        authTypeStr = AuthTypes.NOSASL.getAuthName();
+      }
     }
-    if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())
-        && ShimLoader.getHadoopShims().isSecureShimImpl()) {
-      saslServer = ShimLoader.getHadoopThriftAuthBridge().createServer(
-        conf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_KEYTAB),
-        conf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_PRINCIPAL)
-        );
+    else {
+      if (authTypeStr == null) {
+        authTypeStr = AuthTypes.NONE.getAuthName();
+      }
+      if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())
+          && ShimLoader.getHadoopShims().isSecureShimImpl()) {
+        saslServer = ShimLoader.getHadoopThriftAuthBridge().createServer(
+            conf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_KEYTAB),
+            conf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_PRINCIPAL));
+      }
     }
   }
 
   public Map<String, String> getSaslProperties() {
     Map<String, String> saslProps = new HashMap<String, String>();
     SaslQOP saslQOP =
-            SaslQOP.fromString(conf.getVar(ConfVars.HIVE_SERVER2_THRIFT_SASL_QOP));
+        SaslQOP.fromString(conf.getVar(ConfVars.HIVE_SERVER2_THRIFT_SASL_QOP));
     // hadoop.rpc.protection being set to a higher level than hive.server2.thrift.rpc.protection
     // does not make sense in most situations. Log warning message in such cases.
     Map<String, String> hadoopSaslProps =  ShimLoader.getHadoopThriftAuthBridge().
-            getHadoopSaslProperties(conf);
+        getHadoopSaslProperties(conf);
     SaslQOP hadoopSaslQOP = SaslQOP.fromString(hadoopSaslProps.get(Sasl.QOP));
     if(hadoopSaslQOP.ordinal() > saslQOP.ordinal()) {
       LOG.warn(MessageFormat.format("\"hadoop.rpc.protection\" is set to higher security level " +
-              "{0} then {1} which is set to {2}", hadoopSaslQOP.toString(),
-              ConfVars.HIVE_SERVER2_THRIFT_SASL_QOP.varname, saslQOP.toString()));
+          "{0} then {1} which is set to {2}", hadoopSaslQOP.toString(),
+          ConfVars.HIVE_SERVER2_THRIFT_SASL_QOP.varname, saslQOP.toString()));
     }
     saslProps.put(Sasl.QOP, saslQOP.toString());
     saslProps.put(Sasl.SERVER_AUTH, "true");
@@ -105,9 +113,7 @@ public class HiveAuthFactory {
   }
 
   public TTransportFactory getAuthTransFactory() throws LoginException {
-
     TTransportFactory transportFactory;
-
     if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())) {
       try {
         transportFactory = saslServer.createTransportFactory(getSaslProperties());
@@ -130,10 +136,15 @@ public class HiveAuthFactory {
 
   public TProcessorFactory getAuthProcFactory(ThriftCLIService service)
       throws LoginException {
-    if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())) {
-      return KerberosSaslHelper.getKerberosProcessorFactory(saslServer, service);
-    } else {
-      return PlainSaslHelper.getPlainProcessorFactory(service);
+    if (transportMode.equalsIgnoreCase("http")) {
+      return HttpAuthUtils.getAuthProcFactory(service);
+    }
+    else {
+      if (authTypeStr.equalsIgnoreCase(AuthTypes.KERBEROS.getAuthName())) {
+        return KerberosSaslHelper.getKerberosProcessorFactory(saslServer, service);
+      } else {
+        return PlainSaslHelper.getPlainProcessorFactory(service);
+      }
     }
   }
 
@@ -145,14 +156,11 @@ public class HiveAuthFactory {
     }
   }
 
-  /* perform kerberos login using the hadoop shim API if the configuration is available */
+  // Perform kerberos login using the hadoop shim API if the configuration is available
   public static void loginFromKeytab(HiveConf hiveConf) throws IOException {
     String principal = hiveConf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_PRINCIPAL);
     String keyTabFile = hiveConf.getVar(ConfVars.HIVE_SERVER2_KERBEROS_KEYTAB);
-    if (principal.isEmpty() && keyTabFile.isEmpty()) {
-      // no security configuration available
-      return;
-    } else if (!principal.isEmpty() && !keyTabFile.isEmpty()) {
+    if (!principal.isEmpty() && !keyTabFile.isEmpty()) {
       ShimLoader.getHadoopShims().loginUserFromKeytab(principal, keyTabFile);
     } else {
       throw new IOException ("HiveServer2 kerberos principal or keytab is not correctly configured");

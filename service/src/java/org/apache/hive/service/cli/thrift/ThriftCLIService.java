@@ -41,6 +41,7 @@ import org.apache.hive.service.cli.OperationStatus;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.cli.TableSchema;
+import org.apache.hive.service.cli.session.SessionManager;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 
@@ -138,6 +139,15 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
     }
   }
 
+  /**
+   * Create a session handle
+   * @param req
+   * @param res
+   * @return
+   * @throws HiveSQLException
+   * @throws LoginException
+   * @throws IOException
+   */
   SessionHandle getSessionHandle(TOpenSessionReq req, TOpenSessionResp res)
       throws HiveSQLException, LoginException, IOException {
 
@@ -149,6 +159,13 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
         .equals(HiveAuthFactory.AuthTypes.KERBEROS.toString()) &&
         cliService.getHiveConf().getBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS)) {
       String delegationTokenStr = null;
+      // In case of http transport mode, we set the thread local username,
+      // while handling each request (in ThriftHttpServlet),
+      // since SASL layer is not used in HTTP Kerberos.
+      if (cliService.getHiveConf().getVar(
+          ConfVars.HIVE_SERVER2_TRANSPORT_MODE).equalsIgnoreCase("http")) {
+        userName = SessionManager.getUserName();
+      }
       try {
         delegationTokenStr = cliService.getDelegationTokenFromMetaStore(userName);
       } catch (UnsupportedOperationException e) {
