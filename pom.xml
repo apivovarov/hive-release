@@ -104,7 +104,7 @@
     <!-- httpcomponents are not always in version sync -->
     <httpcomponents.client.version>4.3.2</httpcomponents.client.version>
     <httpcomponents.core.version>4.3.1</httpcomponents.core.version>
-    <jackson.version>1.9.2</jackson.version>
+    <jackson.version>1.8.8</jackson.version>
     <javaewah.version>0.3.2</javaewah.version>
     <javolution.version>5.5.1</javolution.version>
     <jdo-api.version>3.0.1</jdo-api.version>
