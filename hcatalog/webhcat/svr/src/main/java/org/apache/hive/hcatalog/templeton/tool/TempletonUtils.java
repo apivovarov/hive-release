@@ -120,7 +120,8 @@ public class TempletonUtils {
 
   public static final Pattern JAR_ID = Pattern.compile(" Running job: (\\S+)$");
   public static final Pattern PIG_ID = Pattern.compile(" HadoopJobId: (\\S+)$");
-  public static final Pattern[] ID_PATTERNS = {JAR_ID, PIG_ID};
+  public static final Pattern HIVE_ID = Pattern.compile("jobid=(\\S+)$");
+  public static final Pattern[] ID_PATTERNS = {JAR_ID, PIG_ID, HIVE_ID};
 
   /**
    * Extract the job id from jar jobs.

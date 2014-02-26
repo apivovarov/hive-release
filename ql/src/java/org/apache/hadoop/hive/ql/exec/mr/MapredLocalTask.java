@@ -228,6 +228,16 @@ public class MapredLocalTask extends Task<MapredLocalWork> implements Serializab
         variables.put(HADOOP_OPTS_KEY, hadoopOpts);
       }
 
+      if (HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_HADOOP_CLASSPATH)!= null)
+      {
+        if (variables.containsKey("HADOOP_CLASSPATH"))
+        {
+          variables.put("HADOOP_CLASSPATH", variables.get("HADOOP_CLASSPATH") + ";" + HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_HADOOP_CLASSPATH));
+        } else {
+          variables.put("HADOOP_CLASSPATH", HiveConf.getVar(conf, HiveConf.ConfVars.HIVE_HADOOP_CLASSPATH));
+        }
+      }
+
       if(variables.containsKey(MapRedTask.HIVE_DEBUG_RECURSIVE)) {
         MapRedTask.configureDebugVariablesForChildJVM(variables);
       }

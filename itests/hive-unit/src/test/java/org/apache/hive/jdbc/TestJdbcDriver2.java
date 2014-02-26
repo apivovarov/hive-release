@@ -100,27 +100,6 @@ public class TestJdbcDriver2 {
   @BeforeClass
   public static void setUpBeforeClass() throws SQLException, ClassNotFoundException{
     Class.forName(driverName);
-    Connection con1 = getConnection();
-
-    Statement stmt1 = con1.createStatement();
-    assertNotNull("Statement is null", stmt1);
-
-    stmt1.execute("set hive.support.concurrency = false");
-
-    DatabaseMetaData metadata = con1.getMetaData();
-
-    // Drop databases created by other test cases
-    ResultSet databaseRes = metadata.getSchemas();
-
-    while(databaseRes.next()){
-      String db = databaseRes.getString(1);
-      if(!db.equals("default")){
-        System.err.println("Dropping database " + db);
-        stmt1.execute("DROP DATABASE " + db + " CASCADE");
-      }
-    }
-    stmt1.close();
-    con1.close();
   }
 
   @Before

@@ -724,7 +724,8 @@ public class CliDriver {
       ClassLoader loader = conf.getClassLoader();
       String auxJars = HiveConf.getVar(conf, HiveConf.ConfVars.HIVEAUXJARS);
       if (StringUtils.isNotBlank(auxJars)) {
-        loader = Utilities.addToClassPath(loader, StringUtils.split(auxJars, ","));
+        // allow non-local paths in aux jars to be copied locally.
+        loader = Utilities.addToClassPath(loader, StringUtils.split(auxJars, ","), true);
       }
       conf.setClassLoader(loader);
       Thread.currentThread().setContextClassLoader(loader);

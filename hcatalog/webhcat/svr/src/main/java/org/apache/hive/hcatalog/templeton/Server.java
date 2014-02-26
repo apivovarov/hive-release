@@ -761,6 +761,41 @@ public class Server {
       statusdir, callback, usesHcatalog, getCompletedUrl(), enablelog);
   }
 
+   /**
+   * Run a Sqoop job.
+   */
+  @POST
+  @Path("sqoop")
+  @Produces({MediaType.APPLICATION_JSON})
+  public EnqueueBean sqoop(@FormParam("command") String command,
+          @FormParam("file") String optionsFile,
+          @FormParam("files") String otherFiles,
+          @FormParam("statusdir") String statusdir,
+          @FormParam("callback") String callback,
+          @FormParam("enablelog") boolean enablelog)
+  throws NotAuthorizedException, BusyException, BadParam, QueueException,
+    ExecuteException, IOException, InterruptedException {
+    verifyUser();
+    if (command == null && optionsFile == null)
+      throw new BadParam("Must define Sqoop command or a file contains Sqoop command to run Sqoop job");
+    if (enablelog == true && !TempletonUtils.isset(statusdir))
+      throw new BadParam("enablelog is only applicable when statusdir is set");
+
+    //add all function arguments to a map
+    Map<String, Object> userArgs = new HashMap<String, Object>();
+    userArgs.put("user.name", getUser());
+    userArgs.put("command", command);
+    userArgs.put("file", optionsFile);
+    userArgs.put("files", otherFiles);
+    userArgs.put("statusdir", statusdir);
+    userArgs.put("callback", callback);
+    userArgs.put("enablelog", Boolean.toString(enablelog));
+
+    SqoopDelegator d = new SqoopDelegator(appConf);
+    return d.run(getUser(), userArgs, command, optionsFile, otherFiles,
+      statusdir, callback, getCompletedUrl(), enablelog);
+  }
+
   /**
    * Run a Hive job.
    * @param execute    SQL statement to run, equivalent to "-e" from hive command line
@@ -1085,6 +1120,19 @@ public class Server {
       throw new BadParam("Invalid DDL identifier " + name);
     }
   }
+
+  /**
+   * Get the user name from the security context.
+   */
+  public String getUser() {
+    if (theSecurityContext == null)
+      return null;
+    if (theSecurityContext.getUserPrincipal() == null)
+      return null;
+
+    return theSecurityContext.getUserPrincipal().getName();
+  }
+
   /**
    * Get the user name from the security context, i.e. the user making the HTTP request.
    * With simple/pseudo security mode this should return the

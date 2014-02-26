@@ -1918,6 +1918,11 @@ public final class Utilities {
    *          Array of classpath elements
    */
   public static ClassLoader addToClassPath(ClassLoader cloader, String[] newPaths) throws Exception {
+    return addToClassPath(cloader, newPaths, false);
+  }
+
+  public static ClassLoader addToClassPath(ClassLoader cloader, String[] newPaths,
+      boolean downloadFiles) throws Exception {
     URLClassLoader loader = (URLClassLoader) cloader;
     List<URL> curPath = Arrays.asList(loader.getURLs());
     ArrayList<URL> newPath = new ArrayList<URL>();
@@ -1929,6 +1934,15 @@ public final class Utilities {
     curPath = newPath;
 
     for (String onestr : newPaths) {
+      if (downloadFiles && SessionState.canDownloadResource(onestr)) {
+        // Download the file and add the local copy to class loader
+        try {
+          onestr = SessionState.get().downloadResource(onestr, false);
+        } catch (Exception e) {
+          LOG.warn("Unable to download " + onestr + ":" + e);
+        }
+      }
+
       // special processing for hadoop-17. file:// needs to be removed
       if (StringUtils.indexOf(onestr, "file://") == 0) {
         onestr = StringUtils.substring(onestr, 7);

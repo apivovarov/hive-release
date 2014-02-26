@@ -283,7 +283,11 @@ public class SQLOperation extends ExecuteStatementOperation {
 
     int protocol = getProtocolVersion().getValue();
     for (Object rowString : rows) {
-      rowObj = serde.deserialize(new BytesWritable(((String)rowString).getBytes()));
+      try {
+        rowObj = serde.deserialize(new BytesWritable(((String)rowString).getBytes("UTF-8")));
+      } catch (IOException e){
+        throw new HiveSQLException(e);
+      }
       for (int i = 0; i < fieldRefs.size(); i++) {
         StructField fieldRef = fieldRefs.get(i);
         fieldOI = fieldRef.getFieldObjectInspector();

@@ -34,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.ql.DriverContext;
+import org.apache.hadoop.hive.ql.WindowsPathUtil;
 import org.apache.hadoop.hive.ql.exec.mr.ExecDriver;
 import org.apache.hadoop.hive.ql.exec.mr.MapRedTask;
 import org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat;
@@ -79,6 +80,9 @@ public class TestExecDriver extends TestCase {
     try {
       conf = new HiveConf(ExecDriver.class);
       SessionState.start(conf);
+
+      //convert possible incompatible Windows path in config
+      WindowsPathUtil.convertPathsFromWindowsToHdfs(conf);
 
       fs = FileSystem.get(conf);
       if (fs.exists(tmppath) && !fs.getFileStatus(tmppath).isDir()) {
@@ -161,7 +165,7 @@ public class TestExecDriver extends TestCase {
     }
     FSDataInputStream fi_test = fs.open((fs.listStatus(di_test))[0].getPath());
 
-    if (!Utilities.contentsEqual(fi_gold, fi_test, false)) {
+    if (!Utilities.contentsEqual(fi_gold, fi_test, true)) {
       LOG.error(di_test.toString() + " does not match " + datafile);
       assertEquals(false, true);
     }

@@ -39,6 +39,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -714,6 +715,11 @@ public class SessionState {
   public String add_resource(ResourceType t, String value, boolean convertToUnix) {
     try {
       value = downloadResource(value, convertToUnix);
+      if (value != null) {
+
+        // add "execute" permission to the copied file (needed when loading dll file)
+        FileUtil.chmod(value.toString(), "ugo+rx", true);
+      }
     } catch (Exception e) {
       getConsole().printError(e.getMessage());
       return null;
@@ -757,7 +763,7 @@ public class SessionState {
     return (scheme != null) && !scheme.equalsIgnoreCase("file");
   }
 
-  private String downloadResource(String value, boolean convertToUnix) {
+  public String downloadResource(String value, boolean convertToUnix) {
     if (canDownloadResource(value)) {
       getConsole().printInfo("converting to local " + value);
       File resourceDir = new File(getConf().getVar(HiveConf.ConfVars.DOWNLOADED_RESOURCES_DIR));

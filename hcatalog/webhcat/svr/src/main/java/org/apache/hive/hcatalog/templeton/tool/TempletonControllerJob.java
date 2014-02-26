@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
+import java.util.regex.Pattern;
 import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
@@ -89,19 +90,53 @@ public class TempletonControllerJob extends Configured implements Tool, JobSubmi
           InterruptedException {
     UserGroupInformation ugi = UserGroupInformation.getLoginUser();
     return ugi.doAs(new PrivilegedExceptionAction<URI>() {
+
+      /**
+       * Returns true if the path has windows drive specification
+       */
+      private boolean hasWindowsDrive(String path) {
+        Pattern hasDriveLetterSpecifier =
+            Pattern.compile("^/?[a-zA-Z]:");
+        return System.getProperty("os.name").startsWith("Windows") && 
+            hasDriveLetterSpecifier.matcher(path).find();
+      }
+
       @Override
       public URI run() throws IOException {
         AppConfig appConfig = Main.getAppConfigInstance();
         String fsTmpDir = appConfig.get(TMP_DIR_PROP);
-        if(fsTmpDir == null || fsTmpDir.length() <= 0) {
-          LOG.warn("Could not find 'hadoop.tmp.dir'; " + affectedMsg);
-          return null;
-        }
         FileSystem fs = FileSystem.get(appConfig);
-        Path dirPath = new Path(fsTmpDir);
-        if(!fs.exists(dirPath)) {
-          LOG.warn(dirPath + " does not exist; " + affectedMsg);
-          return null;
+        String usersDir = Path.SEPARATOR + "users";
+
+        // If hadoop.tmp.dir is not configured, try /users directory
+        if (fsTmpDir == null || fsTmpDir.isEmpty()) {
+          fsTmpDir = usersDir;
+          LOG.warn("Could not find 'hadoop.tmp.dir' in the webhcat configuration; will try " 
+          + fsTmpDir);
+        }
+        // If hadoop.tmp.dir is configured, try to use this location
+        else {
+          // dirPath is the path corresponding to user configured hadoop.tmp.dir
+          Path dirPath = new Path(fsTmpDir);
+         
+          // The directory path name is a valid HDFS only if : 
+          // 1. dirPath is absolute
+          // 2. dirPath does not contain a windows drive specification
+          if (!dirPath.isAbsolute() ||
+              hasWindowsDrive(dirPath.toUri().getPath())) {
+            fsTmpDir = usersDir;
+            LOG.warn("'hadoop.tmp.dir' is an invalid HDFS location; will try " 
+            + fsTmpDir);                          
+          }
+          // Directory path name is valid. However, the path does not exist.
+          else if (!fs.exists(dirPath)) {
+            if (!fs.mkdirs(dirPath, new FsPermission((short)0775))) {
+              // We do not have the permission to create hadoop.tmp.dir directory.
+              // Use the /users directory instead.
+              fsTmpDir = usersDir;
+              LOG.warn("Could not create 'hadoop.tmp.dir'; will try " + fsTmpDir);              
+            }
+          }
         }
         Path dst = fs.makeQualified(new Path(fsTmpDir, CONTAINER_LOG4J_PROPS));
         fs.copyFromLocalFile(new Path(localFile), dst);

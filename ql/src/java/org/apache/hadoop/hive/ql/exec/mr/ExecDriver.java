@@ -711,7 +711,8 @@ public class ExecDriver extends Task<MapredWork> implements Serializable, Hadoop
       // see also - code in CliDriver.java
       ClassLoader loader = conf.getClassLoader();
       if (StringUtils.isNotBlank(auxJars)) {
-        loader = Utilities.addToClassPath(loader, StringUtils.split(auxJars, ","));
+        // allow non-local paths in aux jars to be copied locally.
+        loader = Utilities.addToClassPath(loader, StringUtils.split(auxJars, ","), true);
       }
       if (StringUtils.isNotBlank(addedJars)) {
         loader = Utilities.addToClassPath(loader, StringUtils.split(addedJars, ","));

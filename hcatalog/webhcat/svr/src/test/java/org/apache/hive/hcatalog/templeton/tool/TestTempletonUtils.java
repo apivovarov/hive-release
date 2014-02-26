@@ -88,6 +88,27 @@ public class TestTempletonUtils {
 
     String fifty = "2011-12-15 18:12:36,333 [main] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher - 50% complete";
     Assert.assertEquals("50% complete", TempletonUtils.extractPercentComplete(fifty));
+
+    // MapRed jar run
+    String sixty_six = "13/06/02 20:57:32 INFO mapred.JobClient:  map 66% reduce 0%";
+    Assert.assertEquals("map 66% reduce 0%", TempletonUtils.extractPercentComplete(sixty_six));
+
+    // Hive job run
+    String hundred = "2013-06-02 20:52:57,331 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 13.31 sec";
+    Assert.assertEquals("map = 100%,  reduce = 100%", TempletonUtils.extractPercentComplete(hundred));
+  }
+
+  @Test
+  public void testExtractChildJobId() {
+    Assert.assertNull(TempletonUtils.extractChildJobId("fred"));
+
+    // MapRed jar run
+    String jar_job = "12/01/02 20:57:11 INFO mapred.JobClient: Running job: job_201201221934_0798";
+    Assert.assertEquals("job_201201221934_0798", TempletonUtils.extractChildJobId(jar_job));
+
+    String hive_job = "Starting Job = job_201305221934_0798, Tracking URL = http://localhost:50030/jobdetails.jsp?jobid=job_201201221934_0798";
+    Assert.assertEquals("job_201201221934_0798", TempletonUtils.extractChildJobId(hive_job));
+
   }
 
   @Test
