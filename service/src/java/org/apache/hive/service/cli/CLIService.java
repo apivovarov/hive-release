@@ -92,8 +92,8 @@ public class CLIService extends CompositeService implements ICLIService {
       } catch (LoginException e) {
         throw new ServiceException("Unable to login to kerberos with given principal/keytab", e);
       }
-      super.init(hiveConf);
     }
+    super.init(hiveConf);
   }
 
   public UserGroupInformation getServiceUGI() {
