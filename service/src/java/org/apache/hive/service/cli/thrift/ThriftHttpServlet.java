@@ -30,9 +30,12 @@ import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hive.service.auth.AuthenticationProviderFactory;
+import org.apache.hive.service.auth.AuthenticationProviderFactory.AuthMethods;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.auth.HttpAuthUtils;
 import org.apache.hive.service.auth.HttpAuthenticationException;
+import org.apache.hive.service.auth.PasswdAuthenticationProvider;
 import org.apache.hive.service.cli.session.SessionManager;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocolFactory;
@@ -77,6 +80,9 @@ public class ThriftHttpServlet extends TServlet {
       if(isKerberosAuthMode(authType)) {
         doKerberosAuth(request);
       }
+      else {
+        doPasswdAuth(request, authType);
+      }
 
       logRequestHeader(request, authType);
       super.doPost(request, response);
@@ -105,6 +111,28 @@ public class ThriftHttpServlet extends TServlet {
     String authHeader = request.getHeader(HttpAuthUtils.AUTHORIZATION);
     if (authHeader == null) {
       throw new HttpAuthenticationException("Request contains no Authorization header.");
+    }
+  }
+
+  /**
+   * Do the LDAP/PAM authentication
+   * @param request
+   * @param authType
+   * @throws HttpAuthenticationException
+   */
+  private void doPasswdAuth(HttpServletRequest request, String authType)
+      throws HttpAuthenticationException {
+    // No-op when authType is NOSASL
+    if (!authType.equalsIgnoreCase(HiveAuthFactory.AuthTypes.NOSASL.toString())) {
+      try {
+        AuthMethods authMethod = AuthMethods.getValidAuthMethod(authType);
+        PasswdAuthenticationProvider provider =
+            AuthenticationProviderFactory.getAuthenticationProvider(authMethod);
+        provider.Authenticate(getUsername(request, authType),
+            getPassToken(request, authType));
+      } catch (Exception e) {
+        throw new HttpAuthenticationException(e);
+      }
     }
   }
 

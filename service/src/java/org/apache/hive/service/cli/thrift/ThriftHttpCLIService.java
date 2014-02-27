@@ -154,16 +154,6 @@ public class ThriftHttpCLIService extends ThriftCLIService {
   private static void verifyHttpConfiguration(HiveConf hiveConf) {
     String authType = hiveConf.getVar(ConfVars.HIVE_SERVER2_AUTHENTICATION);
 
-    // Error out if LDAP auth mode is being used, it is not supported
-    if(authType.equalsIgnoreCase(AuthTypes.LDAP.toString()) ||
-        authType.equalsIgnoreCase(AuthTypes.CUSTOM.toString())) {
-      String msg = ConfVars.HIVE_SERVER2_AUTHENTICATION + " setting of " +
-          authType + " is currently not supported with " +
-          ConfVars.HIVE_SERVER2_TRANSPORT_MODE + " setting of http";
-      LOG.fatal(msg);
-      throw new RuntimeException(msg);
-    }
-
     // Error out if KERBEROS auth mode is being used and use SSL is also set to true
     if(authType.equalsIgnoreCase(AuthTypes.KERBEROS.toString()) &&
         hiveConf.getBoolVar(ConfVars.HIVE_SERVER2_USE_SSL)) {
