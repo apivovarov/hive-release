@@ -53,7 +53,7 @@ public class HttpAuthUtils {
   public static final String BASIC = "Basic";
   public static final String NEGOTIATE = "Negotiate";
 
-  private static class HttpCLIServiceProcessorFactory extends TProcessorFactory {
+  public static class HttpCLIServiceProcessorFactory extends TProcessorFactory {
     private final ThriftCLIService service;
     private final HiveConf hiveConf;
     private final boolean isDoAsEnabled;

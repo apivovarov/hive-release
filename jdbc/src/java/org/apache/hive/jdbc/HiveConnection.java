@@ -46,7 +46,6 @@ import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.SSLContext;
 import javax.security.sasl.Sasl;
 import javax.security.sasl.SaslException;
 
@@ -68,10 +67,9 @@ import org.apache.hive.service.cli.thrift.TOpenSessionResp;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 import org.apache.hive.service.cli.thrift.TSessionHandle;
 import org.apache.http.HttpRequestInterceptor;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLContexts;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.THttpClient;
@@ -190,8 +188,25 @@ public class HiveConnection implements java.sql.Connection {
     }
   }
 
+  private String getServerHttpUrl(boolean useSsl) {
+    // Create the http/https url
+    // JDBC driver will set up an https url if ssl is enabled, otherwise http
+    String schemeName = useSsl ? "https" : "http";
+    // http path should begin with "/"
+    String httpPath;
+    httpPath = hiveConfMap.get(
+        HiveConf.ConfVars.HIVE_SERVER2_THRIFT_HTTP_PATH.varname);
+    if(httpPath == null) {
+      httpPath = "/";
+    }
+    else if(!httpPath.startsWith("/")) {
+      httpPath = "/" + httpPath;
+    }
+    return schemeName +  "://" + host + ":" + port + httpPath;
+  }
+
   private TTransport createHttpTransport() throws SQLException {
-    CloseableHttpClient httpClient;
+    DefaultHttpClient httpClient;
 
     boolean useSsl = isSslConnection();
 
@@ -215,24 +230,10 @@ public class HiveConnection implements java.sql.Connection {
     return transport;
   }
 
-  private String getServerHttpUrl(boolean useSsl) {
-    // Create the http/https url
-    // JDBC driver will set up an https url if ssl is enabled, otherwise http
-    String schemeName = useSsl ? "https" : "http";
-    // http path should begin with "/"
-    String httpPath;
-    httpPath = hiveConfMap.get(
-        HiveConf.ConfVars.HIVE_SERVER2_THRIFT_HTTP_PATH.varname);
-    if(httpPath == null) {
-      httpPath = "/";
-    }
-    else if(!httpPath.startsWith("/")) {
-      httpPath = "/" + httpPath;
-    }
-    return schemeName +  "://" + host + ":" + port + httpPath;
-  }
+  private DefaultHttpClient getHttpClient(Boolean useSsl) throws SQLException {
+    DefaultHttpClient httpClient = new DefaultHttpClient();
+    HttpRequestInterceptor requestInterceptor;
 
-  private CloseableHttpClient getHttpClient(Boolean useSsl) throws SQLException {
     // If Kerberos
     if (isKerberosAuthMode()) {
       try {
@@ -248,10 +249,9 @@ public class HiveConnection implements java.sql.Connection {
          */
         String kerberosAuthHeader = HttpAuthUtils.doKerberosAuth(
             sessConfMap.get(HIVE_AUTH_PRINCIPAL), host, getServerHttpUrl(false));
-        HttpKerberosRequestInterceptor kerberosInterceptor =
-            new HttpKerberosRequestInterceptor(kerberosAuthHeader);
-        return HttpClients.custom().addInterceptorFirst(kerberosInterceptor).build();
-      } catch (Exception e) {
+        requestInterceptor = new HttpKerberosRequestInterceptor(kerberosAuthHeader);
+      }
+      catch (Exception e) {
         String msg =  "Could not create a kerberized http connection to " +
             jdbcURI + ". " + e.getMessage();
         throw new SQLException(msg, " 08S01", e);
@@ -259,45 +259,43 @@ public class HiveConnection implements java.sql.Connection {
     }
     else {
       /**
-       * Add an interceptor to pass username/password in the header,
-       * for basic preemtive http authentication at the server.
+       * Add an interceptor to pass username/password in the header.
        * In https mode, the entire information is encrypted
        */
-      HttpRequestInterceptor authInterceptor = new HttpBasicAuthInterceptor(
-          getUserName(), getPassword());
+      requestInterceptor = new HttpBasicAuthInterceptor(getUserName(), getPassword());
+      // Configure httpClient for SSL
       if (useSsl) {
         String sslTrustStorePath = sessConfMap.get(HIVE_SSL_TRUST_STORE);
         String sslTrustStorePassword = sessConfMap.get(
             HIVE_SSL_TRUST_STORE_PASSWORD);
         KeyStore sslTrustStore;
-        SSLContext sslContext;
-        if (sslTrustStorePath == null || sslTrustStorePath.isEmpty()) {
-          // Create a default client context based on standard JSSE trust material
-          sslContext = SSLContexts.createDefault();
-        } else {
-          // Pick trust store config from the given path
-          try {
+        SSLSocketFactory socketFactory;
+
+        try {
+          if (sslTrustStorePath == null || sslTrustStorePath.isEmpty()) {
+            // Create a default socket factory based on standard JSSE trust material
+            socketFactory = SSLSocketFactory.getSocketFactory();
+          }
+          else {
+            // Pick trust store config from the given path
             sslTrustStore = KeyStore.getInstance(HIVE_SSL_TRUST_STORE_TYPE);
             sslTrustStore.load(new FileInputStream(sslTrustStorePath),
                 sslTrustStorePassword.toCharArray());
-            sslContext = SSLContexts.custom().loadTrustMaterial(
-                sslTrustStore).build();
+            socketFactory = new SSLSocketFactory(sslTrustStore);
           }
-          catch (Exception e) {
-            String msg =  "Could not create an https connection to " +
-                jdbcURI + ". " + e.getMessage();
-            throw new SQLException(msg, " 08S01", e);
-          }
+          socketFactory.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+          Scheme sslScheme = new Scheme("https", 443, socketFactory);
+          httpClient.getConnectionManager().getSchemeRegistry().register(sslScheme);
         }
-        return HttpClients.custom().setHostnameVerifier(
-            SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER).setSslcontext(
-                sslContext).addInterceptorFirst(authInterceptor).build();
-      }
-      else {
-        // Create a plain http client
-        return HttpClients.custom().addInterceptorFirst(authInterceptor).build();
+        catch (Exception e) {
+          String msg =  "Could not create an https connection to " +
+              jdbcURI + ". " + e.getMessage();
+          throw new SQLException(msg, " 08S01", e);
+        }
       }
     }
+    httpClient.addRequestInterceptor(requestInterceptor);
+    return httpClient;
   }
 
   private TTransport createBinaryTransport() throws SQLException {
