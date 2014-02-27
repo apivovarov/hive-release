@@ -24,4 +24,6 @@ public interface OperatorDesc extends Serializable, Cloneable {
   public Object clone() throws CloneNotSupportedException;
   public Statistics getStatistics();
   public void setStatistics(Statistics statistics);
+  public MetaInfo getMetaInfo();
+  public void setMetaInfo(MetaInfo metaInfo);
 }

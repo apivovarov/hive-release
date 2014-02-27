@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,7 +60,9 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.BaseWork;
 import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.ReduceWork;
-import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
+import org.apache.hadoop.hive.ql.plan.TezEdgeProperty;
+import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
+import org.apache.hadoop.hive.ql.plan.TezWork;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.stats.StatsFactory;
 import org.apache.hadoop.hive.ql.stats.StatsPublisher;
@@ -80,6 +83,7 @@ import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 import org.apache.tez.dag.api.DAG;
 import org.apache.tez.dag.api.Edge;
+import org.apache.tez.dag.api.EdgeManagerDescriptor;
 import org.apache.tez.dag.api.EdgeProperty;
 import org.apache.tez.dag.api.EdgeProperty.DataMovementType;
 import org.apache.tez.dag.api.EdgeProperty.DataSourceType;
@@ -89,6 +93,7 @@ import org.apache.tez.dag.api.InputDescriptor;
 import org.apache.tez.dag.api.OutputDescriptor;
 import org.apache.tez.dag.api.ProcessorDescriptor;
 import org.apache.tez.dag.api.Vertex;
+import org.apache.tez.dag.api.VertexManagerPluginDescriptor;
 import org.apache.tez.dag.api.VertexLocationHint;
 import org.apache.tez.dag.api.TezException;
 import org.apache.tez.client.PreWarmContext;
@@ -201,11 +206,11 @@ public class DagUtils {
    * @param group The parent VertexGroup
    * @param wConf The job conf of the child vertex
    * @param w The child vertex
-   * @param edgeType the type of connection between the two
+   * @param edgeProp the edge property of connection between the two
    * endpoints.
    */
   public GroupInputEdge createEdge(VertexGroup group, JobConf wConf,
-      Vertex w, EdgeType edgeType)
+      Vertex w, TezEdgeProperty edgeProp)
       throws IOException {
     
     Class mergeInputClass;
@@ -213,8 +218,10 @@ public class DagUtils {
     LOG.info("Creating Edge between " + group.getGroupName() + " and " + w.getVertexName());
     w.getProcessorDescriptor().setUserPayload(MRHelpers.createUserPayloadFromConf(wConf));
 
+    EdgeType edgeType = edgeProp.getEdgeType();
     switch (edgeType) {
     case BROADCAST_EDGE:
+    case CUSTOM_EDGE:
       mergeInputClass = ConcatenatedMergedKeyValueInput.class;
       break;
 
@@ -224,7 +231,17 @@ public class DagUtils {
       break;
     }
 
-    return new GroupInputEdge(group, w, createEdgeProperty(edgeType),
+    if (edgeType == EdgeType.CUSTOM_EDGE) {
+      int numBuckets = edgeProp.getNumBuckets();
+      byte[] userPayload = ByteBuffer.allocate(4).putInt(numBuckets).array();
+      VertexManagerPluginDescriptor desc = new VertexManagerPluginDescriptor(
+          CustomPartitionVertex.class.getName());
+      desc.setUserPayload(userPayload);
+      w.setVertexManagerPlugin(desc);
+    }
+
+
+    return new GroupInputEdge(group, w, createEdgeProperty(edgeProp),
          new InputDescriptor(mergeInputClass.getName()));
   }
 
@@ -253,27 +270,54 @@ public class DagUtils {
    * @return
    */
   public Edge createEdge(JobConf vConf, Vertex v, JobConf wConf, Vertex w,
-      EdgeType edgeType)
+      TezEdgeProperty edgeProp)
       throws IOException {
 
     updateConfigurationForEdge(vConf, v, wConf, w);
 
-    return new Edge(v, w, createEdgeProperty(edgeType));
+    if (edgeProp.getEdgeType() == EdgeType.CUSTOM_EDGE) {
+      int numBuckets = edgeProp.getNumBuckets();
+      byte[] userPayload = ByteBuffer.allocate(4).putInt(numBuckets).array();
+      VertexManagerPluginDescriptor desc = new VertexManagerPluginDescriptor(
+          CustomPartitionVertex.class.getName());
+      desc.setUserPayload(userPayload);
+      w.setVertexManagerPlugin(desc);
+    }
+
+    return new Edge(v, w, createEdgeProperty(edgeProp));
   }
 
   /*
    * Helper function to create an edge property from an edge type.
    */
-  private EdgeProperty createEdgeProperty(EdgeType edgeType) {
+  private EdgeProperty createEdgeProperty(TezEdgeProperty edgeProp) {
     DataMovementType dataMovementType;
     Class logicalInputClass;
     Class logicalOutputClass;
 
+    EdgeProperty edgeProperty = null;
+    EdgeType edgeType = edgeProp.getEdgeType();
     switch (edgeType) {
     case BROADCAST_EDGE:
       dataMovementType = DataMovementType.BROADCAST;
       logicalOutputClass = OnFileUnorderedKVOutput.class;
       logicalInputClass = ShuffledUnorderedKVInput.class;
+      break;
+      
+    case CUSTOM_EDGE:
+      dataMovementType = DataMovementType.CUSTOM;
+      logicalOutputClass = OnFileSortedOutput.class;
+      logicalInputClass = ShuffledUnorderedKVInput.class;
+      EdgeManagerDescriptor edgeDesc = new EdgeManagerDescriptor(
+          CustomPartitionEdge.class.getName());
+      // no need to pass a payload because we create it at run-time
+      edgeDesc.setUserPayload(null);
+      edgeProperty =
+          new EdgeProperty(edgeDesc,
+              DataSourceType.PERSISTED,
+              SchedulingType.SEQUENTIAL,
+              new OutputDescriptor(logicalOutputClass.getName()),
+              new InputDescriptor(logicalInputClass.getName()));
       break;
 
     case SIMPLE_EDGE:
@@ -284,12 +328,14 @@ public class DagUtils {
       break;
     }
 
-    EdgeProperty edgeProperty =
+    if (edgeProperty == null) {
+      edgeProperty =
         new EdgeProperty(dataMovementType,
             DataSourceType.PERSISTED,
             SchedulingType.SEQUENTIAL,
             new OutputDescriptor(logicalOutputClass.getName()),
             new InputDescriptor(logicalInputClass.getName()));
+    }
 
     return edgeProperty;
   }
@@ -328,7 +374,7 @@ public class DagUtils {
    */
   private Vertex createVertex(JobConf conf, MapWork mapWork,
       LocalResource appJarLr, List<LocalResource> additionalLr, FileSystem fs,
-      Path mrScratchDir, Context ctx) throws Exception {
+      Path mrScratchDir, Context ctx, TezWork tezWork) throws Exception {
 
     Path tezDir = getTezDir(mrScratchDir);
 
@@ -353,11 +399,25 @@ public class DagUtils {
     Class inputFormatClass = conf.getClass("mapred.input.format.class",
         InputFormat.class);
 
-    // we'll set up tez to combine spits for us iff the input format
-    // is HiveInputFormat
-    if (inputFormatClass == HiveInputFormat.class) {
-      useTezGroupedSplits = true;
-      conf.setClass("mapred.input.format.class", TezGroupedSplitsInputFormat.class, InputFormat.class);
+    boolean vertexHasCustomInput = false;
+    if (tezWork != null) {
+      for (BaseWork baseWork : tezWork.getParents(mapWork)) {
+        if (tezWork.getEdgeType(baseWork, mapWork) == EdgeType.CUSTOM_EDGE) {
+          vertexHasCustomInput = true;
+        }
+      }
+    }
+    if (vertexHasCustomInput) {
+      useTezGroupedSplits = false;
+      inputFormatClass = HiveInputFormat.class;
+      conf.setClass("mapred.input.format.class", HiveInputFormat.class, InputFormat.class);
+    } else {
+      // we'll set up tez to combine spits for us iff the input format
+      // is HiveInputFormat
+      if (inputFormatClass == HiveInputFormat.class) {
+        useTezGroupedSplits = true;
+        conf.setClass("mapred.input.format.class", TezGroupedSplitsInputFormat.class, InputFormat.class);
+      }
     }
 
     if (HiveConf.getBoolVar(conf, ConfVars.HIVE_AM_SPLIT_GENERATION)) {
@@ -768,6 +828,7 @@ public class DagUtils {
    * @param work The instance of BaseWork representing the actual work to be performed
    * by this vertex.
    * @param scratchDir HDFS scratch dir for this execution unit.
+   * @param list 
    * @param appJarLr Local resource for hive-exec.
    * @param additionalLr
    * @param fileSystem FS corresponding to scratchDir and LocalResources
@@ -775,15 +836,16 @@ public class DagUtils {
    * @return Vertex
    */
   public Vertex createVertex(JobConf conf, BaseWork work,
-      Path scratchDir, LocalResource appJarLr, List<LocalResource> additionalLr,
-      FileSystem fileSystem, Context ctx, boolean hasChildren) throws Exception {
+      Path scratchDir, LocalResource appJarLr, 
+      List<LocalResource> additionalLr,
+      FileSystem fileSystem, Context ctx, boolean hasChildren, TezWork tezWork) throws Exception {
 
     Vertex v = null;
     // simply dispatch the call to the right method for the actual (sub-) type of
     // BaseWork.
     if (work instanceof MapWork) {
       v = createVertex(conf, (MapWork) work, appJarLr,
-          additionalLr, fileSystem, scratchDir, ctx);
+          additionalLr, fileSystem, scratchDir, ctx, tezWork);
     } else if (work instanceof ReduceWork) {
       v = createVertex(conf, (ReduceWork) work, appJarLr,
           additionalLr, fileSystem, scratchDir, ctx);
