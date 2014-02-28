@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.exec.vector;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -117,6 +118,8 @@ public class VectorGroupByOperator extends GroupByOperator {
    * Percent of entries to flush when memory threshold exceeded.
    */
   private transient float percentEntriesToFlush = 0.1f;
+  
+  private transient SoftReference<Object> gcCanary = new SoftReference<Object>(new Object());
 
   /**
    * The global key-aggregation hash map.
@@ -248,6 +251,9 @@ public class VectorGroupByOperator extends GroupByOperator {
     while (shouldFlush(batch)) {
       flush(false);
       
+      if(gcCanary.get() == null) {
+        gcCanary = new SoftReference<Object>(new Object()); 
+      }
       //Validate that some progress is being made
       if (!(numEntriesHashTable < preFlushEntriesCount)) {
         if (LOG.isDebugEnabled()) {
@@ -349,8 +355,12 @@ public class VectorGroupByOperator extends GroupByOperator {
       updateAvgVariableSize(batch);
       numEntriesSinceCheck = 0;
     }
-    return numEntriesHashTable > this.maxHtEntries ||
-        numEntriesHashTable * (fixedHashEntrySize + avgVariableSize) > maxHashTblMemory;
+    if(numEntriesHashTable > this.maxHtEntries ||
+        numEntriesHashTable * (fixedHashEntrySize + avgVariableSize) > maxHashTblMemory) {
+      return true;
+    } else {
+      return (gcCanary.get() == null);
+    }
   }
 
   /**
