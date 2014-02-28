@@ -182,6 +182,8 @@ public class TestHCatMultiOutputFormat {
 
     FileSystem fs = FileSystem.get(conf);
     System.setProperty("hadoop.log.dir", new File(workDir, "/logs").getAbsolutePath());
+
+    HCatMapReduceTest.setupDummyYarnSiteXml();
     mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null,
       new JobConf(conf));
     mrConf = mrCluster.createJobConf();

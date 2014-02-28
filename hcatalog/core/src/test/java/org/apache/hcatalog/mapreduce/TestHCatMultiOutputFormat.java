@@ -185,6 +185,8 @@ public class TestHCatMultiOutputFormat {
     conf.set("yarn.scheduler.capacity.root.default.capacity", "100");
 
     FileSystem fs = FileSystem.get(conf);
+    org.apache.hive.hcatalog.mapreduce.HCatMapReduceTest.setupDummyYarnSiteXml();
+
     System.setProperty("hadoop.log.dir", new File(workDir, "/logs").getAbsolutePath());
     mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null,
       new JobConf(conf));

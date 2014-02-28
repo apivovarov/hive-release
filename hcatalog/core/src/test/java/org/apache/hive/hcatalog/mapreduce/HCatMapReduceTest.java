@@ -19,6 +19,7 @@
 
 package org.apache.hive.hcatalog.mapreduce;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -403,6 +404,30 @@ public abstract class HCatMapReduceTest extends HCatBaseTest {
 
     return HCatInputFormat.getTableSchema(job);
   }
+
+  /**
+   * Utility method to set up a dummy yarn site xml
+   * Use this method before any invocations of minimr cluster
+   */
+  public static void setupDummyYarnSiteXml() {
+    try {
+      FileSystem localFs = FileSystem.getLocal(new Configuration());
+      String TEST_ROOT_DIR = "target"
+          + Path.SEPARATOR + "classes";
+      Path TEST_ROOT_DIR_PATH =
+          localFs.makeQualified(new Path(TEST_ROOT_DIR));
+
+      Path YARN_SITE_XML = new Path(TEST_ROOT_DIR_PATH,"yarn-site.xml");
+
+      if (!localFs.exists(YARN_SITE_XML)){
+        Configuration dummy_conf = new Configuration(false);
+        dummy_conf.writeXml(new FileOutputStream(YARN_SITE_XML.toUri().getPath()));
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("problem getting local fs", e);
+    }
+  }
+
 
 }
 

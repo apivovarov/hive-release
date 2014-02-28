@@ -85,6 +85,7 @@ public class TestHCatPartitionPublish {
 
     fs = FileSystem.get(conf);
     System.setProperty("hadoop.log.dir", new File(workDir, "/logs").getAbsolutePath());
+    org.apache.hive.hcatalog.mapreduce.HCatMapReduceTest.setupDummyYarnSiteXml();
     // LocalJobRunner does not work with mapreduce OutputCommitter. So need
     // to use MiniMRCluster. MAPREDUCE-2350
     mrCluster = new MiniMRCluster(1, fs.getUri().toString(), 1, null, null,

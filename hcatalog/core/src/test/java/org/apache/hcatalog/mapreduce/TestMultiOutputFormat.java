@@ -80,6 +80,7 @@ public class TestMultiOutputFormat {
 
     fs = FileSystem.get(conf);
     System.setProperty("hadoop.log.dir", new File(workDir, "/logs").getAbsolutePath());
+    org.apache.hive.hcatalog.mapreduce.HCatMapReduceTest.setupDummyYarnSiteXml();
     // LocalJobRunner does not work with mapreduce OutputCommitter. So need
     // to use MiniMRCluster. MAPREDUCE-2350
     mrConf = new JobConf(conf);
