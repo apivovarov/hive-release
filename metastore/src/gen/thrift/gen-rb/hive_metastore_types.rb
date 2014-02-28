@@ -1540,12 +1540,12 @@ class ShowCompactResponseElement
   FIELDS = {
     DBNAME => {:type => ::Thrift::Types::STRING, :name => 'dbname'},
     TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tablename'},
-    PARTITIONNAME => {:type => ::Thrift::Types::STRING, :name => 'partitionname'},
+    PARTITIONNAME => {:type => ::Thrift::Types::STRING, :name => 'partitionname', :optional => true},
     TYPE => {:type => ::Thrift::Types::I32, :name => 'type', :enum_class => ::CompactionType},
     STATE => {:type => ::Thrift::Types::STRING, :name => 'state'},
-    WORKERID => {:type => ::Thrift::Types::STRING, :name => 'workerid'},
-    START => {:type => ::Thrift::Types::I64, :name => 'start'},
-    RUNAS => {:type => ::Thrift::Types::STRING, :name => 'runAs'}
+    WORKERID => {:type => ::Thrift::Types::STRING, :name => 'workerid', :optional => true},
+    START => {:type => ::Thrift::Types::I64, :name => 'start', :optional => true},
+    RUNAS => {:type => ::Thrift::Types::STRING, :name => 'runAs', :optional => true}
   }
 
   def struct_fields; FIELDS; end
@@ -1553,12 +1553,8 @@ class ShowCompactResponseElement
   def validate
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field dbname is unset!') unless @dbname
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field tablename is unset!') unless @tablename
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field partitionname is unset!') unless @partitionname
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field type is unset!') unless @type
     raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field state is unset!') unless @state
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field workerid is unset!') unless @workerid
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field start is unset!') unless @start
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field runAs is unset!') unless @runAs
     unless @type.nil? || ::CompactionType::VALID_VALUES.include?(@type)
       raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field type!')
     end
@@ -1572,13 +1568,12 @@ class ShowCompactResponse
   COMPACTS = 1
 
   FIELDS = {
-    COMPACTS => {:type => ::Thrift::Types::LIST, :name => 'compacts', :element => {:type => ::Thrift::Types::STRUCT, :class => ::ShowCompactResponseElement}}
+    COMPACTS => {:type => ::Thrift::Types::LIST, :name => 'compacts', :element => {:type => ::Thrift::Types::STRUCT, :class => ::ShowCompactResponseElement}, :optional => true}
   }
 
   def struct_fields; FIELDS; end
 
   def validate
-    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field compacts is unset!') unless @compacts
   end
 
   ::Thrift::Struct.generate_accessors self

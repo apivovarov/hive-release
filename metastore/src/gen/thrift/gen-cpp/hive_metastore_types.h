@@ -3890,12 +3890,19 @@ class ShowCompactRequest {
 
 void swap(ShowCompactRequest &a, ShowCompactRequest &b);
 
+typedef struct _ShowCompactResponseElement__isset {
+  _ShowCompactResponseElement__isset() : partitionname(false), workerid(false), start(false), runAs(false) {}
+  bool partitionname;
+  bool workerid;
+  bool start;
+  bool runAs;
+} _ShowCompactResponseElement__isset;
 
 class ShowCompactResponseElement {
  public:
 
-  static const char* ascii_fingerprint; // = "42464F3A97707F984FDE462104223A69";
-  static const uint8_t binary_fingerprint[16]; // = {0x42,0x46,0x4F,0x3A,0x97,0x70,0x7F,0x98,0x4F,0xDE,0x46,0x21,0x04,0x22,0x3A,0x69};
+  static const char* ascii_fingerprint; // = "2F338C265DC4FD82DD13F4966FE43F13";
+  static const uint8_t binary_fingerprint[16]; // = {0x2F,0x33,0x8C,0x26,0x5D,0xC4,0xFD,0x82,0xDD,0x13,0xF4,0x96,0x6F,0xE4,0x3F,0x13};
 
   ShowCompactResponseElement() : dbname(), tablename(), partitionname(), type((CompactionType::type)0), state(), workerid(), start(0), runAs() {
   }
@@ -3911,6 +3918,8 @@ class ShowCompactResponseElement {
   int64_t start;
   std::string runAs;
 
+  _ShowCompactResponseElement__isset __isset;
+
   void __set_dbname(const std::string& val) {
     dbname = val;
   }
@@ -3921,6 +3930,7 @@ class ShowCompactResponseElement {
 
   void __set_partitionname(const std::string& val) {
     partitionname = val;
+    __isset.partitionname = true;
   }
 
   void __set_type(const CompactionType::type val) {
@@ -3933,14 +3943,17 @@ class ShowCompactResponseElement {
 
   void __set_workerid(const std::string& val) {
     workerid = val;
+    __isset.workerid = true;
   }
 
   void __set_start(const int64_t val) {
     start = val;
+    __isset.start = true;
   }
 
   void __set_runAs(const std::string& val) {
     runAs = val;
+    __isset.runAs = true;
   }
 
   bool operator == (const ShowCompactResponseElement & rhs) const
@@ -3949,17 +3962,25 @@ class ShowCompactResponseElement {
       return false;
     if (!(tablename == rhs.tablename))
       return false;
-    if (!(partitionname == rhs.partitionname))
+    if (__isset.partitionname != rhs.__isset.partitionname)
+      return false;
+    else if (__isset.partitionname && !(partitionname == rhs.partitionname))
       return false;
     if (!(type == rhs.type))
       return false;
     if (!(state == rhs.state))
       return false;
-    if (!(workerid == rhs.workerid))
+    if (__isset.workerid != rhs.__isset.workerid)
       return false;
-    if (!(start == rhs.start))
+    else if (__isset.workerid && !(workerid == rhs.workerid))
       return false;
-    if (!(runAs == rhs.runAs))
+    if (__isset.start != rhs.__isset.start)
+      return false;
+    else if (__isset.start && !(start == rhs.start))
+      return false;
+    if (__isset.runAs != rhs.__isset.runAs)
+      return false;
+    else if (__isset.runAs && !(runAs == rhs.runAs))
       return false;
     return true;
   }
@@ -3976,12 +3997,16 @@ class ShowCompactResponseElement {
 
 void swap(ShowCompactResponseElement &a, ShowCompactResponseElement &b);
 
+typedef struct _ShowCompactResponse__isset {
+  _ShowCompactResponse__isset() : compacts(false) {}
+  bool compacts;
+} _ShowCompactResponse__isset;
 
 class ShowCompactResponse {
  public:
 
-  static const char* ascii_fingerprint; // = "3CCBC4D398CA25527272FE78625DE88A";
-  static const uint8_t binary_fingerprint[16]; // = {0x3C,0xCB,0xC4,0xD3,0x98,0xCA,0x25,0x52,0x72,0x72,0xFE,0x78,0x62,0x5D,0xE8,0x8A};
+  static const char* ascii_fingerprint; // = "A17C330C0E0F9676636A3CE880F18556";
+  static const uint8_t binary_fingerprint[16]; // = {0xA1,0x7C,0x33,0x0C,0x0E,0x0F,0x96,0x76,0x63,0x6A,0x3C,0xE8,0x80,0xF1,0x85,0x56};
 
   ShowCompactResponse() {
   }
@@ -3990,13 +4015,18 @@ class ShowCompactResponse {
 
   std::vector<ShowCompactResponseElement>  compacts;
 
+  _ShowCompactResponse__isset __isset;
+
   void __set_compacts(const std::vector<ShowCompactResponseElement> & val) {
     compacts = val;
+    __isset.compacts = true;
   }
 
   bool operator == (const ShowCompactResponse & rhs) const
   {
-    if (!(compacts == rhs.compacts))
+    if (__isset.compacts != rhs.__isset.compacts)
+      return false;
+    else if (__isset.compacts && !(compacts == rhs.compacts))
       return false;
     return true;
   }

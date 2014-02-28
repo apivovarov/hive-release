@@ -7202,8 +7202,8 @@ void swap(ShowCompactRequest &a, ShowCompactRequest &b) {
   (void) b;
 }
 
-const char* ShowCompactResponseElement::ascii_fingerprint = "42464F3A97707F984FDE462104223A69";
-const uint8_t ShowCompactResponseElement::binary_fingerprint[16] = {0x42,0x46,0x4F,0x3A,0x97,0x70,0x7F,0x98,0x4F,0xDE,0x46,0x21,0x04,0x22,0x3A,0x69};
+const char* ShowCompactResponseElement::ascii_fingerprint = "2F338C265DC4FD82DD13F4966FE43F13";
+const uint8_t ShowCompactResponseElement::binary_fingerprint[16] = {0x2F,0x33,0x8C,0x26,0x5D,0xC4,0xFD,0x82,0xDD,0x13,0xF4,0x96,0x6F,0xE4,0x3F,0x13};
 
 uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -7218,12 +7218,8 @@ uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol*
 
   bool isset_dbname = false;
   bool isset_tablename = false;
-  bool isset_partitionname = false;
   bool isset_type = false;
   bool isset_state = false;
-  bool isset_workerid = false;
-  bool isset_start = false;
-  bool isset_runAs = false;
 
   while (true)
   {
@@ -7252,7 +7248,7 @@ uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol*
       case 3:
         if (ftype == ::apache::thrift::protocol::T_STRING) {
           xfer += iprot->readString(this->partitionname);
-          isset_partitionname = true;
+          this->__isset.partitionname = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -7278,7 +7274,7 @@ uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol*
       case 6:
         if (ftype == ::apache::thrift::protocol::T_STRING) {
           xfer += iprot->readString(this->workerid);
-          isset_workerid = true;
+          this->__isset.workerid = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -7286,7 +7282,7 @@ uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol*
       case 7:
         if (ftype == ::apache::thrift::protocol::T_I64) {
           xfer += iprot->readI64(this->start);
-          isset_start = true;
+          this->__isset.start = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -7294,7 +7290,7 @@ uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol*
       case 8:
         if (ftype == ::apache::thrift::protocol::T_STRING) {
           xfer += iprot->readString(this->runAs);
-          isset_runAs = true;
+          this->__isset.runAs = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -7312,17 +7308,9 @@ uint32_t ShowCompactResponseElement::read(::apache::thrift::protocol::TProtocol*
     throw TProtocolException(TProtocolException::INVALID_DATA);
   if (!isset_tablename)
     throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_partitionname)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
   if (!isset_type)
     throw TProtocolException(TProtocolException::INVALID_DATA);
   if (!isset_state)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_workerid)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_start)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
-  if (!isset_runAs)
     throw TProtocolException(TProtocolException::INVALID_DATA);
   return xfer;
 }
@@ -7339,10 +7327,11 @@ uint32_t ShowCompactResponseElement::write(::apache::thrift::protocol::TProtocol
   xfer += oprot->writeString(this->tablename);
   xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("partitionname", ::apache::thrift::protocol::T_STRING, 3);
-  xfer += oprot->writeString(this->partitionname);
-  xfer += oprot->writeFieldEnd();
-
+  if (this->__isset.partitionname) {
+    xfer += oprot->writeFieldBegin("partitionname", ::apache::thrift::protocol::T_STRING, 3);
+    xfer += oprot->writeString(this->partitionname);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldBegin("type", ::apache::thrift::protocol::T_I32, 4);
   xfer += oprot->writeI32((int32_t)this->type);
   xfer += oprot->writeFieldEnd();
@@ -7351,18 +7340,21 @@ uint32_t ShowCompactResponseElement::write(::apache::thrift::protocol::TProtocol
   xfer += oprot->writeString(this->state);
   xfer += oprot->writeFieldEnd();
 
-  xfer += oprot->writeFieldBegin("workerid", ::apache::thrift::protocol::T_STRING, 6);
-  xfer += oprot->writeString(this->workerid);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("start", ::apache::thrift::protocol::T_I64, 7);
-  xfer += oprot->writeI64(this->start);
-  xfer += oprot->writeFieldEnd();
-
-  xfer += oprot->writeFieldBegin("runAs", ::apache::thrift::protocol::T_STRING, 8);
-  xfer += oprot->writeString(this->runAs);
-  xfer += oprot->writeFieldEnd();
-
+  if (this->__isset.workerid) {
+    xfer += oprot->writeFieldBegin("workerid", ::apache::thrift::protocol::T_STRING, 6);
+    xfer += oprot->writeString(this->workerid);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.start) {
+    xfer += oprot->writeFieldBegin("start", ::apache::thrift::protocol::T_I64, 7);
+    xfer += oprot->writeI64(this->start);
+    xfer += oprot->writeFieldEnd();
+  }
+  if (this->__isset.runAs) {
+    xfer += oprot->writeFieldBegin("runAs", ::apache::thrift::protocol::T_STRING, 8);
+    xfer += oprot->writeString(this->runAs);
+    xfer += oprot->writeFieldEnd();
+  }
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -7378,10 +7370,11 @@ void swap(ShowCompactResponseElement &a, ShowCompactResponseElement &b) {
   swap(a.workerid, b.workerid);
   swap(a.start, b.start);
   swap(a.runAs, b.runAs);
+  swap(a.__isset, b.__isset);
 }
 
-const char* ShowCompactResponse::ascii_fingerprint = "3CCBC4D398CA25527272FE78625DE88A";
-const uint8_t ShowCompactResponse::binary_fingerprint[16] = {0x3C,0xCB,0xC4,0xD3,0x98,0xCA,0x25,0x52,0x72,0x72,0xFE,0x78,0x62,0x5D,0xE8,0x8A};
+const char* ShowCompactResponse::ascii_fingerprint = "A17C330C0E0F9676636A3CE880F18556";
+const uint8_t ShowCompactResponse::binary_fingerprint[16] = {0xA1,0x7C,0x33,0x0C,0x0E,0x0F,0x96,0x76,0x63,0x6A,0x3C,0xE8,0x80,0xF1,0x85,0x56};
 
 uint32_t ShowCompactResponse::read(::apache::thrift::protocol::TProtocol* iprot) {
 
@@ -7394,7 +7387,6 @@ uint32_t ShowCompactResponse::read(::apache::thrift::protocol::TProtocol* iprot)
 
   using ::apache::thrift::protocol::TProtocolException;
 
-  bool isset_compacts = false;
 
   while (true)
   {
@@ -7419,7 +7411,7 @@ uint32_t ShowCompactResponse::read(::apache::thrift::protocol::TProtocol* iprot)
             }
             xfer += iprot->readListEnd();
           }
-          isset_compacts = true;
+          this->__isset.compacts = true;
         } else {
           xfer += iprot->skip(ftype);
         }
@@ -7433,8 +7425,6 @@ uint32_t ShowCompactResponse::read(::apache::thrift::protocol::TProtocol* iprot)
 
   xfer += iprot->readStructEnd();
 
-  if (!isset_compacts)
-    throw TProtocolException(TProtocolException::INVALID_DATA);
   return xfer;
 }
 
@@ -7442,18 +7432,19 @@ uint32_t ShowCompactResponse::write(::apache::thrift::protocol::TProtocol* oprot
   uint32_t xfer = 0;
   xfer += oprot->writeStructBegin("ShowCompactResponse");
 
-  xfer += oprot->writeFieldBegin("compacts", ::apache::thrift::protocol::T_LIST, 1);
-  {
-    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->compacts.size()));
-    std::vector<ShowCompactResponseElement> ::const_iterator _iter329;
-    for (_iter329 = this->compacts.begin(); _iter329 != this->compacts.end(); ++_iter329)
+  if (this->__isset.compacts) {
+    xfer += oprot->writeFieldBegin("compacts", ::apache::thrift::protocol::T_LIST, 1);
     {
-      xfer += (*_iter329).write(oprot);
+      xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->compacts.size()));
+      std::vector<ShowCompactResponseElement> ::const_iterator _iter329;
+      for (_iter329 = this->compacts.begin(); _iter329 != this->compacts.end(); ++_iter329)
+      {
+        xfer += (*_iter329).write(oprot);
+      }
+      xfer += oprot->writeListEnd();
     }
-    xfer += oprot->writeListEnd();
+    xfer += oprot->writeFieldEnd();
   }
-  xfer += oprot->writeFieldEnd();
-
   xfer += oprot->writeFieldStop();
   xfer += oprot->writeStructEnd();
   return xfer;
@@ -7462,6 +7453,7 @@ uint32_t ShowCompactResponse::write(::apache::thrift::protocol::TProtocol* oprot
 void swap(ShowCompactResponse &a, ShowCompactResponse &b) {
   using ::std::swap;
   swap(a.compacts, b.compacts);
+  swap(a.__isset, b.__isset);
 }
 
 const char* MetaException::ascii_fingerprint = "EFB929595D312AC8F305D5A794CFEDA1";

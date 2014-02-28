@@ -42,7 +42,7 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
     schemes.put(TupleScheme.class, new ShowCompactResponseTupleSchemeFactory());
   }
 
-  private List<ShowCompactResponseElement> compacts; // required
+  private List<ShowCompactResponseElement> compacts; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -103,10 +103,11 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
   }
 
   // isset id assignments
+  private _Fields optionals[] = {_Fields.COMPACTS};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.COMPACTS, new org.apache.thrift.meta_data.FieldMetaData("compacts", org.apache.thrift.TFieldRequirementType.REQUIRED, 
+    tmpMap.put(_Fields.COMPACTS, new org.apache.thrift.meta_data.FieldMetaData("compacts", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ShowCompactResponseElement.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -114,13 +115,6 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
   }
 
   public ShowCompactResponse() {
-  }
-
-  public ShowCompactResponse(
-    List<ShowCompactResponseElement> compacts)
-  {
-    this();
-    this.compacts = compacts;
   }
 
   /**
@@ -293,23 +287,21 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
     StringBuilder sb = new StringBuilder("ShowCompactResponse(");
     boolean first = true;
 
-    sb.append("compacts:");
-    if (this.compacts == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.compacts);
+    if (isSetCompacts()) {
+      sb.append("compacts:");
+      if (this.compacts == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.compacts);
+      }
+      first = false;
     }
-    first = false;
     sb.append(")");
     return sb.toString();
   }
 
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
-    if (!isSetCompacts()) {
-      throw new org.apache.thrift.protocol.TProtocolException("Required field 'compacts' is unset! Struct:" + toString());
-    }
-
     // check for sub-struct validity
   }
 
@@ -380,16 +372,18 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
 
       oprot.writeStructBegin(STRUCT_DESC);
       if (struct.compacts != null) {
-        oprot.writeFieldBegin(COMPACTS_FIELD_DESC);
-        {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.compacts.size()));
-          for (ShowCompactResponseElement _iter405 : struct.compacts)
+        if (struct.isSetCompacts()) {
+          oprot.writeFieldBegin(COMPACTS_FIELD_DESC);
           {
-            _iter405.write(oprot);
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.compacts.size()));
+            for (ShowCompactResponseElement _iter405 : struct.compacts)
+            {
+              _iter405.write(oprot);
+            }
+            oprot.writeListEnd();
           }
-          oprot.writeListEnd();
+          oprot.writeFieldEnd();
         }
-        oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -408,11 +402,18 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
     @Override
     public void write(org.apache.thrift.protocol.TProtocol prot, ShowCompactResponse struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
-      {
-        oprot.writeI32(struct.compacts.size());
-        for (ShowCompactResponseElement _iter406 : struct.compacts)
+      BitSet optionals = new BitSet();
+      if (struct.isSetCompacts()) {
+        optionals.set(0);
+      }
+      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetCompacts()) {
         {
-          _iter406.write(oprot);
+          oprot.writeI32(struct.compacts.size());
+          for (ShowCompactResponseElement _iter406 : struct.compacts)
+          {
+            _iter406.write(oprot);
+          }
         }
       }
     }
@@ -420,18 +421,21 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ShowCompactResponse struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      {
-        org.apache.thrift.protocol.TList _list407 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-        struct.compacts = new ArrayList<ShowCompactResponseElement>(_list407.size);
-        for (int _i408 = 0; _i408 < _list407.size; ++_i408)
+      BitSet incoming = iprot.readBitSet(1);
+      if (incoming.get(0)) {
         {
-          ShowCompactResponseElement _elem409; // required
-          _elem409 = new ShowCompactResponseElement();
-          _elem409.read(iprot);
-          struct.compacts.add(_elem409);
+          org.apache.thrift.protocol.TList _list407 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+          struct.compacts = new ArrayList<ShowCompactResponseElement>(_list407.size);
+          for (int _i408 = 0; _i408 < _list407.size; ++_i408)
+          {
+            ShowCompactResponseElement _elem409; // required
+            _elem409 = new ShowCompactResponseElement();
+            _elem409.read(iprot);
+            struct.compacts.add(_elem409);
+          }
         }
+        struct.setCompactsIsSet(true);
       }
-      struct.setCompactsIsSet(true);
     }
   }
 

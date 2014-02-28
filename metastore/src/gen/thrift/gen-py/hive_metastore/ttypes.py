@@ -6431,18 +6431,10 @@ class ShowCompactResponseElement:
       raise TProtocol.TProtocolException(message='Required field dbname is unset!')
     if self.tablename is None:
       raise TProtocol.TProtocolException(message='Required field tablename is unset!')
-    if self.partitionname is None:
-      raise TProtocol.TProtocolException(message='Required field partitionname is unset!')
     if self.type is None:
       raise TProtocol.TProtocolException(message='Required field type is unset!')
     if self.state is None:
       raise TProtocol.TProtocolException(message='Required field state is unset!')
-    if self.workerid is None:
-      raise TProtocol.TProtocolException(message='Required field workerid is unset!')
-    if self.start is None:
-      raise TProtocol.TProtocolException(message='Required field start is unset!')
-    if self.runAs is None:
-      raise TProtocol.TProtocolException(message='Required field runAs is unset!')
     return
 
 
@@ -6512,8 +6504,6 @@ class ShowCompactResponse:
     oprot.writeStructEnd()
 
   def validate(self):
-    if self.compacts is None:
-      raise TProtocol.TProtocolException(message='Required field compacts is unset!')
     return
 
 
