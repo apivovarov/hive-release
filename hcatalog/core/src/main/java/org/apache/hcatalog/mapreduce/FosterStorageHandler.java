@@ -148,6 +148,8 @@ public class FosterStorageHandler extends HCatStorageHandler {
             }
 
             SpecialCases.addSpecialCasesParametersToOutputJobProperties(jobProperties, jobInfo, ofClass);
+            jobProperties.put(HCatConstants.HCAT_KEY_OUTPUT_INFO,
+                HCatUtil.serialize(jobInfo));
         } catch (IOException e) {
             throw new IllegalStateException("Failed to set output path", e);
         }
