@@ -4994,6 +4994,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       });
 
       startMetaStore(cli.port, ShimLoader.getHadoopThriftAuthBridge(), conf);
+      startMetaStoreThreads(conf);
     } catch (Throwable t) {
       // Catch the exception, log it and rethrow it.
       HMSHandler.LOG
@@ -5098,5 +5099,76 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       HMSHandler.LOG.error(StringUtils.stringifyException(x));
       throw x;
     }
+  }
+
+  /**
+   * Start threads outside of the thrift service, such as the compactor threads.
+   * @param conf Hive configuration object
+   */
+  private static void startMetaStoreThreads(HiveConf conf) {
+    // This is a massive hack.  The compactor threads have to access packages in ql (such as
+    // AcidInputFormat).  ql depends on metastore so we can't directly access those.  To deal
+    // with this the compactor thread classes have been put in ql and they are instantiated here
+    // dyanmically.  This is not ideal but it avoids a massive refactoring of Hive packages.
+    //
+    // Wrap the start of the threads in a catch Throwable loop so that any failures
+    // don't doom the rest of the metastore.
+    try {
+      startCompactorInitiator(conf);
+      startCompactorWorkers(conf);
+      startCompactorCleaner(conf);
+    } catch (Throwable e) {
+      LOG.error("Failure when starting the compactor, compactions may not happen, " +
+          StringUtils.stringifyException(e));
+    }
+  }
+
+  private static void startCompactorInitiator(HiveConf conf) throws Exception {
+    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_INITIATOR_ON)) {
+      MetaStoreThread initiator =
+          instantiateThread("org.apache.hadoop.hive.ql.txn.compactor.Initiator");
+      initializeAndStartThread(initiator, conf);
+    }
+  }
+
+  private static void startCompactorWorkers(HiveConf conf) throws Exception {
+    int numWorkers = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_WORKER_THREADS);
+    for (int i = 0; i < numWorkers; i++) {
+      MetaStoreThread worker =
+          instantiateThread("org.apache.hadoop.hive.ql.txn.compactor.Worker");
+      initializeAndStartThread(worker, conf);
+    }
+  }
+
+  private static void startCompactorCleaner(HiveConf conf) throws Exception {
+    if (HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_INITIATOR_ON)) {
+      MetaStoreThread cleaner =
+          instantiateThread("org.apache.hadoop.hive.ql.txn.compactor.Cleaner");
+      initializeAndStartThread(cleaner, conf);
+    }
+  }
+
+  private static MetaStoreThread instantiateThread(String classname) throws Exception {
+    MetaStoreThread t = null;
+    Class c = Class.forName(classname);
+    Object o = c.newInstance();
+    if (t.getClass().isAssignableFrom(c.getClass())) {
+      return (MetaStoreThread)o;
+    } else {
+      String s = classname + " is not an instance of MetaStoreThread.";
+      LOG.error(s);
+      throw new IOException(s);
+    }
+  }
+
+  private static int nextThreadId = 1000000;
+
+  private static void initializeAndStartThread(MetaStoreThread thread, HiveConf conf) throws
+      MetaException {
+    LOG.info("Starting metastore thread of type " + thread.getClass().getName());
+    thread.setHiveConf(conf);
+    thread.setThreadId(nextThreadId++);
+    thread.init(new MetaStoreThread.BooleanPointer());
+    thread.start();
   }
 }
