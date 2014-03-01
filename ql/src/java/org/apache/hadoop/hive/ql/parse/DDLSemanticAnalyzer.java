@@ -113,6 +113,7 @@ import org.apache.hadoop.hive.ql.plan.PrincipalDesc;
 import org.apache.hadoop.hive.ql.plan.RenamePartitionDesc;
 import org.apache.hadoop.hive.ql.plan.RoleDDLDesc;
 import org.apache.hadoop.hive.ql.plan.ShowColumnsDesc;
+import org.apache.hadoop.hive.ql.plan.ShowCompactionsDesc;
 import org.apache.hadoop.hive.ql.plan.ShowCreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.ShowDatabasesDesc;
 import org.apache.hadoop.hive.ql.plan.ShowFunctionsDesc;
@@ -123,6 +124,7 @@ import org.apache.hadoop.hive.ql.plan.ShowPartitionsDesc;
 import org.apache.hadoop.hive.ql.plan.ShowTableStatusDesc;
 import org.apache.hadoop.hive.ql.plan.ShowTablesDesc;
 import org.apache.hadoop.hive.ql.plan.ShowTblPropertiesDesc;
+import org.apache.hadoop.hive.ql.plan.ShowTxnsDesc;
 import org.apache.hadoop.hive.ql.plan.StatsWork;
 import org.apache.hadoop.hive.ql.plan.SwitchDatabaseDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -263,6 +265,8 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
         analyzeAlterTableBucketNum(ast, tableName, partSpec);
       } else if (ast.getToken().getType() == HiveParser.TOK_ALTERTABLE_CLUSTER_SORT) {
         analyzeAlterTableClusterSort(ast, tableName, partSpec);
+      } else if (ast.getToken().getType() == HiveParser.TOK_COMPACT) {
+        analyzeAlterTableCompact(ast, tableName, partSpec);
       }
       break;
     }
@@ -313,6 +317,14 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     case HiveParser.TOK_SHOWDBLOCKS:
       ctx.setResFile(ctx.getLocalTmpPath());
       analyzeShowDbLocks(ast);
+      break;
+    case HiveParser.TOK_SHOW_COMPACTIONS:
+      ctx.setResFile(ctx.getLocalTmpPath());
+      analyzeShowCompactions(ast);
+      break;
+    case HiveParser.TOK_SHOW_TRANSACTIONS:
+      ctx.setResFile(ctx.getLocalTmpPath());
+      analyzeShowTxns(ast);
       break;
     case HiveParser.TOK_DESCFUNCTION:
       ctx.setResFile(ctx.getLocalTmpPath());
@@ -1613,6 +1625,24 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     }
   }
 
+  private void analyzeAlterTableCompact(ASTNode ast, String tableName,
+      HashMap<String, String> partSpec) throws SemanticException {
+
+    String type = unescapeSQLString(ast.getChild(0).getText()).toLowerCase();
+
+    if (!type.equals("minor") && !type.equals("major")) {
+      throw new SemanticException(ErrorMsg.INVALID_COMPACTION_TYPE.getMsg());
+    }
+
+    LinkedHashMap<String, String> newPartSpec = null;
+    if (partSpec != null) newPartSpec = new LinkedHashMap<String, String>(partSpec);
+
+    AlterTableSimpleDesc desc = new AlterTableSimpleDesc(SessionState.get().getCurrentDatabase(),
+        tableName, newPartSpec, type);
+
+    rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(), desc), conf));
+  }
+
   static HashMap<String, String> getProps(ASTNode prop) {
     HashMap<String, String> mapProp = new HashMap<String, String>();
     readProps(prop, mapProp);
@@ -2204,8 +2234,15 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
+    HiveTxnManager txnManager = null;
+    try {
+      txnManager = TxnManagerFactory.getTxnManagerFactory().getTxnManager(conf);
+    } catch (LockException e) {
+      throw new SemanticException(e.getMessage());
+    }
+
     ShowLocksDesc showLocksDesc = new ShowLocksDesc(ctx.getResFile(), tableName,
-        partSpec, isExtended);
+        partSpec, isExtended, txnManager.useNewShowLocksFormat());
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         showLocksDesc), conf));
     setFetchTask(createFetchTask(showLocksDesc.getSchema()));
@@ -2227,8 +2264,15 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
     boolean isExtended = (ast.getChildCount() > 1);
     String dbName = stripQuotes(ast.getChild(0).getText());
 
+    HiveTxnManager txnManager = null;
+    try {
+      txnManager = TxnManagerFactory.getTxnManagerFactory().getTxnManager(conf);
+    } catch (LockException e) {
+      throw new SemanticException(e.getMessage());
+    }
+
     ShowLocksDesc showLocksDesc = new ShowLocksDesc(ctx.getResFile(), dbName,
-                                                    isExtended);
+                                                    isExtended, txnManager.useNewShowLocksFormat());
     rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(),
         showLocksDesc), conf));
     setFetchTask(createFetchTask(showLocksDesc.getSchema()));
@@ -2270,6 +2314,28 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
   }
 
   /**
+   * Add a task to execute "SHOW COMPACTIONS"
+   * @param ast The parsed command tree.
+   * @throws SemanticException Parsing failed.
+   */
+  private void analyzeShowCompactions(ASTNode ast) throws SemanticException {
+    ShowCompactionsDesc desc = new ShowCompactionsDesc(ctx.getResFile());
+    rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(), desc), conf));
+    setFetchTask(createFetchTask(desc.getSchema()));
+  }
+
+  /**
+   * Add a task to execute "SHOW COMPACTIONS"
+   * @param ast The parsed command tree.
+   * @throws SemanticException Parsing failed.
+   */
+  private void analyzeShowTxns(ASTNode ast) throws SemanticException {
+    ShowTxnsDesc desc = new ShowTxnsDesc(ctx.getResFile());
+    rootTasks.add(TaskFactory.get(new DDLWork(getInputs(), getOutputs(), desc), conf));
+    setFetchTask(createFetchTask(desc.getSchema()));
+  }
+
+   /**
    * Add the task according to the parsed command tree. This is used for the CLI
    * command "UNLOCK TABLE ..;".
    *

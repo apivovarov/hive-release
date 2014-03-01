@@ -288,6 +288,9 @@ KW_INNER: 'INNER';
 KW_EXCHANGE: 'EXCHANGE';
 KW_ADMIN: 'ADMIN';
 KW_OWNER: 'OWNER';
+KW_COMPACT: 'COMPACT';
+KW_COMPACTIONS: 'COMPACTIONS';
+KW_TRANSACTIONS: 'TRANSACTIONS';
 
 // Operators
 // NOTE: if you add a new function/operator, add it to sysFuncNames so that describe function _FUNC_ will work.
