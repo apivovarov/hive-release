@@ -20,7 +20,7 @@ package org.apache.hadoop.hive.ql.io;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.InputFormat;

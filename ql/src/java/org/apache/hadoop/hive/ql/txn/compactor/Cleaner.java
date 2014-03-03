@@ -22,8 +22,8 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.txn.CompactionInfo;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
@@ -33,7 +33,6 @@ import org.apache.hadoop.util.StringUtils;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -95,8 +94,7 @@ public class Cleaner extends CompactorThread {
       // Create a bogus validTxnList with a high water mark set to MAX_LONG and no open
       // transactions.  This assures that all deltas are treated as valid and all we return are
       // obsolete files.
-      GetOpenTxnsResponse rsp = new GetOpenTxnsResponse(Long.MAX_VALUE, new HashSet<Long>());
-      IMetaStoreClient.ValidTxnList txnList = new HiveMetaStoreClient.ValidTxnListImpl(rsp);
+      ValidTxnList txnList = new ValidTxnListImpl();
 
       AcidUtils.Directory dir = AcidUtils.getAcidState(new Path(location), conf, txnList);
       List<FileStatus> obsoleteDirs = dir.getObsolete();

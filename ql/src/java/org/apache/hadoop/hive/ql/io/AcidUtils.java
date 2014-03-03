@@ -25,6 +25,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.shims.HadoopShims;
 import org.apache.hadoop.hive.shims.ShimLoader;
@@ -289,7 +290,7 @@ public class AcidUtils {
    */
   public static Directory getAcidState(Path directory,
                                        Configuration conf,
-                                       IMetaStoreClient.ValidTxnList txnList
+                                       ValidTxnList txnList
                                        ) throws IOException {
     FileSystem fs = directory.getFileSystem(conf);
     FileStatus bestBase = null;
@@ -309,7 +310,7 @@ public class AcidUtils {
       if (fn.startsWith(BASE_PREFIX) && child.isDir()) {
         long txn = parseBase(p);
         if (txnList.isTxnRangeCommitted(0, txn) !=
-            IMetaStoreClient.ValidTxnList.RangeResponse.ALL) {
+            ValidTxnList.RangeResponse.ALL) {
           ignoredBase = p;
         } else {
           if (bestBase == null) {
@@ -327,7 +328,7 @@ public class AcidUtils {
         ParsedDelta delta = parseDelta(child);
         if (txnList.isTxnRangeCommitted(delta.minTransaction,
             delta.maxTransaction) !=
-            IMetaStoreClient.ValidTxnList.RangeResponse.NONE) {
+            ValidTxnList.RangeResponse.NONE) {
           working.add(delta);
         }
       } else {
@@ -345,7 +346,8 @@ public class AcidUtils {
     // if we have a base, the original files are obsolete.
     if (bestBase != null) {
       obsolete.addAll(original);
-      // remove the entries so we don't get confused later and think we should  use them.
+      // remove the entries so we don't get confused later and think we should
+      // use them.
       original.clear();
     }
 
@@ -355,7 +357,7 @@ public class AcidUtils {
       if (next.maxTransaction > current) {
         // are any of the new transactions ones that we care about?
         if (txnList.isTxnRangeCommitted(current+1, next.maxTransaction) !=
-            IMetaStoreClient.ValidTxnList.RangeResponse.NONE) {
+            ValidTxnList.RangeResponse.NONE) {
           deltas.add(next);
           current = next.maxTransaction;
         }
@@ -391,9 +393,11 @@ public class AcidUtils {
   }
 
   private static void findOriginals(FileSystem fs, FileStatus stat,
-                                    List<FileStatus> original) throws IOException {
+                                    List<FileStatus> original
+                                    ) throws IOException {
     if (stat.isDir()) {
-      Iterator<FileStatus> iter = SHIMS.listLocatedStatus(fs, stat.getPath(), hiddenFileFilter);
+      Iterator<FileStatus> iter = SHIMS.listLocatedStatus(fs, stat.getPath(),
+          hiddenFileFilter);
       while (iter.hasNext()) {
         FileStatus child = iter.next();
         findOriginals(fs, child, original);

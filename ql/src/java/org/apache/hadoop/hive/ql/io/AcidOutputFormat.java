@@ -21,7 +21,6 @@ package org.apache.hadoop.hive.ql.io;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.ql.exec.RecordWriter;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.Reporter;
@@ -172,9 +171,9 @@ public interface AcidOutputFormat<V> extends HiveOutputFormat<NullWritable, V> {
   /**
    * Create a raw writer for ACID events.
    * This is only intended for the compactor.
-   * @param path
-   * @param options
-   * @return
+   * @param path the root directory
+   * @param options options for writing the file
+   * @return a record writer
    * @throws IOException
    */
   public FSRecordWriter getRawRecordWriter(Path path,

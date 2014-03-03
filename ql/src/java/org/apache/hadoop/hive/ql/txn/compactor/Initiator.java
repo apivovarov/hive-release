@@ -22,12 +22,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.txn.CompactionInfo;
-import org.apache.hadoop.hive.metastore.txn.CompactionTxnHandler;
 import org.apache.hadoop.hive.metastore.txn.TxnHandler;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -67,8 +66,7 @@ public class Initiator extends CompactorThread {
         // don't doom the entire thread.
         try {
           ShowCompactResponse currentCompactions = txnHandler.showCompact(new ShowCompactRequest());
-          GetOpenTxnsResponse openTxns = txnHandler.getOpenTxns();
-          IMetaStoreClient.ValidTxnList txns = new HiveMetaStoreClient.ValidTxnListImpl(openTxns);
+          ValidTxnList txns = TxnHandler.createValidTxnList(txnHandler.getOpenTxns());
           List<CompactionInfo> potentials = txnHandler.findPotentialCompactions(abortedThreashold);
           LOG.debug("Found " + potentials.size() + " potential compactions, " +
               "checking to see if we should compact any of them");
@@ -148,7 +146,7 @@ public class Initiator extends CompactorThread {
                                             CompactionInfo ci) {
     if (compactions.getCompacts() != null) {
       for (ShowCompactResponseElement e : compactions.getCompacts()) {
-        if (e.getState() != TxnHandler.CLEANING_RESPONSE &&
+        if (!e.getState().equals(TxnHandler.CLEANING_RESPONSE) &&
             e.getDbname().equals(ci.dbname) &&
             e.getTablename().equals(ci.tableName) &&
             (e.getPartitionname() == null && ci.partName == null ||
@@ -161,7 +159,7 @@ public class Initiator extends CompactorThread {
   }
 
   private boolean checkForMajor(final CompactionInfo ci,
-                                final IMetaStoreClient.ValidTxnList txns,
+                                final ValidTxnList txns,
                                 final StorageDescriptor sd,
                                 String runAs) throws IOException, InterruptedException {
     // If it's marked as too many aborted, we already know we need to compact
@@ -188,7 +186,7 @@ public class Initiator extends CompactorThread {
   }
 
   private boolean deltaSizeBigEnough(CompactionInfo ci,
-                                     IMetaStoreClient.ValidTxnList txns,
+                                     ValidTxnList txns,
                                      StorageDescriptor sd) throws IOException {
     Path location = new Path(sd.getLocation());
     FileSystem fs = location.getFileSystem(conf);
@@ -228,7 +226,8 @@ public class Initiator extends CompactorThread {
       msg.append(baseSize);
       msg.append(" threshold: ");
       msg.append(threshold);
-      msg.append(" will major compact: " + bigEnough);
+      msg.append(" will major compact: ");
+      msg.append(bigEnough);
       LOG.debug(msg);
     }
     return bigEnough;
@@ -244,7 +243,7 @@ public class Initiator extends CompactorThread {
   }
 
   private boolean checkForMinor(final CompactionInfo ci,
-                                final IMetaStoreClient.ValidTxnList txns,
+                                final ValidTxnList txns,
                                 final StorageDescriptor sd,
                                 String runAs) throws IOException, InterruptedException {
 
@@ -265,10 +264,9 @@ public class Initiator extends CompactorThread {
     }
   }
 
-  private boolean tooManyDeltas(CompactionInfo ci, IMetaStoreClient.ValidTxnList txns,
+  private boolean tooManyDeltas(CompactionInfo ci, ValidTxnList txns,
                                 StorageDescriptor sd) throws IOException {
     Path location = new Path(sd.getLocation());
-    FileSystem fs = location.getFileSystem(conf);
 
     AcidUtils.Directory dir = AcidUtils.getAcidState(location, conf, txns);
     List<AcidUtils.ParsedDelta> deltas = dir.getCurrentDirectories();

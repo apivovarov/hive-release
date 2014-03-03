@@ -18,14 +18,13 @@
 
 package org.apache.hadoop.hive.ql.io.orc;
 
-import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
@@ -297,11 +296,8 @@ public class TestOrcRawRecordMerger {
     Mockito.verify(recordReader).close();
   }
 
-  private static IMetaStoreClient.ValidTxnList createMaximalTxnList() {
-    IMetaStoreClient.ValidTxnList result =
-        new HiveMetaStoreClient.ValidTxnListImpl();
-    result.fromString(Long.MAX_VALUE + ":");
-    return result;
+  private static ValidTxnList createMaximalTxnList() {
+    return new ValidTxnListImpl(Long.MAX_VALUE + ":");
   }
 
   @Test
@@ -509,9 +505,7 @@ public class TestOrcRawRecordMerger {
     ru.delete(200, 0, 8);
     ru.close(false);
 
-    IMetaStoreClient.ValidTxnList txnList =
-        new HiveMetaStoreClient.ValidTxnListImpl();
-    txnList.fromString("200:");
+    ValidTxnList txnList = new ValidTxnListImpl("200:");
     AcidUtils.Directory directory = AcidUtils.getAcidState(root, conf, txnList);
 
     assertEquals(new Path(root, "base_0000100"), directory.getBaseDirectory());
@@ -693,9 +687,7 @@ public class TestOrcRawRecordMerger {
     merger.close();
 
     // try ignoring the 200 transaction and make sure it works still
-    IMetaStoreClient.ValidTxnList txns =
-        new HiveMetaStoreClient.ValidTxnListImpl();
-    txns.fromString("2000:200");
+    ValidTxnList txns = new ValidTxnListImpl("2000:200");
     merger =
         new OrcRawRecordMerger(conf, true, baseReader, false, BUCKET,
             txns, new Reader.Options(),

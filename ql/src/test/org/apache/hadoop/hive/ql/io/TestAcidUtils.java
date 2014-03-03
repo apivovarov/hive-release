@@ -20,8 +20,7 @@ package org.apache.hadoop.hive.ql.io;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
-import org.apache.hadoop.hive.metastore.api.GetOpenTxnsResponse;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.ql.io.orc.TestInputOutputFormat;
 import org.apache.hadoop.hive.ql.io.orc.TestInputOutputFormat.MockFile;
 import org.apache.hadoop.hive.ql.io.orc.TestInputOutputFormat.MockFileSystem;
@@ -79,64 +78,6 @@ public class TestAcidUtils {
     assertEquals(0, opts.getMaximumTransactionId());
   }
 
-  public static class MockTransactionList
-      implements IMetaStoreClient.ValidTxnList {
-    private final long[] openTxns;
-    private final long maxTxn;
-
-    public MockTransactionList(long maxTxn, long... openTxns) {
-      this.maxTxn = maxTxn;
-      this.openTxns = openTxns;
-    }
-
-    @Override
-    public boolean isTxnCommitted(long txnid) {
-      if (txnid > maxTxn) {
-        return false;
-      }
-      for(long txn: openTxns) {
-        if (txn == txnid) {
-          return false;
-        }
-      }
-      return true;
-    }
-
-    @Override
-    public RangeResponse isTxnRangeCommitted(long minTxnId, long maxTxnId) {
-      if (minTxnId > maxTxn) {
-        return RangeResponse.NONE;
-      }
-      long count = 0;
-      for(long txn: openTxns) {
-        if (minTxnId <= txn && txn <= maxTxnId) {
-          count += 1;
-        }
-      }
-      if (count == 0) {
-        if (maxTxn >= maxTxnId) {
-          return RangeResponse.ALL;
-        } else {
-          return RangeResponse.SOME;
-        }
-      } else if (count == (maxTxnId - minTxnId + 1)) {
-        return RangeResponse.NONE;
-      } else {
-        return RangeResponse.SOME;
-      }
-    }
-
-    @Override
-    public GetOpenTxnsResponse getOpenTxns() {
-      return null;
-    }
-
-    @Override
-    public void fromString(String src) {
-      // TODO don't think this is needed
-    }
-  }
-
   @Test
   public void testOriginal() throws Exception {
     Configuration conf = new Configuration();
@@ -149,7 +90,7 @@ public class TestAcidUtils {
         new MockFile("/tbl/part1/subdir/000000_0", 0, new byte[0]));
     AcidUtils.Directory dir =
         AcidUtils.getAcidState(new MockPath(fs, "/tbl/part1"), conf,
-            new MockTransactionList(100));
+            new ValidTxnListImpl("100:"));
     assertEquals(null, dir.getBaseDirectory());
     assertEquals(0, dir.getCurrentDirectories().size());
     assertEquals(0, dir.getObsolete().size());
@@ -179,7 +120,7 @@ public class TestAcidUtils {
         new MockFile("/tbl/part1/delta_101_101/bucket_0", 0, new byte[0]));
     AcidUtils.Directory dir =
         AcidUtils.getAcidState(new TestInputOutputFormat.MockPath(fs,
-            "/tbl/part1"), conf, new MockTransactionList(100));
+            "/tbl/part1"), conf, new ValidTxnListImpl("100:"));
     assertEquals(null, dir.getBaseDirectory());
     List<FileStatus> obsolete = dir.getObsolete();
     assertEquals(2, obsolete.size());
@@ -220,7 +161,7 @@ public class TestAcidUtils {
         new MockFile("/tbl/part1/delta_90_120/bucket_0", 0, new byte[0]));
     AcidUtils.Directory dir =
         AcidUtils.getAcidState(new TestInputOutputFormat.MockPath(fs,
-            "/tbl/part1"), conf, new MockTransactionList(100));
+            "/tbl/part1"), conf, new ValidTxnListImpl("100:"));
     assertEquals("/tbl/part1/base_49", dir.getBaseDirectory().toString());
     List<FileStatus> obsolete = dir.getObsolete();
     assertEquals(5, obsolete.size());
@@ -249,7 +190,7 @@ public class TestAcidUtils {
         new MockFile("/tbl/part1/base_200/bucket_0", 500, new byte[0]));
     Path part = new MockPath(fs, "/tbl/part1");
     AcidUtils.Directory dir =
-        AcidUtils.getAcidState(part, conf, new MockTransactionList(150));
+        AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("150:"));
     assertEquals("/tbl/part1/base_100", dir.getBaseDirectory().toString());
     List<FileStatus> obsoletes = dir.getObsolete();
     assertEquals(3, obsoletes.size());
@@ -258,19 +199,19 @@ public class TestAcidUtils {
     assertEquals("/tbl/part1/base_5", obsoletes.get(2).getPath().toString());
     assertEquals(0, dir.getOriginalFiles().size());
     assertEquals(0, dir.getCurrentDirectories().size());
-    dir = AcidUtils.getAcidState(part, conf, new MockTransactionList(150, 99));
+    dir = AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("150:99"));
     assertEquals("/tbl/part1/base_25", dir.getBaseDirectory().toString());
     obsoletes = dir.getObsolete();
     assertEquals(2, obsoletes.size());
     assertEquals("/tbl/part1/base_10", obsoletes.get(0).getPath().toString());
     assertEquals("/tbl/part1/base_5", obsoletes.get(1).getPath().toString());
-    dir = AcidUtils.getAcidState(part, conf, new MockTransactionList(150, 25));
+    dir = AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("150:25"));
     assertEquals("/tbl/part1/base_10", dir.getBaseDirectory().toString());
     obsoletes = dir.getObsolete();
     assertEquals(1, obsoletes.size());
     assertEquals("/tbl/part1/base_5", obsoletes.get(0).getPath().toString());
     try {
-      dir = AcidUtils.getAcidState(part, conf, new MockTransactionList(150, 2));
+      AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("150:2"));
       assertTrue(false);
     } catch (IllegalArgumentException iae) {
       //expected
@@ -287,7 +228,7 @@ public class TestAcidUtils {
         new MockFile("/tbl/part1/000001_1", 500, new byte[0]));
     Path part = new MockPath(fs, "/tbl/part1");
     AcidUtils.Directory dir =
-        AcidUtils.getAcidState(part, conf, new MockTransactionList(150));
+        AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("150:"));
     List<FileStatus> obsolete = dir.getObsolete();
     assertEquals(3, obsolete.size());
     assertEquals("/tbl/part1/base_5", obsolete.get(0).getPath().toString());
@@ -302,14 +243,15 @@ public class TestAcidUtils {
     MockFileSystem fs = new MockFileSystem(conf,
         new MockFile("/tbl/part1/delta_0000063_63/bucket_0", 500, new byte[0]),
         new MockFile("/tbl/part1/delta_000062_62/bucket_0", 500, new byte[0]),
-        new MockFile("/tbl/part1/delta_00061_61/bucket_0", 500, new byte[0]),        new MockFile("/tbl/part1/delta_40_60/bucket_0", 500, new byte[0]),
+        new MockFile("/tbl/part1/delta_00061_61/bucket_0", 500, new byte[0]),
+        new MockFile("/tbl/part1/delta_40_60/bucket_0", 500, new byte[0]),
         new MockFile("/tbl/part1/delta_0060_60/bucket_0", 500, new byte[0]),
         new MockFile("/tbl/part1/delta_052_55/bucket_0", 500, new byte[0]),
         new MockFile("/tbl/part1/delta_40_60/bucket_0", 500, new byte[0]),
         new MockFile("/tbl/part1/base_50/bucket_0", 500, new byte[0]));
     Path part = new MockPath(fs, "/tbl/part1");
     AcidUtils.Directory dir =
-        AcidUtils.getAcidState(part, conf, new MockTransactionList(100));
+        AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("100:"));
     assertEquals("/tbl/part1/base_50", dir.getBaseDirectory().toString());
     List<FileStatus> obsolete = dir.getObsolete();
     assertEquals(2, obsolete.size());

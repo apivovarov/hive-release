@@ -37,10 +37,10 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient.ValidTxnListImpl;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient.ValidTxnList;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedInputFormatInterface;
@@ -350,9 +350,9 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
               .initialCapacity(cacheStripeDetailsSize).softValues().build();
         }
       }
-      transactionList = new ValidTxnListImpl();
-      transactionList.fromString(conf.get
-          (ValidTxnList.VALID_TXNS_KEY, Long.MAX_VALUE + ":"));
+      String value = conf.get(ValidTxnList.VALID_TXNS_KEY,
+                              Long.MAX_VALUE + ":");
+      transactionList = new ValidTxnListImpl(value);
     }
 
     int getSchedulers() {
@@ -1033,9 +1033,9 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
       bucket = (int) split.getStart();
       reader = null;
     }
-    ValidTxnList validTxnList = new ValidTxnListImpl();
-    validTxnList.fromString(conf.get
-        (ValidTxnList.VALID_TXNS_KEY, Long.MAX_VALUE + ":"));
+    String txnString = conf.get(ValidTxnList.VALID_TXNS_KEY,
+                                Long.MAX_VALUE + ":");
+    ValidTxnList validTxnList = new ValidTxnListImpl(txnString);
     final OrcRawRecordMerger records =
         new OrcRawRecordMerger(conf, true, reader, split.isOriginal(), bucket,
             validTxnList, readOptions, deltas);

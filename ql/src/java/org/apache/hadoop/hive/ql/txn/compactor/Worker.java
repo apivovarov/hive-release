@@ -19,10 +19,11 @@ package org.apache.hadoop.hive.ql.txn.compactor;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.txn.CompactionInfo;
+import org.apache.hadoop.hive.metastore.txn.TxnHandler;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
@@ -107,8 +108,8 @@ public class Worker extends CompactorThread {
         }
 
         final boolean isMajor = (ci.type == CompactionType.MAJOR);
-        final IMetaStoreClient.ValidTxnList txns =
-            new HiveMetaStoreClient.ValidTxnListImpl(txnHandler.getOpenTxns());
+        final ValidTxnList txns =
+            TxnHandler.createValidTxnList(txnHandler.getOpenTxns());
         final StringBuffer jobName = new StringBuffer(name);
         jobName.append("-compactor-");
         jobName.append(ci.getFullPartitionName());

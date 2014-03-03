@@ -21,6 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.*;
+import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
@@ -28,9 +29,12 @@ import org.apache.hadoop.hive.metastore.MetaStoreThread;
 import org.apache.hadoop.hive.metastore.api.*;
 import org.apache.hadoop.hive.metastore.txn.CompactionTxnHandler;
 import org.apache.hadoop.hive.metastore.txn.TxnDbUtil;
-import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
-import org.apache.hadoop.hive.ql.io.*;
-import org.apache.hadoop.hive.ql.io.orc.OrcInputFormat;
+import org.apache.hadoop.hive.ql.io.AcidInputFormat;
+import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
+import org.apache.hadoop.hive.ql.io.AcidUtils;
+import org.apache.hadoop.hive.ql.io.FSRecordWriter;
+import org.apache.hadoop.hive.ql.io.RecordIdentifier;
+import org.apache.hadoop.hive.ql.io.RecordUpdater;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.NullWritable;
@@ -42,7 +46,12 @@ import org.apache.thrift.TException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Stack;
 
 /**
  * Super class for all of the compactor test modules.
@@ -257,7 +266,7 @@ public abstract class CompactorTest {
   static class MockInputFormat implements AcidInputFormat<Text> {
 
     @Override
-    public RowReader<Text> getReader(InputSplit split,
+    public AcidInputFormat.RowReader<Text> getReader(InputSplit split,
                                                           Options options) throws
         IOException {
       return null;
@@ -265,7 +274,7 @@ public abstract class CompactorTest {
 
     @Override
     public RawReader<Text> getRawReader(Configuration conf, boolean collapseEvents, int bucket,
-                                        IMetaStoreClient.ValidTxnList validTxnList,
+                                        ValidTxnList validTxnList,
                                         Path baseDirectory, Path... deltaDirectory) throws IOException {
 
       List<Path> filesToRead = new ArrayList<Path>();

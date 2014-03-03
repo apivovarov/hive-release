@@ -24,9 +24,9 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.ValidTxnList;
+import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.io.*;
@@ -43,8 +43,6 @@ import org.apache.hadoop.util.StringUtils;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLDecoder;
 import java.util.*;
 
 /**
@@ -85,7 +83,7 @@ public class CompactorMR<V extends Writable> {
    * @param isMajor is this a major compaction?
    */
   void run(HiveConf conf, String jobName, Table t, StorageDescriptor sd,
-                  IMetaStoreClient.ValidTxnList txns, boolean isMajor) {
+           ValidTxnList txns, boolean isMajor) {
     try {
       JobConf job = new JobConf(conf);
       job.setJobName(jobName);
@@ -106,7 +104,7 @@ public class CompactorMR<V extends Writable> {
       job.setBoolean(IS_COMPRESSED, sd.isCompressed());
       job.set(TABLE_PROPS, new StringableMap(t.getParameters()).toString());
       job.setInt(NUM_BUCKETS, sd.getBucketColsSize());
-      job.set(IMetaStoreClient.ValidTxnList.VALID_TXNS_KEY, txns.toString());
+      job.set(ValidTxnList.VALID_TXNS_KEY, txns.toString());
 
       // Figure out and encode what files we need to read.  We do this here (rather than in
       // getSplits below) because as part of this we discover our minimum and maximum transactions,
@@ -345,8 +343,8 @@ public class CompactorMR<V extends Writable> {
       CompactorInputSplit split = (CompactorInputSplit)inputSplit;
       AcidInputFormat<V> aif =
           instantiate(AcidInputFormat.class, entries.get(INPUT_FORMAT_CLASS_NAME));
-      IMetaStoreClient.ValidTxnList txnList = new HiveMetaStoreClient.ValidTxnListImpl();
-      txnList.fromString(entries.get(IMetaStoreClient.ValidTxnList.VALID_TXNS_KEY));
+      ValidTxnList txnList =
+          new ValidTxnListImpl(entries.get(ValidTxnList.VALID_TXNS_KEY));
       return aif.getRawReader(entries, entries.getBoolean(IS_MAJOR, false), split.getBucket(),
           txnList, split.getBaseDir(), split.getDeltaDirs());
     }
