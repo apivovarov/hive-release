@@ -45,6 +45,7 @@ import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedInputFormatInterface;
 import org.apache.hadoop.hive.ql.io.AcidInputFormat;
+import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.io.InputFormatChecker;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
@@ -310,6 +311,7 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
     private final ExecutorService threadPool;
     private final List<OrcSplit> splits =
         new ArrayList<OrcSplit>(10000);
+    private final int numBuckets;
     private final List<Throwable> errors = new ArrayList<Throwable>();
     private final HadoopShims shims = ShimLoader.getHadoopShims();
     private final long maxSize;
@@ -333,6 +335,7 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
       maxSize = conf.getLong(MAX_SPLIT_SIZE, DEFAULT_MAX_SPLIT_SIZE);
       footerInSplits = HiveConf.getBoolVar(conf,
           ConfVars.HIVE_ORC_INCLUDE_FILE_FOOTER_IN_SPLITS);
+      numBuckets = conf.getInt(hive_metastoreConstants.BUCKET_COUNT, 0);
       int cacheStripeDetailsSize = HiveConf.getIntVar(conf,
           ConfVars.HIVE_ORC_CACHE_STRIPE_DETAILS_SIZE);
       int numThreads = HiveConf.getIntVar(conf,
@@ -467,27 +470,39 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
             context.conf, context.transactionList);
         List<Long> deltas =
             AcidUtils.serializeDeltas(dirInfo.getCurrentDirectories());
-        boolean hasBase = dirInfo.getBaseDirectory() != null ||
-            !dirInfo.getOriginalFiles().isEmpty();
-        if (hasBase) {
-          List<FileStatus> originals = dirInfo.getOriginalFiles();
-          if (originals.isEmpty()) {
-            Iterator<FileStatus> itr = context.shims.listLocatedStatus(fs,
-                dirInfo.getBaseDirectory(),AcidUtils.hiddenFileFilter);
-            while (itr.hasNext()) {
-              scheduleSplits(itr.next(), false, true, deltas);
-            }
-          } else {
-            for(FileStatus file: originals) {
-              scheduleSplits(file, true, true, deltas);
+        Path base = dirInfo.getBaseDirectory();
+        List<FileStatus> original = dirInfo.getOriginalFiles();
+
+        boolean[] covered = new boolean[context.numBuckets];
+        boolean isOriginal = base == null;
+
+        // if we a base to work from
+        if (base != null || !original.isEmpty()) {
+
+          // find the base files (original or new style)
+          List<FileStatus> children = original;
+          if (base != null) {
+            children = context.shims.listLocatedStatus(fs, base,
+               AcidUtils.hiddenFileFilter);
+          }
+
+          // for each child, schedule splits and mark off the bucket
+          for(FileStatus child: children) {
+            AcidOutputFormat.Options opts = AcidUtils.parseBaseBucketFilename
+                (child.getPath(), context.conf);
+            scheduleSplits(child, isOriginal, true, deltas);
+            int b = opts.getBucket();
+            if (b >= 0 && b < covered.length) {
+              covered[b] = true;
             }
           }
-        } else {
-          int numBuckets =
-              context.conf.getInt(hive_metastoreConstants.BUCKET_COUNT, 0);
-          for(int b=0; b < numBuckets; ++b) {
+        }
+
+        // generate a split for any buckets that weren't covered
+        for(int b=0; b < context.numBuckets; ++b) {
+          if (!covered[b]) {
             context.splits.add(new OrcSplit(dir, b, 0, new String[0], null,
-                false, false, deltas));
+                               false, false, deltas));
           }
         }
       } catch (Throwable th) {

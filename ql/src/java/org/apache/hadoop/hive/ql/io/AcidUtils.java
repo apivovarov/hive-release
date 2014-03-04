@@ -134,7 +134,7 @@ public class AcidUtils {
           .minimumTransactionId(0)
           .maximumTransactionId(0)
           .bucket(bucket);
-    } else {
+    } else if (filename.startsWith(AcidUtils.BUCKET_PREFIX)) {
       int bucket =
           Integer.parseInt(filename.substring(filename.indexOf('_') + 1));
       result
@@ -142,6 +142,9 @@ public class AcidUtils {
           .minimumTransactionId(0)
           .maximumTransactionId(parseBase(bucketFile.getParent()))
           .bucket(bucket);
+    } else {
+      result.setOldStyle(true).bucket(-1).minimumTransactionId(0)
+          .maximumTransactionId(0);
     }
     return result;
   }
@@ -300,11 +303,9 @@ public class AcidUtils {
     final List<FileStatus> original = new ArrayList<FileStatus>();
     final List<FileStatus> obsolete = new ArrayList<FileStatus>();
     Path ignoredBase = null;
-
-    Iterator<FileStatus> childIterator =
-        SHIMS.listLocatedStatus(fs, directory, hiddenFileFilter);
-    while (childIterator.hasNext()) {
-      FileStatus child = childIterator.next();
+    List<FileStatus> children = SHIMS.listLocatedStatus(fs, directory,
+        hiddenFileFilter);
+    for(FileStatus child: children) {
       Path p = child.getPath();
       String fn = p.getName();
       if (fn.startsWith(BASE_PREFIX) && child.isDir()) {
@@ -367,6 +368,7 @@ public class AcidUtils {
     }
 
     final Path base = bestBase == null ? null : bestBase.getPath();
+    LOG.debug("base = " + base + " deltas = " + deltas.size());
 
     return new Directory(){
 
@@ -396,10 +398,7 @@ public class AcidUtils {
                                     List<FileStatus> original
                                     ) throws IOException {
     if (stat.isDir()) {
-      Iterator<FileStatus> iter = SHIMS.listLocatedStatus(fs, stat.getPath(),
-          hiddenFileFilter);
-      while (iter.hasNext()) {
-        FileStatus child = iter.next();
+      for(FileStatus child: SHIMS.listLocatedStatus(fs, stat.getPath(), hiddenFileFilter)) {
         findOriginals(fs, child, original);
       }
     } else {

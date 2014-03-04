@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.io.orc;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.ql.io.AcidInputFormat;
@@ -414,12 +415,15 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       for(Path delta: deltaDirectory) {
         ReaderKey key = new ReaderKey();
         Path deltaFile = AcidUtils.createBucketFile(delta, bucket);
-        Reader deltaReader = OrcFile.createReader(deltaFile,
+        FileSystem fs = deltaFile.getFileSystem(conf);
+        if (fs.exists(deltaFile)) {
+          Reader deltaReader = OrcFile.createReader(deltaFile,
             OrcFile.readerOptions(conf));
-        ReaderPair deltaPair = new ReaderPair(key, deltaReader, bucket, minKey,
+          ReaderPair deltaPair = new ReaderPair(key, deltaReader, bucket, minKey,
             maxKey, eventOptions);
-        if (deltaPair.nextRecord != null) {
-          readers.put(key, deltaPair);
+          if (deltaPair.nextRecord != null) {
+            readers.put(key, deltaPair);
+          }
         }
       }
     }
