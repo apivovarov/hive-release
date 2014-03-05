@@ -589,11 +589,11 @@ public class TestWorker extends CompactorTest {
   @Before
   public void setUpTxnDb() throws Exception {
     TxnDbUtil.setConfValues(new HiveConf());
-    TxnDbUtil.prepDb();
+    //TxnDbUtil.prepDb();
   }
 
   @After
   public void tearDownTxnDb() throws Exception {
-    TxnDbUtil.cleanDb();
+    //TxnDbUtil.cleanDb();
   }
 }

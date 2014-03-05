@@ -113,7 +113,7 @@ public enum HiveOperation {
   ALTERTABLE_COMPACT("ALTERTABLE_COMPACT", new Privilege[]{Privilege.SELECT},
       new Privilege[]{Privilege.ALTER_DATA}),
   SHOW_COMPACTIONS("SHOW COMPACTIONS", null, null),
-  SHOW_TRANSACTIONS("SHOW TRANSACTIONS", null, null);
+  SHOW_TRANSACTIONS("SHOW TRANSACTIONS", null, null)
   ;
 
   private String operationName;
