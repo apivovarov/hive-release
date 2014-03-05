@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +59,7 @@ import org.apache.hadoop.hive.shims.HadoopShims;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.InvalidInputException;
@@ -107,7 +107,7 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
 
 
     OrcRecordReader(Reader file, Configuration conf,
-                    OrcSplit split) throws IOException {
+                    FileSplit split) throws IOException {
       List<OrcProto.Type> types = file.getTypes();
       numColumns = (types.size() == 0) ? 0 : types.get(0).getSubtypesCount();
       this.offset = split.getStart();
@@ -971,12 +971,23 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
       return createVectorizedReader(inputSplit, conf, reporter);
     }
     reporter.setStatus(inputSplit.toString());
+
+    // if HiveCombineInputFormat gives us FileSplits instead of OrcSplits,
+    // assume it is an old file.
+    if (inputSplit.getClass() == FileSplit.class) {
+      return new OrcRecordReader(OrcFile.createReader(
+          ((FileSplit) inputSplit).getPath(),
+          OrcFile.readerOptions(conf)), conf, (FileSplit) inputSplit);
+    }
+
     OrcSplit split = (OrcSplit) inputSplit;
+
     // if we are strictly old-school, just use the old code
     if (split.isOriginal() && split.getDeltas().isEmpty()) {
       return new OrcRecordReader(OrcFile.createReader(split.getPath(),
           OrcFile.readerOptions(conf)), conf, split);
     }
+
     Options options = new Options(conf).reporter(reporter);
     final RowReader<OrcStruct> inner = getReader(inputSplit, options);
     final RecordIdentifier id = inner.createKey();
