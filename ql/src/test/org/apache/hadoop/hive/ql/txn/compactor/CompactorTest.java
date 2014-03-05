@@ -147,7 +147,7 @@ public abstract class CompactorTest {
     return part;
   }
 
-  protected long openTxn() {
+  protected long openTxn() throws MetaException {
     List<Long> txns = txnHandler.openTxns(new OpenTxnRequest(1, System.getProperty("user.name"),
         Worker.hostname())).getTxn_ids();
     return txns.get(0);
@@ -179,7 +179,7 @@ public abstract class CompactorTest {
     return paths;
   }
 
-  protected void burnThroughTransactions(int num) throws NoSuchTxnException, TxnAbortedException {
+  protected void burnThroughTransactions(int num) throws MetaException, NoSuchTxnException, TxnAbortedException {
     OpenTxnsResponse rsp = txnHandler.openTxns(new OpenTxnRequest(num, "me", "localhost"));
     for (long tid : rsp.getTxn_ids()) txnHandler.commitTxn(new CommitTxnRequest(tid));
   }

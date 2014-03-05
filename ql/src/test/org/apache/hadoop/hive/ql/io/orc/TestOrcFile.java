@@ -41,6 +41,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.conf.HiveConf;
 
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_ORC_ZEROCOPY;
 
@@ -1492,7 +1493,7 @@ public class TestOrcFile {
     assertEquals(COUNT, reader.getNumberOfRows());
     /* enable zero copy record reader */
     Configuration conf = new Configuration();
-    HiveConf.setBoolVar(conf, ConfVars.HIVE_ORC_ZEROCOPY, true);
+    HiveConf.setBoolVar(conf, HiveConf.ConfVars.HIVE_ORC_ZEROCOPY, true);
     RecordReader rows = reader.rows();
     /* all tests are identical to the other seek() tests */
     OrcStruct row = null;

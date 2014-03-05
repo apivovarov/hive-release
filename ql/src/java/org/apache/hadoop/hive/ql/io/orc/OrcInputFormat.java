@@ -152,19 +152,6 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
     }
   }
   
-  static RecordReader createReaderFromFile(
-      Reader file, Configuration conf, long offset, long length)
-      throws IOException {
-    List<OrcProto.Type> types = file.getTypes();
-    boolean[] includedColumns = findIncludedColumns(types, conf);
-    String[] columnNames = getIncludedColumnNames(types, includedColumns,
-        conf);
-    SearchArgument sarg = createSarg(types, conf);
-    RecordReader reader =
-        file.rows(offset, length, includedColumns, sarg, columnNames);
-    return reader;
-  }
-
   private static int getRootColumn(boolean isOriginal) {
     return isOriginal ? 0 : (OrcRecordUpdater.ROW + 1);
   }

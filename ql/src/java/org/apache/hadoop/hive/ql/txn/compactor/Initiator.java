@@ -135,7 +135,7 @@ public class Initiator extends CompactorThread {
     checkInterval = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_CHECK_INTERVAL);
   }
 
-  private void recoverFailedCompactions(boolean remoteOnly) {
+  private void recoverFailedCompactions(boolean remoteOnly) throws MetaException {
     if (!remoteOnly) txnHandler.revokeFromLocalWorkers(Worker.hostname());
     txnHandler.revokeTimedoutWorkers(HiveConf.getLongVar(conf,
         HiveConf.ConfVars.HIVE_COMPACTOR_WORKER_TIMEOUT));
@@ -277,7 +277,7 @@ public class Initiator extends CompactorThread {
     return enough;
   }
 
-  private void requestCompaction(CompactionInfo ci, String runAs, CompactionType type) {
+  private void requestCompaction(CompactionInfo ci, String runAs, CompactionType type) throws MetaException {
     String s = "Requesting " + type.toString() + " compaction for " + ci.getFullPartitionName();
     LOG.info(s);
     CompactionRequest rqst = new CompactionRequest(ci.dbname, ci.tableName, type);

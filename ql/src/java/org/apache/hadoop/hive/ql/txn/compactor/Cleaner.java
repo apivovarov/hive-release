@@ -84,7 +84,7 @@ public class Cleaner extends CompactorThread {
     }
   }
 
-  private void clean(CompactionInfo ci) {
+  private void clean(CompactionInfo ci) throws MetaException {
     String s = "Starting cleaning for " + ci.getFullPartitionName();
     LOG.info(s);
     try {
