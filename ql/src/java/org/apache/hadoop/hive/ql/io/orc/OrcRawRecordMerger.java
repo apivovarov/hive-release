@@ -20,6 +20,7 @@ package org.apache.hadoop.hive.ql.io.orc;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
@@ -417,8 +418,9 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
         Path deltaFile = AcidUtils.createBucketFile(delta, bucket);
         FileSystem fs = deltaFile.getFileSystem(conf);
         if (fs.exists(deltaFile)) {
+          long length = getLastFlushLength(fs, deltaFile);
           Reader deltaReader = OrcFile.createReader(deltaFile,
-            OrcFile.readerOptions(conf));
+            OrcFile.readerOptions(conf).maxLength(length));
           ReaderPair deltaPair = new ReaderPair(key, deltaReader, bucket, minKey,
             maxKey, eventOptions);
           if (deltaPair.nextRecord != null) {
@@ -444,6 +446,28 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     }
   }
 
+  /**
+   * Read the side file and final
+   * @param fs
+   * @param deltaFile
+   * @return
+   * @throws IOException
+   */
+  private static long getLastFlushLength(FileSystem fs,
+                                         Path deltaFile) throws IOException {
+    Path lengths = OrcRecordUpdater.getSideFile(deltaFile);
+    long result = Long.MAX_VALUE;
+    try {
+      FSDataInputStream stream = fs.open(lengths);
+      while (stream.available() > 0) {
+        result = stream.readLong();
+      }
+      stream.close();
+      return result;
+    } catch (IOException ioe) {
+      return result;
+    }
+  }
   // used for testing
   RecordIdentifier getMinKey() {
     return minKey;

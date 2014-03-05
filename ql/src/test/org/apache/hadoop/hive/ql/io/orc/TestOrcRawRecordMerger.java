@@ -945,14 +945,11 @@ public class TestOrcRawRecordMerger {
           (MyRow.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
     }
 
-    // make 5 stripes with 2 rows each
-    OrcRecordUpdater.OrcOptions options = (OrcRecordUpdater.OrcOptions)
-        new OrcRecordUpdater.OrcOptions(conf)
-            .writingBase(true).minimumTransactionId(0).maximumTransactionId(0)
-            .bucket(BUCKET).inspector(inspector).filesystem(fs);
-
     // write a delta
-    options.writingBase(false).minimumTransactionId(1).maximumTransactionId(1);
+    AcidOutputFormat.Options options =
+        new AcidOutputFormat.Options(conf)
+            .bucket(BUCKET).inspector(inspector).filesystem(fs)
+            .writingBase(false).minimumTransactionId(1).maximumTransactionId(1);
     RecordUpdater ru = of.getRecordUpdater(root, options);
     String[] values = new String[]{"a", "b", "c", "d", "e"};
     for(int i=0; i < values.length; ++i) {
@@ -988,4 +985,74 @@ public class TestOrcRawRecordMerger {
     }
     assertEquals(false, rr.next(NullWritable.get(), row));
   }
+
+  /**
+   * Test the RecordReader when the delta has been flushed, but not closed.
+   * @throws Exception
+   */
+  @Test
+  public void testRecordReaderIncompleteDelta() throws Exception {
+    final int BUCKET = 10;
+    Configuration conf = new Configuration();
+    OrcOutputFormat of = new OrcOutputFormat();
+    FileSystem fs = FileSystem.getLocal(conf).getRaw();
+    Path root = new Path(System.getProperty("test.tmp.dir",
+        "target" + File.separator + "test" + File.separator + "tmp" +
+            File.separator + "testRecordReaderIncompleteDelta"))
+        .makeQualified(fs);
+    fs.delete(root, true);
+    ObjectInspector inspector;
+    synchronized (TestOrcFile.class) {
+      inspector = ObjectInspectorFactory.getReflectionObjectInspector
+          (MyRow.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
+    }
+
+    AcidOutputFormat.Options options =
+        new AcidOutputFormat.Options(conf)
+            .writingBase(true).minimumTransactionId(0).maximumTransactionId(0)
+            .bucket(BUCKET).inspector(inspector).filesystem(fs);
+    RecordUpdater ru = of.getRecordUpdater(root, options);
+    String[] values= new String[]{"1", "2", "3", "4", "5"};
+    for(int i=0; i < values.length; ++i) {
+      ru.insert(0, new MyRow(values[i]));
+    }
+    ru.close(false);
+
+    // write a delta
+    options.writingBase(false).minimumTransactionId(10)
+        .maximumTransactionId(19);
+    ru = of.getRecordUpdater(root, options);
+    values = new String[]{"6", "7", "8"};
+    for(int i=0; i < values.length; ++i) {
+      ru.insert(1, new MyRow(values[i]));
+    }
+    ru.flush();
+    ru.flush();
+    values = new String[]{"9", "10"};
+    for(int i=0; i < values.length; ++i) {
+      ru.insert(3, new MyRow(values[i]));
+    }
+    ru.flush();
+
+    InputFormat inf = new OrcInputFormat();
+    JobConf job = new JobConf();
+    job.set("mapred.input.dir", root.toString());
+    InputSplit[] splits = inf.getSplits(job, 1);
+    assertEquals(1, splits.length);
+    org.apache.hadoop.mapred.RecordReader<NullWritable, OrcStruct> rr =
+        inf.getRecordReader(splits[0], job, Reporter.NULL);
+    Path sideFile = new Path(root +
+        "/delta_0000010_0000019/bucket_00010_flush_length");
+    assertEquals(true, fs.exists(sideFile));
+    assertEquals(24, fs.getFileStatus(sideFile).getLen());
+
+    NullWritable key = rr.createKey();
+    OrcStruct value = rr.createValue();
+    for(int i=1; i < 11; ++i) {
+      assertEquals(true, rr.next(key, value));
+      assertEquals(Integer.toString(i), value.getFieldValue(0).toString());
+    }
+    assertEquals(false, rr.next(key, value));
+  }
+
 }
