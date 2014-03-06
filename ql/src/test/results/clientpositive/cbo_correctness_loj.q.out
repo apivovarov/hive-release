@@ -24,69 +24,93 @@ POSTHOOK: query: drop table if exists t6
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: create table t1(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table t1(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@t1
 PREHOOK: query: create table t2(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table t2(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@t2
 PREHOOK: query: create table t3(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table t3(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@t3
 PREHOOK: query: create table t4(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table t4(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@t4
 PREHOOK: query: create table t5(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table t5(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@t5
 PREHOOK: query: create table t6(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table t6(key string, value string, c_int int, c_float float, c_boolean boolean)  row format delimited fields terminated by ',' STORED AS TEXTFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@t6
 PREHOOK: query: load data local inpath '../../data/files/cbo_t1.txt' into table t1
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@t1
 POSTHOOK: query: load data local inpath '../../data/files/cbo_t1.txt' into table t1
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t1
 PREHOOK: query: load data local inpath '../../data/files/cbo_t2.txt' into table t2
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@t2
 POSTHOOK: query: load data local inpath '../../data/files/cbo_t2.txt' into table t2
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t2
 PREHOOK: query: load data local inpath '../../data/files/cbo_t3.txt' into table t3
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@t3
 POSTHOOK: query: load data local inpath '../../data/files/cbo_t3.txt' into table t3
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t3
 PREHOOK: query: load data local inpath '../../data/files/cbo_t4.txt' into table t4
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@t4
 POSTHOOK: query: load data local inpath '../../data/files/cbo_t4.txt' into table t4
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t4
 PREHOOK: query: load data local inpath '../../data/files/cbo_t5.txt' into table t5
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@t5
 POSTHOOK: query: load data local inpath '../../data/files/cbo_t5.txt' into table t5
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t5
 PREHOOK: query: load data local inpath '../../data/files/cbo_t6.txt' into table t6
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@t6
 POSTHOOK: query: load data local inpath '../../data/files/cbo_t6.txt' into table t6
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@t6
 PREHOOK: query: analyze table t1 compute statistics
 PREHOOK: type: QUERY
