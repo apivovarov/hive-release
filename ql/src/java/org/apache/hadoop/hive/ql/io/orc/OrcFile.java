@@ -299,6 +299,16 @@ public final class OrcFile {
     }
 
     /**
+     * Add a listener for when the stripe and file are about to be closed.
+     * @param callback the object to be called when the stripe is closed
+     * @return
+     */
+    public WriterOptions callback(WriterCallback callback) {
+      this.callback = callback;
+      return this;
+    }
+
+    /**
      * A package local option to set the memory manager.
      */
     WriterOptions memory(MemoryManager value) {
@@ -306,10 +316,6 @@ public final class OrcFile {
       return this;
     }
 
-    WriterOptions callback(WriterCallback callback) {
-      this.callback = callback;
-      return this;
-    }
   }
 
   /**

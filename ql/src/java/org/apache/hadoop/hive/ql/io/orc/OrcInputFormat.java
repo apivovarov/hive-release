@@ -322,7 +322,8 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
       maxSize = conf.getLong(MAX_SPLIT_SIZE, DEFAULT_MAX_SPLIT_SIZE);
       footerInSplits = HiveConf.getBoolVar(conf,
           ConfVars.HIVE_ORC_INCLUDE_FILE_FOOTER_IN_SPLITS);
-      numBuckets = conf.getInt(hive_metastoreConstants.BUCKET_COUNT, 0);
+      numBuckets =
+          Math.max(conf.getInt(hive_metastoreConstants.BUCKET_COUNT, 0), 0);
       int cacheStripeDetailsSize = HiveConf.getIntVar(conf,
           ConfVars.HIVE_ORC_CACHE_STRIPE_DETAILS_SIZE);
       int numThreads = HiveConf.getIntVar(conf,

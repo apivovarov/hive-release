@@ -82,17 +82,18 @@ public class TestOrcRecordUpdater {
     AcidOutputFormat.Options options = new AcidOutputFormat.Options(conf)
         .filesystem(fs)
         .bucket(10)
-        .writingBase(true)
-        .maximumTransactionId(100)
+        .writingBase(false)
+        .minimumTransactionId(10)
+        .maximumTransactionId(19)
         .inspector(inspector)
         .reporter(Reporter.NULL);
     RecordUpdater updater = new OrcRecordUpdater(root, options);
-    updater.insert(0, new MyRow("first"));
-    updater.insert(0, new MyRow("second"));
-    updater.insert(0, new MyRow("third"));
+    updater.insert(11, new MyRow("first"));
+    updater.insert(11, new MyRow("second"));
+    updater.insert(11, new MyRow("third"));
     updater.flush();
-    updater.insert(10, new MyRow("fourth"));
-    updater.insert(10, new MyRow("fifth"));
+    updater.insert(12, new MyRow("fourth"));
+    updater.insert(12, new MyRow("fifth"));
     updater.flush();
     Path bucketPath = AcidUtils.createFilename(root, options);
     Path sidePath = OrcRecordUpdater.getSideFile(bucketPath);
@@ -118,8 +119,8 @@ public class TestOrcRecordUpdater {
     OrcStruct row = (OrcStruct) rows.next(null);
     assertEquals(OrcRecordUpdater.INSERT_OPERATION,
         OrcRecordUpdater.getOperation(row));
-    assertEquals(0, OrcRecordUpdater.getCurrentTransaction(row));
-    assertEquals(0, OrcRecordUpdater.getOriginalTransaction(row));
+    assertEquals(11, OrcRecordUpdater.getCurrentTransaction(row));
+    assertEquals(11, OrcRecordUpdater.getOriginalTransaction(row));
     assertEquals(10, OrcRecordUpdater.getBucket(row));
     assertEquals(0, OrcRecordUpdater.getRowId(row));
     assertEquals("first",
@@ -138,8 +139,8 @@ public class TestOrcRecordUpdater {
         OrcRecordUpdater.getRow(row).getFieldValue(0).toString());
     assertEquals(true, rows.hasNext());
     row = (OrcStruct) rows.next(null);
-    assertEquals(10, OrcRecordUpdater.getCurrentTransaction(row));
-    assertEquals(10, OrcRecordUpdater.getOriginalTransaction(row));
+    assertEquals(12, OrcRecordUpdater.getCurrentTransaction(row));
+    assertEquals(12, OrcRecordUpdater.getOriginalTransaction(row));
     assertEquals(10, OrcRecordUpdater.getBucket(row));
     assertEquals(0, OrcRecordUpdater.getRowId(row));
     assertEquals("fourth",

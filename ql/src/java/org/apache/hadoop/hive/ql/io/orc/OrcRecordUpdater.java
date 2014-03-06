@@ -66,7 +66,7 @@ public class OrcRecordUpdater implements RecordUpdater {
   private final Path path;
   private final FileSystem fs;
   private Writer writer;
-  private FSDataOutputStream flushLengths = null;
+  private final FSDataOutputStream flushLengths;
   private final OrcStruct item;
   private final IntWritable operation = new IntWritable();
   private final LongWritable currentTransaction = new LongWritable(-1);
@@ -163,6 +163,13 @@ public class OrcRecordUpdater implements RecordUpdater {
       fs = path.getFileSystem(options.getConfiguration());
     }
     this.fs = fs;
+    if (options.getMinimumTransactionId() != options.getMaximumTransactionId()
+        && !options.isWritingBase()){
+      flushLengths = fs.create(getSideFile(this.path), true, 8,
+          options.getReporter());
+    } else {
+      flushLengths = null;
+    }
     OrcFile.WriterOptions writerOptions = null;
     if (options instanceof OrcOptions) {
       writerOptions = ((OrcOptions) options).getOrcOptions();
@@ -226,11 +233,11 @@ public class OrcRecordUpdater implements RecordUpdater {
 
   @Override
   public void flush() throws IOException {
-    long len = writer.writeIntermediateFooter();
     if (flushLengths == null) {
-      flushLengths = fs.create(getSideFile(path), true, 8,
-          options.getReporter());
+      throw new IllegalStateException("Attempting to flush a RecordUpdater on "
+         + path + " with a single transaction.");
     }
+    long len = writer.writeIntermediateFooter();
     flushLengths.writeLong(len);
     flushLengths.flush();
   }

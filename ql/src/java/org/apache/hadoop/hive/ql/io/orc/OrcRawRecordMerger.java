@@ -417,10 +417,10 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
         ReaderKey key = new ReaderKey();
         Path deltaFile = AcidUtils.createBucketFile(delta, bucket);
         FileSystem fs = deltaFile.getFileSystem(conf);
-        if (fs.exists(deltaFile)) {
-          long length = getLastFlushLength(fs, deltaFile);
+        long length = getLastFlushLength(fs, deltaFile);
+        if (fs.exists(deltaFile) && length != -1) {
           Reader deltaReader = OrcFile.createReader(deltaFile,
-            OrcFile.readerOptions(conf).maxLength(length));
+              OrcFile.readerOptions(conf).maxLength(length));
           ReaderPair deltaPair = new ReaderPair(key, deltaReader, bucket, minKey,
             maxKey, eventOptions);
           if (deltaPair.nextRecord != null) {
@@ -459,6 +459,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     long result = Long.MAX_VALUE;
     try {
       FSDataInputStream stream = fs.open(lengths);
+      result = -1;
       while (stream.available() > 0) {
         result = stream.readLong();
       }
