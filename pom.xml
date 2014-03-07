@@ -43,6 +43,7 @@
     <module>service</module>
     <module>shims</module>
     <module>testutils</module>
+    <module>streaming</module>
     <module>packaging</module>
   </modules>
 
