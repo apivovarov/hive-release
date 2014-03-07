@@ -202,7 +202,7 @@ public class OrcInputFormat  extends FileInputFormat<NullWritable, OrcStruct>
     Path path = fileSplit.getPath();
     FileSystem fs = path.getFileSystem(conf);
     reporter.setStatus(fileSplit.toString());
-    return new OrcRecordReader(OrcFile.createReader(fs, path), conf,
+    return new OrcRecordReader(OrcFile.createReader(fs, path, conf), conf,
                                fileSplit.getStart(), fileSplit.getLength());
   }
 
@@ -215,7 +215,7 @@ public class OrcInputFormat  extends FileInputFormat<NullWritable, OrcStruct>
     }
     for (FileStatus file : files) {
       try {
-        OrcFile.createReader(fs, file.getPath());
+        OrcFile.createReader(fs, file.getPath(), conf);
       } catch (IOException e) {
         return false;
       }

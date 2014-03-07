@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.antlr.runtime.tree.Tree;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
 import org.apache.hadoop.hive.ql.parse.ASTNode;
 import org.apache.hadoop.hive.ql.parse.ASTNodeOrigin;
@@ -404,6 +405,8 @@ public enum ErrorMsg {
   COLUMNSTATSCOLLECTOR_PARSE_ERROR(30009, "Encountered parse error while parsing rewritten query"),
   COLUMNSTATSCOLLECTOR_IO_ERROR(30010, "Encountered I/O exception while parsing rewritten query"),
   DROP_COMMAND_NOT_ALLOWED_FOR_PARTITION(30011, "Partition protected from being dropped"),
+  ORC_CORRUPTED_READ(30018, "Corruption in ORC data encountered. To skip reading corrupted "
+             + "data, set " + HiveConf.ConfVars.HIVE_ORC_SKIP_CORRUPT_DATA + " to true");
     ;
 
   private int errorCode;

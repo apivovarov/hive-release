@@ -269,7 +269,7 @@ public class TestOrcFile {
         + File.separator + "src" + File.separator + "test" + File.separator
         + "resources"));
     Path oldFilePath = new Path(resourceDir, "orc-file-11-format.orc");
-    Reader reader = OrcFile.createReader(fs, oldFilePath);
+    Reader reader = OrcFile.createReader(fs, oldFilePath, conf);
 
     int stripeCount = 0;
     int rowCount = 0;
@@ -537,7 +537,7 @@ public class TestOrcFile {
         list(inner(100000000, "cat"), inner(-100000, "in"), inner(1234, "hat")),
         map(inner(5,"chani"), inner(1,"mauddib"))));
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
 
     // check the stats
     ColumnStatistics[] stats = reader.getStatistics();
@@ -787,7 +787,7 @@ public class TestOrcFile {
       writer.addRow(inner(x, y));
     }
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
 
     // check out the statistics
     ColumnStatistics[] stats = reader.getStatistics();
@@ -851,7 +851,7 @@ public class TestOrcFile {
                                          .compress(CompressionKind.NONE)
                                          .bufferSize(100));
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     assertEquals(false, reader.rows(null).hasNext());
     assertEquals(CompressionKind.NONE, reader.getCompression());
     assertEquals(0, reader.getNumberOfRows());
@@ -888,7 +888,7 @@ public class TestOrcFile {
         null, null, null, null));
     writer.addUserMetadata("clobber", byteBuf(5,7,11,13,17,19));
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     assertEquals(byteBuf(5,7,11,13,17,19), reader.getMetadataValue("clobber"));
     assertEquals(byteBuf(1,2,3,4,5,6,7,-1,-2,127,-128),
         reader.getMetadataValue("my.meta"));
@@ -1003,7 +1003,7 @@ public class TestOrcFile {
     union.set((byte) 0, new IntWritable(138));
     writer.addRow(row);
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     assertEquals(false, reader.getMetadataKeys().iterator().hasNext());
     assertEquals(5309, reader.getNumberOfRows());
     DecimalColumnStatistics stats =
@@ -1135,7 +1135,7 @@ public class TestOrcFile {
           Integer.toHexString(rand.nextInt())));
     }
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     RecordReader rows = reader.rows(null);
     rand = new Random(12);
     OrcStruct row = null;
@@ -1178,7 +1178,7 @@ public class TestOrcFile {
       }
     }
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     assertEquals(50000, reader.getNumberOfRows());
     assertEquals(0, reader.getRowIndexStride());
     StripeInformation stripe = reader.getStripes().iterator().next();
@@ -1242,7 +1242,7 @@ public class TestOrcFile {
     }
     writer.close();
     writer = null;
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     assertEquals(COUNT, reader.getNumberOfRows());
     RecordReader rows = reader.rows(null);
     OrcStruct row = null;
@@ -1409,7 +1409,7 @@ public class TestOrcFile {
     }
     writer.close();
     assertEquals(null, memory.path);
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     int i = 0;
     for(StripeInformation stripe: reader.getStripes()) {
       i += 1;
@@ -1434,7 +1434,7 @@ public class TestOrcFile {
       writer.addRow(new InnerStruct(i*300, Integer.toHexString(10*i)));
     }
     writer.close();
-    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Reader reader = OrcFile.createReader(fs, testFilePath, conf);
     assertEquals(3500, reader.getNumberOfRows());
 
     SearchArgument sarg = SearchArgument.FACTORY.newBuilder()

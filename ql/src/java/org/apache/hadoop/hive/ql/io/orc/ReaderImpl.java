@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -50,6 +51,7 @@ final class ReaderImpl implements Reader {
   private final int bufferSize;
   private final OrcProto.Footer footer;
   private final ObjectInspector inspector;
+  private final Configuration conf;
 
   private static class StripeInformationImpl
       implements StripeInformation {
@@ -261,9 +263,10 @@ final class ReaderImpl implements Reader {
     }
   }
 
-  ReaderImpl(FileSystem fs, Path path) throws IOException {
+  ReaderImpl(FileSystem fs, Path path, Configuration conf) throws IOException {
     this.fileSystem = fs;
     this.path = path;
+    this.conf = conf;
     FSDataInputStream file = fs.open(path);
     long size = fs.getFileStatus(path).getLen();
     int readSize = (int) Math.min(size, DIRECTORY_SIZE_GUESS);
@@ -343,7 +346,7 @@ final class ReaderImpl implements Reader {
 
     return new RecordReaderImpl(this.getStripes(), fileSystem,  path, offset,
         length, footer.getTypesList(), codec, bufferSize,
-        include, footer.getRowIndexStride(), sarg, columnNames);
+        include, footer.getRowIndexStride(), sarg, columnNames, conf);
   }
 
 }
