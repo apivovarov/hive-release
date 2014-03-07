@@ -77,6 +77,16 @@
       <version>${derby.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derbyclient</artifactId>
+      <version>${derby.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.derby</groupId>
+      <artifactId>derbynet</artifactId>
+      <version>${derby.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.datanucleus</groupId>
       <artifactId>datanucleus-api-jdo</artifactId>
       <version>${datanucleus-api-jdo.version}</version>
