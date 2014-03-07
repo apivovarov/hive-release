@@ -35,14 +35,10 @@ import org.apache.hadoop.hive.shims.HadoopShims;
 
 public class ProxyLocalFileSystem extends FilterFileSystem {
 
-  protected FileSystem localFs;
+  protected LocalFileSystem localFs;
 
   public ProxyLocalFileSystem() {
-    try {
-      localFs = FileSystem.getLocal(new Configuration()).getRaw();
-    } catch (IOException ioe) {
-      throw new IllegalStateException("bad exception", ioe);
-    }
+    localFs = new LocalFileSystem();
   }
 
   public ProxyLocalFileSystem(FileSystem fs) {
