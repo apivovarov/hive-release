@@ -288,7 +288,12 @@ public class Main {
       * (not as a form param in a POST request.  For backwards compatibility, we this logic
       * to get user.name when it's sent as a form parameter.
       * This is added in Hive 0.13 and should be de-supported in 0.15*/
-        return request.getParameter(PseudoAuthenticator.USER_NAME);
+        String userName = request.getParameter(PseudoAuthenticator.USER_NAME);
+        if(userName != null) {
+          LOG.warn(PseudoAuthenticator.USER_NAME +
+            " is sent as form parameter which is deprecated as of Hive 0.13.  Should send it in the query string.");
+        }
+        return userName;
       }
       return null;
     }
