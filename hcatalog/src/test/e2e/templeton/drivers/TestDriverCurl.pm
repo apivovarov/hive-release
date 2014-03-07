@@ -833,7 +833,7 @@ sub compare
             $json = new JSON;
             $res_hash = $json->utf8->decode($jobResult->{'body'});
           }
-          if ( (!defined $jobComplete) || (lc($jobComplete) ne "true" && lc($jobComplete) ne "1"))
+          if ( (!defined $jobComplete) || (lc($jobComplete) ne "true" && lc($jobComplete) ne "1")) {
             print $log "$0::$subName WARN check failed: " 
               . " timeout on wait for job completion ";
             $result = 0;
