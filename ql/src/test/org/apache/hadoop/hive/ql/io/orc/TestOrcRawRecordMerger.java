@@ -992,7 +992,7 @@ public class TestOrcRawRecordMerger {
    */
   @Test
   public void testRecordReaderIncompleteDelta() throws Exception {
-    final int BUCKET = 10;
+    final int BUCKET = 1;
     Configuration conf = new Configuration();
     OrcOutputFormat of = new OrcOutputFormat();
     FileSystem fs = FileSystem.getLocal(conf).getRaw();
@@ -1007,6 +1007,7 @@ public class TestOrcRawRecordMerger {
           (MyRow.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
     }
 
+    // write a base
     AcidOutputFormat.Options options =
         new AcidOutputFormat.Options(conf)
             .writingBase(true).minimumTransactionId(0).maximumTransactionId(0)
@@ -1026,6 +1027,26 @@ public class TestOrcRawRecordMerger {
     for(int i=0; i < values.length; ++i) {
       ru.insert(1, new MyRow(values[i]));
     }
+    InputFormat inf = new OrcInputFormat();
+    JobConf job = new JobConf();
+    job.set("mapred.input.dir", root.toString());
+    job.set("bucket_count", "2");
+
+    // read the keys before the delta is flushed
+    InputSplit[] splits = inf.getSplits(job, 1);
+    assertEquals(2, splits.length);
+    org.apache.hadoop.mapred.RecordReader<NullWritable, OrcStruct> rr =
+        inf.getRecordReader(splits[0], job, Reporter.NULL);
+    NullWritable key = rr.createKey();
+    OrcStruct value = rr.createValue();
+    System.out.println("Looking at split " + splits[0]);
+    for(int i=1; i < 6; ++i) {
+      System.out.println("Checking row " + i);
+      assertEquals(true, rr.next(key, value));
+      assertEquals(Integer.toString(i), value.getFieldValue(0).toString());
+    }
+    assertEquals(false, rr.next(key, value));
+
     ru.flush();
     ru.flush();
     values = new String[]{"9", "10"};
@@ -1034,20 +1055,14 @@ public class TestOrcRawRecordMerger {
     }
     ru.flush();
 
-    InputFormat inf = new OrcInputFormat();
-    JobConf job = new JobConf();
-    job.set("mapred.input.dir", root.toString());
-    InputSplit[] splits = inf.getSplits(job, 1);
-    assertEquals(1, splits.length);
-    org.apache.hadoop.mapred.RecordReader<NullWritable, OrcStruct> rr =
-        inf.getRecordReader(splits[0], job, Reporter.NULL);
+    splits = inf.getSplits(job, 1);
+    assertEquals(2, splits.length);
+    rr = inf.getRecordReader(splits[0], job, Reporter.NULL);
     Path sideFile = new Path(root +
-        "/delta_0000010_0000019/bucket_00010_flush_length");
+        "/delta_0000010_0000019/bucket_00001_flush_length");
     assertEquals(true, fs.exists(sideFile));
     assertEquals(24, fs.getFileStatus(sideFile).getLen());
 
-    NullWritable key = rr.createKey();
-    OrcStruct value = rr.createValue();
     for(int i=1; i < 11; ++i) {
       assertEquals(true, rr.next(key, value));
       assertEquals(Integer.toString(i), value.getFieldValue(0).toString());
