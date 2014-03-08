@@ -2226,6 +2226,14 @@
 </property>
 
 <property>
+  <name>hive.server2.allow.user.substitution</name>
+  <value>true</value>
+  <description>
+   Allow alternate user to be specified as part of HiveServer2 open connection request  
+  </description>
+</property>
+
+<property>
   <name>hive.execution.engine</name>
   <value>mr</value>
   <description>
