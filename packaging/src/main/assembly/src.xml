@@ -67,6 +67,7 @@
         <include>service/**/*</include>
         <include>shims/**/*</include>
         <include>testutils/**/*</include>
+        <include>streaming/**/*</include>
       </includes>
       <outputDirectory>/</outputDirectory>
     </fileSet>
