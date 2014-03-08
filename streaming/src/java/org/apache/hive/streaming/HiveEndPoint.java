@@ -18,6 +18,8 @@
 
 package org.apache.hive.streaming;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.LockComponentBuilder;
@@ -34,6 +36,7 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.thrift.TException;
 
 import java.io.IOException;
@@ -49,6 +52,8 @@ public class HiveEndPoint {
   public final String database;
   public final String table;
   public final List<String> partitionVals;
+
+  static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
   public HiveEndPoint(String metaStoreUri
           , String database, String table, List<String> partitionVals)  {
@@ -128,6 +133,12 @@ public class HiveEndPoint {
     HiveConf conf = createHiveConf(this.getClass());
     IMetaStoreClient msClient = getMetaStoreClient(this, conf);
 
+    StringBuilder partName = new StringBuilder();
+    for (String p : partitionVals) {
+      partName.append(p);
+      partName.append(':');
+    }
+    LOG.info("Will create partition " + database + "." + table + "." + partName.toString());
     try {
       Partition part = new Partition();
       try {
@@ -146,10 +157,13 @@ public class HiveEndPoint {
 
       try {
         msClient.add_partition(part);
+        LOG.info("Partition created.");
         return true;
       } catch (AlreadyExistsException e) {
+        LOG.info("Partition already exists.");
         return false;
       } catch (TException e) {
+        LOG.error("Partition creation failed: " + StringUtils.stringifyException(e));
         throw new StreamingException("Partition creation failed");
       }
     } finally {
