@@ -337,7 +337,10 @@ public class HiveEndPoint {
      * @return number of transactions remaining this batch.
      */
     public int remainingTransactions() {
-      return txnIds.size() - currentTxnIndex + 1;
+      if(currentTxnIndex>=0) {
+        return txnIds.size() - currentTxnIndex -1;
+      }
+      return txnIds.size();
     }
 
 

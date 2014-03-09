@@ -313,6 +313,62 @@ public class TestStreaming {
   }
 
   @Test
+  public void testRemainingTransactions() throws Exception {
+    HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
+            partitionVals);
+    DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
+    StreamingConnection connection = endPt.newConnection(user, true);
+
+    // 1) test with txn.Commit()
+    TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
+    int batch=0;
+    int initialCount = txnBatch.remainingTransactions();
+    while(txnBatch.remainingTransactions()>0) {
+      txnBatch.beginNextTransaction();
+      Assert.assertEquals(--initialCount,txnBatch.remainingTransactions());
+      for (int rec=0; rec<2; ++rec) {
+        Assert.assertEquals(TransactionBatch.TxnState.OPEN
+                , txnBatch.getCurrentTransactionState());
+        txnBatch.write((batch * rec + ",Hello streaming").getBytes());
+      }
+      txnBatch.commit();
+      Assert.assertEquals(TransactionBatch.TxnState.COMMITTED
+              , txnBatch.getCurrentTransactionState());
+      ++batch;
+    }
+    Assert.assertEquals(0,txnBatch.remainingTransactions());
+    txnBatch.close();
+
+    Assert.assertEquals(TransactionBatch.TxnState.INACTIVE
+            , txnBatch.getCurrentTransactionState());
+
+    // 2) test with txn.Abort()
+    txnBatch =  connection.fetchTransactionBatch(10, writer);
+    batch=0;
+    initialCount = txnBatch.remainingTransactions();
+    while(txnBatch.remainingTransactions()>0) {
+      txnBatch.beginNextTransaction();
+      Assert.assertEquals(--initialCount,txnBatch.remainingTransactions());
+      for (int rec=0; rec<2; ++rec) {
+        Assert.assertEquals(TransactionBatch.TxnState.OPEN
+                , txnBatch.getCurrentTransactionState());
+        txnBatch.write((batch * rec + ",Hello streaming").getBytes());
+      }
+      txnBatch.abort();
+      Assert.assertEquals(TransactionBatch.TxnState.ABORTED
+              , txnBatch.getCurrentTransactionState());
+      ++batch;
+    }
+    Assert.assertEquals(0,txnBatch.remainingTransactions());
+    txnBatch.close();
+
+    Assert.assertEquals(TransactionBatch.TxnState.INACTIVE
+            , txnBatch.getCurrentTransactionState());
+
+    connection.close();
+  }
+
+  @Test
   public void testTransactionBatchAbort() throws Exception {
 
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,

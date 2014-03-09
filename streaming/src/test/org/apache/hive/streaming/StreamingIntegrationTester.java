@@ -254,16 +254,20 @@ public class StreamingIntegrationTester {
         long start = System.currentTimeMillis();
         for (int i = 0; i < batches; i++) {
           TransactionBatch batch = conn.fetchTransactionBatch(txnsPerBatch, writer);
-          while (batch.remainingTransactions() > 0) {
-            batch.beginNextTransaction();
-            for (int j = 0; j < recordsPerTxn; j++) {
-              batch.write(generateRecord(cols, types));
+          try {
+            while (batch.remainingTransactions() > 0) {
+              batch.beginNextTransaction();
+              for (int j = 0; j < recordsPerTxn; j++) {
+                batch.write(generateRecord(cols, types));
+              }
+              if (rand.nextFloat() < abortPct) batch.abort();
+              else batch.commit();
             }
-            if (rand.nextFloat() < abortPct) batch.abort();
-            else batch.commit();
+            long end = System.currentTimeMillis();
+            if (end - start < frequency) Thread.sleep(frequency - (end - start));
+          } finally {
+            batch.close();
           }
-          long end = System.currentTimeMillis();
-          if (end - start < frequency) Thread.sleep(frequency - (end - start));
         }
       } catch (Throwable t) {
        System.err.println("Writer number " + writerNumber + " caught exception while testing: " +
