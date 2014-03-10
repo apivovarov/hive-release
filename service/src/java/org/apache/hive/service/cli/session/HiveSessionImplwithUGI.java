@@ -26,7 +26,6 @@ import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 
@@ -44,9 +43,8 @@ public class HiveSessionImplwithUGI extends HiveSessionImpl {
   private HiveSession proxySession = null;
 
   public HiveSessionImplwithUGI(TProtocolVersion protocol, String username, String password,
-      HiveConf hiveConf, Map<String, String> sessionConf, String ipAddress,
-       String delegationToken) throws HiveSQLException {
-    super(protocol, username, password, hiveConf, sessionConf, ipAddress);
+      HiveConf hiveConf, Map<String, String> sessionConf, String delegationToken) throws HiveSQLException {
+    super(protocol, username, password, hiveConf, sessionConf);
     setSessionUGI(username);
     setDelegationToken(delegationToken);
   }
@@ -150,22 +148,5 @@ public class HiveSessionImplwithUGI extends HiveSessionImpl {
     this.proxySession = proxySession;
   }
 
-  @Override
-  public String getDelegationToken(HiveAuthFactory authFactory, String owner,
-      String renewer) throws HiveSQLException {
-    return authFactory.getDelegationToken(owner, renewer);
-  }
-
-  @Override
-  public void cancelDelegationToken(HiveAuthFactory authFactory, String tokenStr)
-      throws HiveSQLException {
-    authFactory.cancelDelegationToken(tokenStr);
-  }
-
-  @Override
-  public void renewDelegationToken(HiveAuthFactory authFactory, String tokenStr)
-      throws HiveSQLException {
-    authFactory.renewDelegationToken(tokenStr);
-  }
 
 }

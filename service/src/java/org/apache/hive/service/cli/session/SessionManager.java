@@ -101,14 +101,17 @@ public class SessionManager extends CompositeService {
   public SessionHandle openSession(TProtocolVersion protocol, String username, String password,
       Map<String, String> sessionConf, boolean withImpersonation, String delegationToken)
       throws HiveSQLException {
+    if (username == null) {
+      username = threadLocalUserName.get();
+    }
     HiveSession session;
     if (withImpersonation) {
       HiveSessionImplwithUGI hiveSessionUgi = new HiveSessionImplwithUGI(protocol, username, password,
-        hiveConf, sessionConf, threadLocalIpAddress.get(), delegationToken);
+        hiveConf, sessionConf, delegationToken);
       session = HiveSessionProxy.getProxy(hiveSessionUgi, hiveSessionUgi.getSessionUgi());
       hiveSessionUgi.setProxySession(session);
     } else {
-      session = new HiveSessionImpl(protocol, username, password, hiveConf, sessionConf, threadLocalIpAddress.get());
+      session = new HiveSessionImpl(protocol, username, password, hiveConf, sessionConf);
     }
     session.setSessionManager(this);
     session.setOperationManager(operationManager);
@@ -195,4 +198,3 @@ public class SessionManager extends CompositeService {
   }
 
 }
-

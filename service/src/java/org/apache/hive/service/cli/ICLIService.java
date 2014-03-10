@@ -23,8 +23,6 @@ import java.util.Map;
 
 
 
-import org.apache.hive.service.auth.HiveAuthFactory;
-
 public interface ICLIService {
 
   public abstract SessionHandle openSession(String username, String password,
@@ -92,15 +90,5 @@ public interface ICLIService {
 
   public abstract RowSet fetchResults(OperationHandle opHandle)
       throws HiveSQLException;
-
-  public abstract String getDelegationToken(SessionHandle sessionHandle, HiveAuthFactory authFactory,
-      String owner, String renewer) throws HiveSQLException;
-
-  public abstract void cancelDelegationToken(SessionHandle sessionHandle, HiveAuthFactory authFactory,
-      String tokenStr) throws HiveSQLException;
-
-  public abstract void renewDelegationToken(SessionHandle sessionHandle, HiveAuthFactory authFactory,
-      String tokenStr) throws HiveSQLException;
-
 
 }

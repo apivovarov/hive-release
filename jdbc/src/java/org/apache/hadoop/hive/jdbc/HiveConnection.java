@@ -121,6 +121,7 @@ public class HiveConnection implements java.sql.Connection {
     isClosed = false;
     configureConnection();
   }
+  
  
   public void abort(Executor executor) throws SQLException {
     // JDK 1.7
