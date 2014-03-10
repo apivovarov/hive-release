@@ -56,8 +56,6 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hive.service.auth.HiveAuthFactory;
-import org.apache.hive.service.auth.HttpAuthUtils;
-import org.apache.hive.service.auth.HttpAuthenticationException;
 import org.apache.hive.service.auth.KerberosSaslHelper;
 import org.apache.hive.service.auth.PlainSaslHelper;
 import org.apache.hive.service.auth.SaslQOP;
@@ -250,30 +248,22 @@ public class HiveConnection implements java.sql.Connection {
 
   private DefaultHttpClient getHttpClient(Boolean useSsl) throws SQLException {
     DefaultHttpClient httpClient = new DefaultHttpClient();
+    // Request interceptor for any request pre-processing logic
     HttpRequestInterceptor requestInterceptor;
-
     // If Kerberos
     if (isKerberosAuthMode()) {
-      try {
-        if (useSsl) {
-          throw new HttpAuthenticationException("SSL encryption is not supported " +
-              "with kerberos authentication.");
-        }
-        /**
-         * Do kerberos authentication and get the final service ticket,
-         * for sending to the server.
-         * Add an interceptor which sets the appropriate header in the request.
-         * kerberosAuthHeader is of the form: <username>:<service ticket>
-         */
-        String kerberosAuthHeader = HttpAuthUtils.doKerberosAuth(
-            sessConfMap.get(HIVE_AUTH_PRINCIPAL), host, getServerHttpUrl(false));
-        requestInterceptor = new HttpKerberosRequestInterceptor(kerberosAuthHeader);
+      if (useSsl) {
+        String msg = "SSL encryption is currently not supported with " +
+            "kerberos authentication";
+        throw new SQLException(msg, " 08S01");
       }
-      catch (Exception e) {
-        String msg =  "Could not create a kerberized http connection to " +
-            jdbcURI + ". " + e.getMessage();
-        throw new SQLException(msg, " 08S01", e);
-      }
+      /**
+       * Add an interceptor which sets the appropriate header in the request.
+       * It does the kerberos authentication and get the final service ticket,
+       * for sending to the server before every request.
+       */
+      requestInterceptor = new HttpKerberosRequestInterceptor(
+          sessConfMap.get(HIVE_AUTH_PRINCIPAL), host, getServerHttpUrl(false));
     }
     else {
       /**
@@ -357,29 +347,25 @@ public class HiveConnection implements java.sql.Connection {
           if (tokenStr != null) {
             transport = KerberosSaslHelper.getTokenTransport(tokenStr,
                 host, HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps);
-          } else {
+          }
+          else {
             // we are using PLAIN Sasl connection with user/password
-            String userName = sessConfMap.get(HIVE_AUTH_USER);
-            if ((userName == null) || userName.isEmpty()) {
-              userName = HIVE_ANONYMOUS_USER;
-            }
-            String passwd = sessConfMap.get(HIVE_AUTH_PASSWD);
-            if ((passwd == null) || passwd.isEmpty()) {
-              passwd = HIVE_ANONYMOUS_PASSWD;
-            }
-            String useSslStr = sessConfMap.get(HIVE_USE_SSL);
-            if ("true".equalsIgnoreCase(useSslStr)) {
+            String userName = getUserName();
+            String passwd = getPassword();
+            if (isSslConnection()) {
               // get SSL socket
               String sslTrustStore = sessConfMap.get(HIVE_SSL_TRUST_STORE);
               String sslTrustStorePassword = sessConfMap.get(HIVE_SSL_TRUST_STORE_PASSWORD);
               if (sslTrustStore == null || sslTrustStore.isEmpty()) {
                 transport = HiveAuthFactory.getSSLSocket(host, port, loginTimeout);
-              } else {
+              }
+              else {
                 transport = HiveAuthFactory.getSSLSocket(host, port, loginTimeout,
                     sslTrustStore, sslTrustStorePassword);
               }
               transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
-            } else {
+            }
+            else {
               // get non-SSL socket transport
               transport = HiveAuthFactory.getSocketTransport(host, port, loginTimeout);
             }
@@ -387,7 +373,8 @@ public class HiveConnection implements java.sql.Connection {
             transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
           }
         }
-      } else {
+      }
+      else {
         // Raw socket connection (non-sasl)
         transport = HiveAuthFactory.getSocketTransport(host, port, loginTimeout);
       }

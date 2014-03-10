@@ -46,8 +46,10 @@ public class HttpBasicAuthInterceptor implements HttpRequestInterceptor {
   }
 
   @Override
-  public void process(HttpRequest httpRequest, HttpContext httpContext) throws HttpException, IOException {
-    Header basicAuthHeader = authScheme.authenticate(credentials, httpRequest, httpContext);
+  public void process(HttpRequest httpRequest, HttpContext httpContext)
+      throws HttpException, IOException {
+    Header basicAuthHeader = authScheme.authenticate(
+        credentials, httpRequest, httpContext);
     httpRequest.addHeader(basicAuthHeader);
   }
 

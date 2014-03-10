@@ -44,10 +44,11 @@ import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
 import org.ietf.jgss.Oid;
 
 /**
- * 
+ *
  * ThriftHttpServlet
  *
  */
@@ -68,23 +69,21 @@ public class ThriftHttpServlet extends TServlet {
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
+    String clientUserName;
     try {
-      // Each request needs to have an auth header;
-      // either Basic or Negotiate
-      verifyAuthHeader(request);
-
-      // Set the thread local username to be used for doAs if true
-      SessionManager.setUserName(getUsername(request, authType));
-
       // For a kerberos setup
       if(isKerberosAuthMode(authType)) {
-        doKerberosAuth(request);
+        clientUserName = doKerberosAuth(request, serviceUGI);
       }
       else {
-        doPasswdAuth(request, authType);
+        clientUserName = doPasswdAuth(request, authType);
       }
 
-      logRequestHeader(request, authType);
+      LOG.info("Client username: " + clientUserName);
+      
+      // Set the thread local username to be used for doAs if true
+      SessionManager.setUserName(clientUserName);
+
       super.doPost(request, response);
 
       // Clear the thread local username since we set it in each http request
@@ -101,39 +100,27 @@ public class ThriftHttpServlet extends TServlet {
   }
 
   /**
-   * Each request should have an Authorization header field.
-   * @param request
-   * @return
-   * @throws HttpAuthenticationException
-   */
-  private void verifyAuthHeader(HttpServletRequest request)
-      throws HttpAuthenticationException {
-    String authHeader = request.getHeader(HttpAuthUtils.AUTHORIZATION);
-    if (authHeader == null) {
-      throw new HttpAuthenticationException("Request contains no Authorization header.");
-    }
-  }
-
-  /**
    * Do the LDAP/PAM authentication
    * @param request
    * @param authType
    * @throws HttpAuthenticationException
    */
-  private void doPasswdAuth(HttpServletRequest request, String authType)
+  private String doPasswdAuth(HttpServletRequest request, String authType)
       throws HttpAuthenticationException {
+    String userName = getUsername(request, authType);
     // No-op when authType is NOSASL
     if (!authType.equalsIgnoreCase(HiveAuthFactory.AuthTypes.NOSASL.toString())) {
       try {
         AuthMethods authMethod = AuthMethods.getValidAuthMethod(authType);
         PasswdAuthenticationProvider provider =
             AuthenticationProviderFactory.getAuthenticationProvider(authMethod);
-        provider.Authenticate(getUsername(request, authType),
-            getPassToken(request, authType));
+        provider.Authenticate(userName, getPassword(request, authType));
+
       } catch (Exception e) {
         throw new HttpAuthenticationException(e);
       }
     }
+    return userName;
   }
 
   /**
@@ -144,47 +131,61 @@ public class ThriftHttpServlet extends TServlet {
    * @return
    * @throws HttpAuthenticationException
    */
-  private Void doKerberosAuth(HttpServletRequest request)
-      throws HttpAuthenticationException {
+  private String doKerberosAuth(HttpServletRequest request, 
+      UserGroupInformation serviceUGI) throws HttpAuthenticationException {
     try {
-      return serviceUGI.doAs(new HttpKerberosServerAction(request));
+      return serviceUGI.doAs(new HttpKerberosServerAction(request, serviceUGI));
     } catch (Exception e) {
       throw new HttpAuthenticationException(e);
     }
   }
 
-  class HttpKerberosServerAction implements PrivilegedExceptionAction<Void> {
+  class HttpKerberosServerAction implements PrivilegedExceptionAction<String> {
     HttpServletRequest request;
-
-    HttpKerberosServerAction(HttpServletRequest request) {
+    UserGroupInformation serviceUGI;
+    
+    HttpKerberosServerAction(HttpServletRequest request, 
+        UserGroupInformation serviceUGI) {
       this.request = request;
+      this.serviceUGI = serviceUGI;
     }
 
     @Override
-    public Void run() throws HttpAuthenticationException {
-      // Get own Kerberos credentials for accepting connection
+    public String run() throws HttpAuthenticationException {
+   // Get own Kerberos credentials for accepting connection
       GSSManager manager = GSSManager.getInstance();
       GSSContext gssContext = null;
+      String serverPrincipal = getPrincipalWithoutRealm(
+          serviceUGI.getUserName());
       try {
         // This Oid for Kerberos GSS-API mechanism.
-        Oid krb5Oid = new Oid("1.2.840.113554.1.2.2");
-        GSSCredential serverCreds = manager.createCredential(null,
-            GSSCredential.DEFAULT_LIFETIME,  krb5Oid, GSSCredential.ACCEPT_ONLY);
+        Oid mechOid = new Oid("1.2.840.113554.1.2.2");
+        // Oid for kerberos principal name
+        Oid krb5PrincipalOid = new Oid("1.2.840.113554.1.2.2.1");
+
+        // GSS name for server
+        GSSName serverName = manager.createName(serverPrincipal, krb5PrincipalOid);
+
+        // GSS credentials for server
+        GSSCredential serverCreds = manager.createCredential(serverName,
+            GSSCredential.DEFAULT_LIFETIME,  mechOid, GSSCredential.ACCEPT_ONLY);
 
         // Create a GSS context
         gssContext = manager.createContext(serverCreds);
 
         // Get service ticket from the authorization header
-        String serviceTicket = getPassToken(request,
-            HiveAuthFactory.AuthTypes.KERBEROS.toString());
-        byte[] inToken = serviceTicket.getBytes();
-        gssContext.acceptSecContext(inToken, 0, inToken.length);
+        String serviceTicketBase64 = getAuthHeader(request, authType);
+        byte[] inToken = Base64.decodeBase64(serviceTicketBase64.getBytes());
 
+        gssContext.acceptSecContext(inToken, 0, inToken.length);
         // Authenticate or deny based on its context completion
         if (!gssContext.isEstablished()) {
           throw new HttpAuthenticationException("Kerberos authentication failed: " +
               "unable to establish context with the service ticket " +
               "provided by the client.");
+        }
+        else {
+          return getPrincipalWithoutRealm(gssContext.getSrcName().toString());
         }
       }
       catch (GSSException e) {
@@ -199,13 +200,17 @@ public class ThriftHttpServlet extends TServlet {
           }
         }
       }
-      return null;
+    }
+
+    private String getPrincipalWithoutRealm(String fullPrincipal) {
+      String names[] = fullPrincipal.split("[@]");
+      return names[0];
     }
   }
 
   private String getUsername(HttpServletRequest request, String authType)
       throws HttpAuthenticationException {
-    String[] creds = getAuthHeaderFields(request, authType);
+    String creds[] = getAuthHeaderTokens(request, authType);
     // Username must be present
     if (creds[0] == null || creds[0].isEmpty()) {
       throw new HttpAuthenticationException("Authorization header received " +
@@ -214,36 +219,35 @@ public class ThriftHttpServlet extends TServlet {
     return creds[0];
   }
 
-  private String getPassToken(HttpServletRequest request, String authType)
+  private String getPassword(HttpServletRequest request, String authType)
       throws HttpAuthenticationException {
-    String[] creds = getAuthHeaderFields(request, authType);
-    // Service ticket / password must be present
+    String creds[] = getAuthHeaderTokens(request, authType);
+    // Password must be present
     if (creds[1] == null || creds[1].isEmpty()) {
-      if (isKerberosAuthMode(authType)) {
-        throw new HttpAuthenticationException("Authorization header received " +
-            "from the client does not contain the service ticket.");
-      }
-      else {
-        throw new HttpAuthenticationException("Authorization header received " +
-            "from the client does not contain the password.");
-      }
+      throw new HttpAuthenticationException("Authorization header received " +
+          "from the client does not contain username.");
     }
     return creds[1];
   }
 
+  private String[] getAuthHeaderTokens(HttpServletRequest request,
+      String authType) throws HttpAuthenticationException {
+    String authHeaderBase64 = getAuthHeader(request, authType);
+    String authHeaderString = StringUtils.newStringUtf8(
+        Base64.decodeBase64(authHeaderBase64.getBytes()));
+    String[] creds = authHeaderString.split(":");
+    return creds;
+  }
+
   /**
-   * Decodes the base 64 encoded authorization header payload,
-   * to return an array of string containing the header fields.
-   * The header fields are created by encoding - "<username>:<passToken>",
-   * in base 64 format on the client side. In case of kerberos, the passToken,
-   * is the service ticket provided by the client.
+   * Returns the base64 encoded auth header payload
    * @param request
    * @param authType
    * @return
    * @throws HttpAuthenticationException
    */
-  private String[] getAuthHeaderFields(HttpServletRequest request,
-      String authType) throws HttpAuthenticationException {
+  private String getAuthHeader(HttpServletRequest request, String authType)
+      throws HttpAuthenticationException {
     String authHeader = request.getHeader(HttpAuthUtils.AUTHORIZATION);
     // Each http request must have an Authorization header
     if (authHeader == null || authHeader.isEmpty()) {
@@ -251,38 +255,25 @@ public class ThriftHttpServlet extends TServlet {
           "from the client is empty.");
     }
 
-    String authHeaderBase64;
+    String authHeaderBase64String;
+    int beginIndex;
     if (isKerberosAuthMode(authType)) {
-      authHeaderBase64 = authHeader.substring((HttpAuthUtils.NEGOTIATE + " ").length());
+      beginIndex = (HttpAuthUtils.NEGOTIATE + " ").length();
     }
     else {
-      authHeaderBase64 = authHeader.substring((HttpAuthUtils.BASIC + " ").length());
+      beginIndex = (HttpAuthUtils.BASIC + " ").length();
     }
+    authHeaderBase64String = authHeader.substring(beginIndex);
     // Authorization header must have a payload
-    if (authHeaderBase64 == null || authHeaderBase64.isEmpty()) {
+    if (authHeaderBase64String == null || authHeaderBase64String.isEmpty()) {
       throw new HttpAuthenticationException("Authorization header received " +
           "from the client does not contain any data.");
     }
-
-    String authHeaderString = StringUtils.newStringUtf8(
-        Base64.decodeBase64(authHeaderBase64.getBytes()));
-    String[] creds = authHeaderString.split(":");
-    return creds;
+    return authHeaderBase64String;
   }
 
   private boolean isKerberosAuthMode(String authType) {
     return authType.equalsIgnoreCase(HiveAuthFactory.AuthTypes.KERBEROS.toString());
-  }
-
-  protected void logRequestHeader(HttpServletRequest request, String authType) {
-    String username;
-    try {
-      username = getUsername(request, authType);
-      LOG.debug("HttpServlet:  HTTP Authorization header -  username=" + username +
-          " auth mode=" + authType);
-    } catch (HttpAuthenticationException e) {
-      LOG.debug(e);
-    }
   }
 }
 
