@@ -175,10 +175,6 @@ public class HiveEndPoint {
 
   private static HiveConf createHiveConf(Class<?> cls) {
     HiveConf hconf = new HiveConf(cls);
-    hconf.setVar(HiveConf.ConfVars.HIVE_TXN_JDBC_DRIVER,
-            "org.apache.derby.jdbc.EmbeddedDriver");
-    hconf.setVar(HiveConf.ConfVars.HIVE_TXN_JDBC_CONNECT_STRING,
-            "jdbc:derby:;databaseName=metastore_db;create=true");
     hconf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
             "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
     hconf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
