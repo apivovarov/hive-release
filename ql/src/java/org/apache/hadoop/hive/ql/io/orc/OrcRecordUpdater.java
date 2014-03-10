@@ -46,6 +46,8 @@ import java.util.List;
  */
 public class OrcRecordUpdater implements RecordUpdater {
   final static String ACID_KEY_INDEX_NAME = "hive.acid.key.index";
+  final static String ACID_FORMAT = "_orc_acid_version";
+  final static int ORC_ACID_VERSION = 0;
 
   final static int INSERT_OPERATION = 0;
   final static int UPDATE_OPERATION = 1;
@@ -163,6 +165,13 @@ public class OrcRecordUpdater implements RecordUpdater {
       fs = path.getFileSystem(options.getConfiguration());
     }
     this.fs = fs;
+    try {
+      FSDataOutputStream strm = fs.create(new Path(path, ACID_FORMAT));
+      strm.writeInt(ORC_ACID_VERSION);
+      strm.close();
+    } catch (IOException ioe) {
+      // we just need one task to write this file
+    }
     if (options.getMinimumTransactionId() != options.getMaximumTransactionId()
         && !options.isWritingBase()){
       flushLengths = fs.create(getSideFile(this.path), true, 8,
@@ -193,46 +202,52 @@ public class OrcRecordUpdater implements RecordUpdater {
     item.setFieldValue(ROW_ID, rowId);
   }
 
+  private void addEvent(int operation, long currentTransaction,
+                        long originalTransaction, long rowId,
+                        Object row) throws IOException {
+    this.operation.set(operation);
+    this.currentTransaction.set(currentTransaction);
+    this.originalTransaction.set(originalTransaction);
+    this.rowId.set(rowId);
+    item.setFieldValue(OrcRecordUpdater.ROW, row);
+    indexBuilder.addKey(originalTransaction, bucket.get(), rowId);
+    writer.addRow(item);
+  }
+
   @Override
   public void insert(long currentTransaction, Object row) throws IOException {
-    operation.set(INSERT_OPERATION);
     if (this.currentTransaction.get() != currentTransaction) {
-      this.currentTransaction.set(currentTransaction);
-      this.originalTransaction.set(currentTransaction);
       insertedRows = 0;
     }
-    indexBuilder.addKey(currentTransaction, bucket.get(), insertedRows);
-    this.rowId.set(insertedRows++);
-    item.setFieldValue(OrcRecordUpdater.ROW, row);
-    writer.addRow(item);
+    addEvent(INSERT_OPERATION, currentTransaction, currentTransaction,
+        insertedRows++, row);
   }
 
   @Override
   public void update(long currentTransaction, long originalTransaction,
                      long rowId, Object row) throws IOException {
-    operation.set(UPDATE_OPERATION);
-    this.currentTransaction.set(currentTransaction);
-    this.originalTransaction.set(originalTransaction);
-    this.rowId.set(rowId);
-    item.setFieldValue(OrcRecordUpdater.ROW, row);
-    indexBuilder.addKey(originalTransaction, bucket.get(), rowId);
-    writer.addRow(item);
+    if (this.currentTransaction.get() != currentTransaction) {
+      insertedRows = 0;
+    }
+    addEvent(UPDATE_OPERATION, currentTransaction, originalTransaction, rowId,
+        row);
   }
 
   @Override
   public void delete(long currentTransaction, long originalTransaction,
                      long rowId) throws IOException {
-    operation.set(DELETE_OPERATION);
-    this.currentTransaction.set(currentTransaction);
-    this.originalTransaction.set(originalTransaction);
-    this.rowId.set(rowId);
-    item.setFieldValue(OrcRecordUpdater.ROW, null);
-    indexBuilder.addKey(originalTransaction, bucket.get(), rowId);
-    writer.addRow(item);
+    if (this.currentTransaction.get() != currentTransaction) {
+      insertedRows = 0;
+    }
+    addEvent(DELETE_OPERATION, currentTransaction, originalTransaction, rowId,
+        null);
   }
 
   @Override
   public void flush() throws IOException {
+    // We only support flushes on files with multiple transactions, because
+    // flushes create significant overhead in HDFS. Record updaters with a
+    // single transaction should be closed rather than flushed.
     if (flushLengths == null) {
       throw new IllegalStateException("Attempting to flush a RecordUpdater on "
          + path + " with a single transaction.");

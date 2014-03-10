@@ -188,6 +188,24 @@ class RecordReaderImpl implements RecordReader {
   }
 
   /**
+   * Given a list of column names, find the given column and return the index.
+   * @param columnNames the list of potential column names
+   * @param columnName the column name to look for
+   * @param rootColumn offset the result with the rootColumn
+   * @return the column number or -1 if the column wasn't found
+   */
+  static int findColumns(String[] columnNames,
+                         String columnName,
+                         int rootColumn) {
+    for(int i=0; i < columnNames.length; ++i) {
+      if (columnName.equals(columnNames[i])) {
+        return i + rootColumn;
+      }
+    }
+    return -1;
+  }
+
+  /**
    * Find the mapping from predicate leaves to columns.
    * @param sargLeaves the search argument that we need to map
    * @param columnNames the names of the columns
@@ -263,17 +281,6 @@ class RecordReaderImpl implements RecordReader {
     indexes = new OrcProto.RowIndex[types.size()];
     rowIndexStride = strideRate;
     advanceToNextRow(0L);
-  }
-
-  static int findColumns(String[] columnNames,
-                         String columnName,
-                         int rootColumn) {
-    for(int i=0; i < columnNames.length; ++i) {
-      if (columnName.equals(columnNames[i])) {
-        return i + rootColumn;
-      }
-    }
-    return -1;
   }
 
   private static final class PositionProviderImpl implements PositionProvider {

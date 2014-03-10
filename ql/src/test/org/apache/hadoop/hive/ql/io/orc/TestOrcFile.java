@@ -45,6 +45,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 
 import static org.apache.hadoop.hive.conf.HiveConf.ConfVars.HIVE_ORC_ZEROCOPY;
 
+import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.serde2.io.ByteWritable;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
@@ -216,7 +218,7 @@ public class TestOrcFile {
   public void openFileSystem () throws Exception {
     conf = new Configuration();
     if(zeroCopy) {
-      conf.setBoolean(HIVE_ORC_ZEROCOPY.varname, zeroCopy);
+      conf.setBoolean(HiveConf.ConfVars.HIVE_ORC_ZEROCOPY.varname, zeroCopy);
     }
     fs = FileSystem.getLocal(conf);
     testFilePath = new Path(workDir, "TestOrcFile." +

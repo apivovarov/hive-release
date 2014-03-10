@@ -37,6 +37,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
+/**
+ * Utilities that are shared by all of the ACID input and output formats. They
+ * are used by the compactor and cleaner and thus must be format agnostic.
+ */
 public class AcidUtils {
   private AcidUtils() {
     // NOT USED
@@ -394,6 +398,14 @@ public class AcidUtils {
     };
   }
 
+  /**
+   * Find the original files (non-ACID layout) recursively under the partition
+   * directory.
+   * @param fs the file system
+   * @param stat the file/directory to add
+   * @param original the list of original files
+   * @throws IOException
+   */
   private static void findOriginals(FileSystem fs, FileStatus stat,
                                     List<FileStatus> original
                                     ) throws IOException {

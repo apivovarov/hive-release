@@ -118,7 +118,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
   private long rowsInStripe = 0;
   private long rawDataSize = 0;
   private int rowsInIndex = 0;
-  private int stripesInLastFlush = -1;
+  private int stripesAtLastFlush = -1;
   private final List<OrcProto.StripeInformation> stripes =
     new ArrayList<OrcProto.StripeInformation>();
   private final Map<String, ByteString> userMetadata =
@@ -2066,11 +2066,11 @@ class WriterImpl implements Writer, MemoryManager.Callback {
     // flush any buffered rows
     flushStripe();
     // write a footer
-    if (stripesInLastFlush != stripes.size()) {
+    if (stripesAtLastFlush != stripes.size()) {
       int metaLength = writeMetadata(rawWriter.getPos());
       int footLength = writeFooter(rawWriter.getPos() - metaLength);
       rawWriter.writeByte(writePostScript(footLength, metaLength));
-      stripesInLastFlush = stripes.size();
+      stripesAtLastFlush = stripes.size();
       rawWriter.flush();
     }
     return rawWriter.getPos();

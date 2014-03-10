@@ -202,15 +202,13 @@ public class TestHiveMetaStoreTxns {
     ValidTxnList validTxns = new ValidTxnListImpl("1:");
     String asString = validTxns.toString();
     Assert.assertEquals("1:", asString);
-    validTxns = new ValidTxnListImpl();
-    validTxns.fromString(asString);
+    validTxns = new ValidTxnListImpl(asString);
     Assert.assertEquals(1, validTxns.getHighWatermark());
     Assert.assertNotNull(validTxns.getOpenTransactions());
     Assert.assertEquals(0, validTxns.getOpenTransactions().length);
     asString = validTxns.toString();
     Assert.assertEquals("1:", asString);
-    validTxns = new ValidTxnListImpl();
-    validTxns.fromString(asString);
+    validTxns = new ValidTxnListImpl(asString);
     Assert.assertEquals(1, validTxns.getHighWatermark());
     Assert.assertNotNull(validTxns.getOpenTransactions());
     Assert.assertEquals(0, validTxns.getOpenTransactions().length);
@@ -221,8 +219,7 @@ public class TestHiveMetaStoreTxns {
     if (!asString.equals("10:3:5") && !asString.equals("10:5:3")) {
       Assert.fail("Unexpected string value " + asString);
     }
-    validTxns = new ValidTxnListImpl();
-    validTxns.fromString(asString);
+    validTxns = new ValidTxnListImpl(asString);
     Assert.assertEquals(10, validTxns.getHighWatermark());
     Assert.assertNotNull(validTxns.getOpenTransactions());
     Assert.assertEquals(2, validTxns.getOpenTransactions().length);

@@ -36,7 +36,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.ObjectPair;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.exec.mr.ExecMapperContext;
 import org.apache.hadoop.hive.ql.exec.FooterBuffer;
 import org.apache.hadoop.hive.ql.io.HiveContextAwareRecordReader;
@@ -308,7 +307,24 @@ public class FetchOperator implements Serializable {
         if (!tblDataDone) {
           currPath = work.getTblDir();
           currTbl = work.getTblDesc();
-          tblDataDone = true;
+          if (isNativeTable) {
+            FileSystem fs = currPath.getFileSystem(job);
+            if (fs.exists(currPath)) {
+              FileStatus[] fStats = listStatusUnderPath(fs, currPath);
+              for (FileStatus fStat : fStats) {
+                if (fStat.getLen() > 0) {
+                  tblDataDone = true;
+                  break;
+                }
+              }
+            }
+          } else {
+            tblDataDone = true;
+          }
+
+          if (!tblDataDone) {
+            currPath = null;
+          }
           return;
         } else {
           currTbl = null;
@@ -329,11 +345,16 @@ public class FetchOperator implements Serializable {
       }
       FileSystem fs = nxt.getFileSystem(job);
       if (fs.exists(nxt)) {
-        currPath = nxt;
-        if (iterPartDesc != null) {
-          currPart = prt;
+        FileStatus[] fStats = listStatusUnderPath(fs, nxt);
+        for (FileStatus fStat : fStats) {
+          if (fStat.getLen() > 0) {
+            currPath = nxt;
+            if (iterPartDesc != null) {
+              currPart = prt;
+            }
+            return;
+          }
         }
-        return;
       }
     }
   }
@@ -357,7 +378,6 @@ public class FetchOperator implements Serializable {
       // operations
       job.set("mapred.input.dir", org.apache.hadoop.util.StringUtils.escapeString(currPath
           .toString()));
-
 
       // Fetch operator is not vectorized and as such turn vectorization flag off so that
       // non-vectorized record reader is created below.

@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.hive.ql.io.orc;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -42,6 +43,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+/**
+ * Merges a base and a list of delta files together into a single stream of
+ * events.
+ */
 public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
 
   private static final Log LOG = LogFactory.getLog(OrcRawRecordMerger.class);
@@ -61,6 +66,13 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
   // an extra value so that we can return it while reading ahead
   private OrcStruct extraValue;
 
+  /**
+   * A RecordIdentifier extended with the current transaction id. This is the
+   * key of our merge sort with the originalTransaction, bucket, and rowId
+   * ascending and the currentTransaction descending. This means that if the
+   * reader is collapsing events to just the last update, just the first
+   * instance of each record is required.
+   */
   final static class ReaderKey extends RecordIdentifier{
     private long currentTransactionId;
 
@@ -91,7 +103,6 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     @Override
     public boolean equals(Object other) {
       return super.equals(other) &&
-          other.getClass() == ReaderKey.class &&
           currentTransactionId == ((ReaderKey) other).currentTransactionId;
     }
 
@@ -132,6 +143,12 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     }
   }
 
+  /**
+   * A reader and the next record from that reader. The code reads ahead so that
+   * we can return the lowest ReaderKey from each of the readers. Thus, the
+   * next available row is nextRecord and only following records are still in
+   * the reader.
+   */
   static class ReaderPair {
     OrcStruct nextRecord;
     final Reader reader;
@@ -140,6 +157,18 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     final RecordIdentifier maxKey;
     final int bucket;
 
+    /**
+     * Create a reader that reads from the first key larger than minKey to any
+     * keys equal to maxKey.
+     * @param key the key to read into
+     * @param reader the ORC file reader
+     * @param bucket the bucket number for the file
+     * @param minKey only return keys larger than minKey if it is non-null
+     * @param maxKey only return keys less than or equal to maxKey if it is
+     *               non-null
+     * @param options options to provide to read the rows.
+     * @throws IOException
+     */
     ReaderPair(ReaderKey key, Reader reader, int bucket,
                RecordIdentifier minKey, RecordIdentifier maxKey,
                ReaderImpl.Options options) throws IOException {
@@ -253,8 +282,12 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
 
   private final TreeMap<ReaderKey, ReaderPair> readers =
       new TreeMap<ReaderKey, ReaderPair>();
-  private Map.Entry<ReaderKey,ReaderPair> primary;
-  private ReaderKey secondary = null;
+
+  // The reader that currently has the lowest key.
+  private ReaderPair primary;
+
+  // The key of the next lowest reader.
+  private ReaderKey secondaryKey = null;
 
   /**
    * Find the key range for original bucket files.
@@ -337,7 +370,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       boolean[] include = new boolean[orig.length + OrcRecordUpdater.FIELDS];
       Arrays.fill(include, 0, OrcRecordUpdater.FIELDS, true);
       for(int i= 0; i < orig.length; ++i) {
-        include[i + OrcRecordUpdater.ROW] = orig[i];
+        include[i + OrcRecordUpdater.FIELDS - 1] = orig[i];
       }
       result.include(include);
     }
@@ -431,26 +464,26 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     }
 
     // get the first record
-    primary = readers.pollFirstEntry();
+    primary = readers.pollFirstEntry().getValue();
     if (readers.isEmpty()) {
-      secondary = null;
+      secondaryKey = null;
     } else {
-      secondary = readers.firstKey();
+      secondaryKey = readers.firstKey();
     }
 
     // get the number of columns in the user's rows
     if (primary == null) {
       columns = 0;
     } else {
-      columns = primary.getValue().getColumns();
+      columns = primary.getColumns();
     }
   }
 
   /**
-   * Read the side file and final
-   * @param fs
-   * @param deltaFile
-   * @return
+   * Read the side file to get the last flush length.
+   * @param fs the file system to use
+   * @param deltaFile the path of the delta file
+   * @return the maximum size of the file to use
    * @throws IOException
    */
   private static long getLastFlushLength(FileSystem fs,
@@ -469,22 +502,23 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
       return result;
     }
   }
-  // used for testing
+
+  @VisibleForTesting
   RecordIdentifier getMinKey() {
     return minKey;
   }
 
-  // used for testing
+  @VisibleForTesting
   RecordIdentifier getMaxKey() {
     return maxKey;
   }
 
-  // used for testing
+  @VisibleForTesting
   ReaderPair getCurrentReader() {
-    return primary.getValue();
+    return primary;
   }
 
-  // used for testing
+  @VisibleForTesting
   Map<ReaderKey, ReaderPair> getOtherReaders() {
     return readers;
   }
@@ -494,31 +528,39 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
                       OrcStruct prev) throws IOException {
     boolean keysSame = true;
     while (keysSame && primary != null) {
-      ReaderPair pair = primary.getValue();
-      // flip between the extra value and the next record of the primary
-      OrcStruct current = pair.nextRecord;
-      recordIdentifier.set(pair.key);
-      pair.next(extraValue);
+
+      // The primary's nextRecord is the next value to return
+      OrcStruct current = primary.nextRecord;
+      recordIdentifier.set(primary.key);
+
+      // Advance the primary reader to the next record
+      primary.next(extraValue);
+
+      // Save the current record as the new extraValue for next time so that
+      // we minimize allocations
       extraValue = current;
 
-      // set up the readers for the next row
-      if (pair.nextRecord == null) {
-        primary = readers.pollFirstEntry();
-        if (readers.isEmpty()) {
-          secondary = null;
-        } else {
-          secondary = readers.firstKey();
+      // now that the primary reader has advanced, we need to see if we
+      // continue to read it or move to the secondary.
+      if (primary.nextRecord == null ||
+          primary.key.compareTo(secondaryKey) > 0) {
+
+        // if the primary isn't done, push it back into the readers
+        if (primary.nextRecord != null) {
+          readers.put(primary.key, primary);
         }
-      } else {
-        ReaderKey key = primary.getKey();
-        if (key.compareTo(secondary) > 0) {
-          readers.put(key, pair);
-          primary = readers.pollFirstEntry();
+
+        // update primary and secondaryKey
+        Map.Entry<ReaderKey, ReaderPair> entry = readers.pollFirstEntry();
+        if (entry != null) {
+          primary = entry.getValue();
           if (readers.isEmpty()) {
-            secondary = null;
+            secondaryKey = null;
           } else {
-            secondary = readers.firstKey();
+            secondaryKey = readers.firstKey();
           }
+        } else {
+          primary = null;
         }
       }
 
@@ -538,7 +580,8 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
         keysSame = false;
       }
 
-      // set the output record
+      // set the output record by fiddling with the pointers so that we can
+      // avoid a copy.
       prev.linkFields(current);
     }
     return !keysSame;
@@ -556,8 +599,7 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
 
   @Override
   public long getPos() throws IOException {
-    return baseReader == null ?
-        1 : offset + (long) (baseReader.getProgress() * length);
+    return offset + (long)(getProgress() * length);
   }
 
   @Override

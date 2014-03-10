@@ -61,7 +61,9 @@ public class OrcNewSplit extends FileSplit {
     //serialize path, offset, length using FileSplit
     super.write(out);
 
-    int flags = (hasBase ? 4 : 0) | (isOriginal ? 2 : 0) | (hasFooter ? 1 : 0);
+    int flags = (hasBase ? OrcSplit.BASE_FLAG : 0) |
+        (isOriginal ? OrcSplit.ORIGINAL_FLAG : 0) |
+        (hasFooter ? OrcSplit.FOOTER_FLAG : 0);
     out.writeByte(flags);
     out.writeInt(deltas.size());
     for(Long delta: deltas) {
@@ -90,9 +92,9 @@ public class OrcNewSplit extends FileSplit {
     super.readFields(in);
 
     byte flags = in.readByte();
-    hasFooter = (1 & flags) != 0;
-    isOriginal = (2 & flags) != 0;
-    hasBase = (4 & flags) != 0;
+    hasFooter = (OrcSplit.FOOTER_FLAG & flags) != 0;
+    isOriginal = (OrcSplit.ORIGINAL_FLAG & flags) != 0;
+    hasBase = (OrcSplit.BASE_FLAG & flags) != 0;
 
     deltas.clear();
     int numDeltas = in.readInt();

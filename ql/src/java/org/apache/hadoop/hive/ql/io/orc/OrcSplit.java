@@ -43,6 +43,10 @@ public class OrcSplit extends FileSplit {
   private boolean hasBase;
   private final List<Long> deltas = new ArrayList<Long>();
 
+  static final int BASE_FLAG = 4;
+  static final int ORIGINAL_FLAG = 2;
+  static final int FOOTER_FLAG = 1;
+
   protected OrcSplit(){
     //The FileSplit() constructor in hadoop 0.20 and 1.x is package private so can't use it.
     //This constructor is used to create the object and then call readFields()
@@ -66,7 +70,9 @@ public class OrcSplit extends FileSplit {
     //serialize path, offset, length using FileSplit
     super.write(out);
 
-    int flags = (hasBase ? 4 : 0) | (isOriginal ? 2 : 0) | (hasFooter ? 1 : 0);
+    int flags = (hasBase ? BASE_FLAG : 0) |
+        (isOriginal ? ORIGINAL_FLAG : 0) |
+        (hasFooter ? FOOTER_FLAG : 0);
     out.writeByte(flags);
     out.writeInt(deltas.size());
     for(Long delta: deltas) {
@@ -95,9 +101,9 @@ public class OrcSplit extends FileSplit {
     super.readFields(in);
 
     byte flags = in.readByte();
-    hasFooter = (1 & flags) != 0;
-    isOriginal = (2 & flags) != 0;
-    hasBase = (4 & flags) != 0;
+    hasFooter = (FOOTER_FLAG & flags) != 0;
+    isOriginal = (ORIGINAL_FLAG & flags) != 0;
+    hasBase = (BASE_FLAG & flags) != 0;
 
     deltas.clear();
     int numDeltas = in.readInt();

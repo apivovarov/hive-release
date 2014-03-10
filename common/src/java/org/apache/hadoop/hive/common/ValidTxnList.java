@@ -55,20 +55,17 @@ public interface ValidTxnList {
   public RangeResponse isTxnRangeCommitted(long minTxnId, long maxTxnId);
 
   /**
-   * Write this validTxnList into a string.  Obviously all implementations will
-   * already implement this, but it is being called out specifically here to
-   * make clear that the implementation needs to override the default
-   * implementation.  This should produce a string that can be used by {@link
-   * #fromString(String)} to populate a validTxnsList.
+   * Write this validTxnList into a string. This should produce a string that
+   * can be used by {@link #readFromString(String)} to populate a validTxnsList.
    */
-  public String toString();
+  public String writeToString();
 
   /**
    * Populate this validTxnList from the string.  It is assumed that the string
-   * was created via {@link #toString()}.
+   * was created via {@link #writeToString()}.
    * @param src source string.
    */
-  public void fromString(String src);
+  public void readFromString(String src);
 
   /**
    * Get the largest committed transaction id.
