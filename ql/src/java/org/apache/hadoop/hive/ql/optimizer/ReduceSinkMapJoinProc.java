@@ -43,8 +43,8 @@ import org.apache.hadoop.hive.ql.plan.HashTableDummyDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
-import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
 import org.apache.hadoop.hive.ql.plan.TezWork;
+import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
 
 public class ReduceSinkMapJoinProc implements NodeProcessor {
 
@@ -105,12 +105,7 @@ public class ReduceSinkMapJoinProc implements NodeProcessor {
         if (myWork != null) {
           // link the work with the work associated with the reduce sink that triggered this rule
           TezWork tezWork = context.currentTask.getWork();
-          if (mapJoinOp.getConf().isBucketMapJoin()) {
-            tezWork.connect(parentWork, myWork, EdgeType.CUSTOM_EDGE, 
-                (Integer) mapJoinOp.getConf().getBigTableBucketNumMapping().values().toArray()[0]);
-          } else {
-            tezWork.connect(parentWork, myWork, EdgeType.BROADCAST_EDGE);
-          }
+          tezWork.connect(parentWork, myWork, EdgeType.BROADCAST_EDGE);
 
           // remember the output name of the reduce sink
           parentRS.getConf().setOutputName(myWork.getName());

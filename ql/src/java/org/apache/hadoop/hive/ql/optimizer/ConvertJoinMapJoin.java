@@ -18,34 +18,23 @@
 
 package org.apache.hadoop.hive.ql.optimizer;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
-import java.util.Map.Entry;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.exec.JoinOperator;
 import org.apache.hadoop.hive.ql.exec.MapJoinOperator;
-import org.apache.hadoop.hive.ql.exec.MuxOperator;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.ReduceSinkOperator;
 import org.apache.hadoop.hive.ql.lib.Node;
 import org.apache.hadoop.hive.ql.lib.NodeProcessor;
 import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
-import org.apache.hadoop.hive.ql.metadata.Partition;
-import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.OptimizeTezProcContext;
 import org.apache.hadoop.hive.ql.parse.ParseContext;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
-import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.MetaInfo;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.Statistics;
 
@@ -78,120 +67,7 @@ public class ConvertJoinMapJoin implements NodeProcessor {
     }
 
     JoinOperator joinOp = (JoinOperator) nd;
-    int mapJoinConversionPos = mapJoinConversionPos(joinOp, context);
-    if (mapJoinConversionPos < 0) {
-      return null;
-    }
-    
-    if (context.conf.getBoolVar(HiveConf.ConfVars.HIVE_CONVERT_JOIN_BUCKET_MAPJOIN_TEZ)) {
-      if (convertJoinBucketMapJoin(joinOp, context, mapJoinConversionPos)) {
-        return null;
-      }
-    }
-    
-    convertJoinMapJoin(joinOp, context, mapJoinConversionPos);
-    return null;
-  }
-  
-  private boolean convertJoinBucketMapJoin(JoinOperator joinOp, OptimizeTezProcContext context, 
-      int bigTablePosition) throws SemanticException {
-    
-    TezBucketJoinProcCtx tezBucketJoinProcCtx = new TezBucketJoinProcCtx(context.conf);
-    
-    if (!checkConvertJoinBucketMapJoin(joinOp, context, bigTablePosition, tezBucketJoinProcCtx)) {
-      return false;
-    }
-    
-    createRoutingTable(tezBucketJoinProcCtx);
 
-    MapJoinOperator mapJoinOp = 
-        convertJoinMapJoin(joinOp, context, bigTablePosition);
-
-    mapJoinOp.getConf().setBucketMapJoin(true);
-    Map<String, Integer> bigTableBucketNumMapping = new HashMap<String, Integer>();
-    bigTableBucketNumMapping.put(mapJoinOp.getConf().getBigTableAlias(), tezBucketJoinProcCtx.getNumBuckets());
-    mapJoinOp.getConf().setBigTableBucketNumMapping(bigTableBucketNumMapping );
-
-    // Once the conversion is done, we can set the partitioner to bucket cols on the small table    
-    return true;
-  }
-
-  private void createRoutingTable(TezBucketJoinProcCtx tezBucketJoinProcCtx) throws SemanticException {
-    Map<Partition, List<String>> partToBucketFileNames = tezBucketJoinProcCtx.getBigTblPartsToBucketFileNames();
-    Map<Partition, Integer> partToBucketNumber = tezBucketJoinProcCtx.getBigTblPartsToBucketNumber();
-    
-    for (List<String> partBucketNames : partToBucketFileNames.values()) {
-      Collections.sort(partBucketNames);
-    }
-    
-    Iterator<Entry<Partition, List<String>>> partToBucketNames =
-        partToBucketFileNames.entrySet().iterator();
-    Iterator<Entry<Partition, Integer>> bigTblPartToBucketNum = partToBucketNumber
-        .entrySet().iterator();
-    Map<String, List<Integer>> routingTable = new HashMap<String, List<Integer>>();
-    while (partToBucketNames.hasNext()) {
-      assert bigTblPartToBucketNum.hasNext();
-      int bigTblBucketNum = bigTblPartToBucketNum.next().getValue();
-      List<String> bigTblBucketNameList = partToBucketNames.next().getValue();
-      
-      int i = 0;
-      for (String bucketName : bigTblBucketNameList) {
-        List<Integer> bucketNumList = routingTable.get(bucketName);  
-        if (bucketNumList == null) {
-          bucketNumList = new ArrayList<Integer>();
-        }
-        if (i > bigTblBucketNum) {
-          throw new SemanticException("The number of buckets " + i + 
-              " is greater than the computed number " + bigTblBucketNum);
-        }
-        bucketNumList.add(i++);
-        routingTable.put(bucketName, bucketNumList);
-      }
-    }
-    
-    tezBucketJoinProcCtx.setRoutingTable(routingTable);
-    return;
-  }
-
-  private boolean checkConvertJoinBucketMapJoin(JoinOperator joinOp, 
-      OptimizeTezProcContext context, int bigTablePosition, 
-      TezBucketJoinProcCtx tezBucketJoinProcCtx) throws SemanticException {
-    // bail on mux-operator
-    if (joinOp.getParentOperators().get(0) instanceof MuxOperator) {
-      return false;
-    }
-    ReduceSinkOperator rs = (ReduceSinkOperator) joinOp.getParentOperators().get(bigTablePosition);
-    Operator<? extends OperatorDesc> parentOfRS = rs.getParentOperators().get(0);
-    int i = 0;
-    if (parentOfRS.getMetaInfo().getKeyCols() != null) {
-      tezBucketJoinProcCtx.setIsSubQuery(true);
-      for (ExprNodeDesc exprNodeDesc : parentOfRS.getMetaInfo().getKeyCols()) {
-        if (rs.getMetaInfo().getKeyCols().get(i).isSame(exprNodeDesc)) {
-          i++;
-        } else {
-          return false;
-        }
-      }
-      tezBucketJoinProcCtx.setNumBuckets(i);
-    } else if (rs.getMetaInfo().getTable() != null) {
-      Table table = rs.getMetaInfo().getTable();
-      if (table.getBucketCols() == null || table.getBucketCols().isEmpty()) {
-        return false;
-      }
-      tezBucketJoinProcCtx.setIsSubQuery(false);
-      tezBucketJoinProcCtx.setNumBuckets(table.getBucketCols().size());
-      // check if number of files per partition is equal to the number of buckets
-      // check if bucket keys are equal and in the same order as join keys
-      return AbstractBucketJoinProc.canConvertBucketMapJoin(table, context.parseContext, 
-          tezBucketJoinProcCtx, rs.getMetaInfo().getPrunedPartList(), 
-          rs.getMetaInfo().getKeyCols());
-    }
-
-    // no information available to check for bucket map join
-    return false;
-  }
-
-  public int mapJoinConversionPos(JoinOperator joinOp, OptimizeTezProcContext context) {
     Set<Integer> bigTableCandidateSet = MapJoinProcessor.
       getBigTableCandidates(joinOp.getConf().getConds());
 
@@ -213,7 +89,7 @@ public class ConvertJoinMapJoin implements NodeProcessor {
       Statistics currInputStat = parentOp.getStatistics();
       if (currInputStat == null) {
         LOG.warn("Couldn't get statistics from: "+parentOp);
-        return -1;
+        return null;
       }
 
       long inputSize = currInputStat.getDataSize();
@@ -224,14 +100,14 @@ public class ConvertJoinMapJoin implements NodeProcessor {
         if (bigTableFound) {
           // cannot convert to map join; we've already chosen a big table
           // on size and there's another one that's bigger.
-          return -1;
+          return null;
         }
 
         if (inputSize > maxSize) {
           if (!bigTableCandidateSet.contains(pos)) {
             // can't use the current table as the big table, but it's too
             // big for the map side.
-            return -1;
+            return null;
           }
 
           bigTableFound = true;
@@ -246,7 +122,7 @@ public class ConvertJoinMapJoin implements NodeProcessor {
         if (totalSize > maxSize) {
           // sum of small tables size in this join exceeds configured limit
           // hence cannot convert.
-          return -1;
+          return null;
         }
 
         if (bigTableCandidateSet.contains(pos)) {
@@ -257,38 +133,31 @@ public class ConvertJoinMapJoin implements NodeProcessor {
         totalSize += currInputStat.getDataSize();
         if (totalSize > maxSize) {
           // cannot hold all map tables in memory. Cannot convert.
-          return -1;
+          return null;
         }
       }
       pos++;
     }
 
-    return bigTablePosition;
-  }
-
-  /*
-   * Once we have decided on the map join, the tree would transform from
-   *
-   *        |                   |
-   *       Join               MapJoin
-   *       / \                /   \
-   *     RS   RS   --->     RS    TS (big table)
-   *    /      \           /
-   *   TS       TS        TS (small table)
-   *
-   * for tez.
-   */
-
-  public MapJoinOperator convertJoinMapJoin(JoinOperator joinOp, OptimizeTezProcContext context, 
-      int bigTablePosition) throws SemanticException {
-    // bail on mux operator
-    for (Operator<? extends OperatorDesc> parentOp : joinOp.getParentOperators()) {
-      if (parentOp instanceof MuxOperator) {
-        return null;
-      }
+    if (bigTablePosition == -1) {
+      // all tables have size 0. We let the shuffle join handle this case.
+      return null;
     }
-    
-    //can safely convert the join to a map join.
+
+    /*
+     * Once we have decided on the map join, the tree would transform from
+     *
+     *        |                   |
+     *       Join               MapJoin
+     *       / \                /   \
+     *      RS RS   --->      RS    TS (big table)
+     *      /   \            /
+     *    TS     TS         TS (small table)
+     *
+     * for tez.
+     */
+
+    // convert to a map join operator with this information
     ParseContext parseContext = context.parseContext;
     MapJoinOperator mapJoinOp = MapJoinProcessor.
       convertJoinOpMapJoinOp(context.conf, parseContext.getOpParseCtx(),
@@ -312,9 +181,7 @@ public class ConvertJoinMapJoin implements NodeProcessor {
         op.getChildOperators().remove(joinOp);
       }
     }
-    
-    mapJoinOp.setMetaInfo(new MetaInfo(null, null, null));
- 
-    return mapJoinOp;
+
+    return null;
   }
 }

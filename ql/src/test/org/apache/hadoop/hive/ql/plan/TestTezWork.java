@@ -22,7 +22,7 @@ import java.util.List;
 
 import junit.framework.Assert;
 
-import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
+import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
 import org.junit.Before;
 import org.junit.Test;
 
