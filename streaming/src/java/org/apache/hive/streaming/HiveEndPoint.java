@@ -53,14 +53,32 @@ public class HiveEndPoint {
   public final String table;
   public final List<String> partitionVals;
 
+  private IMetaStoreClient msClient;
+  private HiveConf conf;
+
   static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
   public HiveEndPoint(String metaStoreUri
-          , String database, String table, List<String> partitionVals)  {
+          , String database, String table, List<String> partitionVals) throws ConnectionError {
     this.metaStoreUri = metaStoreUri;
     this.database = database;
     this.table = table;
     this.partitionVals = partitionVals;
+
+    createHiveConf();
+    if(metaStoreUri!= null) {
+      conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
+    }
+
+    try {
+      msClient = Hive.get(conf).getMSC();
+    } catch (MetaException e) {
+      throw new ConnectionError("Error connecting to Hive Metastore URI: "
+              + metaStoreUri, e);
+    } catch (HiveException e) {
+      throw new ConnectionError("Error connecting to Hive Metastore URI: "
+              + metaStoreUri, e);
+    }
   }
 
   /**
@@ -79,7 +97,7 @@ public class HiveEndPoint {
     if(createPartIfNotExists) {
       createPartitionIfNotExists();
     }
-    return new ConnectionImpl(this, user);
+    return new ConnectionImpl(this, user, conf, msClient);
   }
 
   @Override
@@ -130,8 +148,10 @@ public class HiveEndPoint {
   }
 
   private boolean createPartitionIfNotExists() throws InvalidTable, StreamingException {
+    /*
     HiveConf conf = createHiveConf(this.getClass());
     IMetaStoreClient msClient = getMetaStoreClient(this, conf);
+    */
 
     StringBuilder partName = new StringBuilder();
     for (String p : partitionVals) {
@@ -149,8 +169,11 @@ public class HiveEndPoint {
         part.setParameters(new HashMap<String, String>());
         part.setSd(table1.getSd());
       } catch (NoSuchObjectException e) {
+        LOG.error("Table " + database + "." + table + " does not exist");
         throw new InvalidTable(database, table);
       } catch (TException e) {
+        LOG.error("Caught exception configuring partition for table " + database + "." + table
+            + ",  " + StringUtils.stringifyException(e));
         throw new StreamingException("Cannot connect to table DB:"
                 + database + ", Table: " + table, e);
       }
@@ -167,22 +190,22 @@ public class HiveEndPoint {
         throw new StreamingException("Partition creation failed");
       }
     } finally {
-      msClient.close();
+      //msClient.close();
     }
 
 
   }
 
-  private static HiveConf createHiveConf(Class<?> cls) {
-    HiveConf hconf = new HiveConf(cls);
-    hconf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
+  private void createHiveConf() {
+    conf = new HiveConf(this.getClass());
+    conf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
             "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
-    hconf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
-    return hconf;
+    conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
   }
 
 
   // uses embedded store if endpoint.metastoreUri is null
+  /*
   private static IMetaStoreClient getMetaStoreClient(HiveEndPoint endPoint, HiveConf conf)
           throws ConnectionError {
 
@@ -200,6 +223,7 @@ public class HiveEndPoint {
               + endPoint.metaStoreUri, e);
     }
   }
+  */
 
 
 
@@ -209,10 +233,10 @@ public class HiveEndPoint {
     private final LockRequest lockRequest;
     private String user;
 
-    private ConnectionImpl(HiveEndPoint endPoint, String user)
+    private ConnectionImpl(HiveEndPoint endPoint, String user, HiveConf conf, IMetaStoreClient msClient)
             throws ConnectionError, InvalidPartition, ClassNotFoundException {
-      this.conf = createHiveConf(this.getClass());
-      this.msClient = getMetaStoreClient(endPoint, conf);
+      this.conf = conf;
+      this.msClient = msClient;
       this.user = user;
       this.lockRequest = createLockRequest(endPoint,user);
     }
@@ -221,7 +245,7 @@ public class HiveEndPoint {
      * Close connection
      */
     public void close() {
-      msClient.close();
+      //msClient.close();
     }
 
     /**

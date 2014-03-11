@@ -24,6 +24,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.Parser;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.common.LogUtils;
 import org.apache.hadoop.util.StringUtils;
 
@@ -34,6 +36,8 @@ import java.util.Random;
  * A stand alone utility to write data into the streaming ingest interface.
  */
 public class StreamingIntegrationTester {
+
+  static final private Log LOG = LogFactory.getLog(StreamingIntegrationTester.class.getName());
 
   public static void main(String[] args) {
 
@@ -253,6 +257,7 @@ public class StreamingIntegrationTester {
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < batches; i++) {
+          LOG.info("Starting batch " + i);
           TransactionBatch batch = conn.fetchTransactionBatch(txnsPerBatch, writer);
           try {
             while (batch.remainingTransactions() > 0) {
