@@ -119,6 +119,16 @@ public class TestDecimal128 {
     Decimal128 d3 = new Decimal128(2.0d / 3.0d, (short) 5);
     Decimal128 d4 = new Decimal128(2.0d / 3.0d, (short) 8);
     assertTrue(d3.compareTo(d4) != 0);
+
+    Decimal128 d5 = new Decimal128(12, (short) 5);
+    Decimal128 d6 = new Decimal128(15, (short) 7);
+    assertTrue(d5.compareTo(d6) < 0);
+    assertTrue(d6.compareTo(d5) > 0);
+
+    Decimal128 d7 = new Decimal128(15, (short) 5);
+    Decimal128 d8 = new Decimal128(12, (short) 7);
+    assertTrue(d7.compareTo(d8) > 0);
+    assertTrue(d8.compareTo(d7) < 0);
   }
 
   @Test
@@ -786,5 +796,11 @@ public class TestDecimal128 {
     assertEquals(4294967295L, d.longValue());
     d.update("4294967296.01", (short) 2); // 2^32 + .01
     assertEquals(4294967296L, d.longValue());
+
+    // Compare long value with HiveDecimal#longValue
+    d.update(37.678, (short)5);
+    HiveDecimal hd = HiveDecimal.create(BigDecimal.valueOf(37.678));
+    assertEquals(hd.longValue(), d.longValue());
   }
+
 }

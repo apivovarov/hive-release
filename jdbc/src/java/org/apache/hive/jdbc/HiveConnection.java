@@ -86,6 +86,8 @@ public class HiveConnection implements java.sql.Connection {
   private static final String HIVE_AUTH_USER = "user";
   private static final String HIVE_AUTH_PRINCIPAL = "principal";
   private static final String HIVE_AUTH_PASSWD = "password";
+  private static final String HIVE_AUTH_KERBEROS_AUTH_TYPE = "kerberosAuthType";
+  private static final String HIVE_AUTH_KERBEROS_AUTH_TYPE_FROM_SUBJECT = "fromSubject";
   private static final String HIVE_ANONYMOUS_USER = "anonymous";
   private static final String HIVE_ANONYMOUS_PASSWD = "anonymous";
   private static final String HIVE_USE_SSL = "ssl";
@@ -306,15 +308,21 @@ public class HiveConnection implements java.sql.Connection {
           }
           saslProps.put(Sasl.QOP, saslQOP.toString());
           saslProps.put(Sasl.SERVER_AUTH, "true");
+          boolean assumeSubject = HIVE_AUTH_KERBEROS_AUTH_TYPE_FROM_SUBJECT.equals(sessConfMap.get(HIVE_AUTH_KERBEROS_AUTH_TYPE));
           transport = KerberosSaslHelper.getKerberosTransport(
               sessConfMap.get(HIVE_AUTH_PRINCIPAL), host,
-              HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps);
-        }
-        // PLAIN SASL client transport
-        else {
-          String userName = getUserName();
-          String passwd = getPassword();
-          if (isSslConnection()) {
+              HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps, assumeSubject);
+        } else {
+          String userName = sessConfMap.get(HIVE_AUTH_USER);
+          if ((userName == null) || userName.isEmpty()) {
+            userName = HIVE_ANONYMOUS_USER;
+          }
+          String passwd = sessConfMap.get(HIVE_AUTH_PASSWD);
+          if ((passwd == null) || passwd.isEmpty()) {
+            passwd = HIVE_ANONYMOUS_PASSWD;
+          }
+          String useSslStr = sessConfMap.get(HIVE_USE_SSL);
+          if ("true".equalsIgnoreCase(useSslStr)) {
             String sslTrustStore = sessConfMap.get(HIVE_SSL_TRUST_STORE);
             String sslTrustStorePassword = sessConfMap.get(HIVE_SSL_TRUST_STORE_PASSWORD);
             if (sslTrustStore == null || sslTrustStore.isEmpty()) {
