@@ -30,7 +30,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -50,17 +49,19 @@ class DatabaseConnection {
   private DatabaseMetaData meta;
   private final String driver;
   private final String url;
-  private final Properties info;
+  private final String username;
+  private final String password;
   private Schema schema = null;
   private Completor sqlCompletor = null;
 
 
   public DatabaseConnection(BeeLine beeLine, String driver, String url,
-       Properties info) throws SQLException {
+      String username, String password) throws SQLException {
     this.beeLine = beeLine;
     this.driver = driver;
+    this.username = username;
+    this.password = password;
     this.url = url;
-    this.info = info;
   }
 
   @Override
@@ -132,6 +133,9 @@ class DatabaseConnection {
       return beeLine.error(e);
     }
 
+    Properties info = new Properties();
+    info.put(HIVE_AUTH_USER, username);
+    info.put(HIVE_AUTH_PASSWD, password);
     Map<String, String> hiveVars = beeLine.getOpts().getHiveVariables();
     for (Map.Entry<String, String> var : hiveVars.entrySet()) {
       info.put(HIVE_VAR_PREFIX + var.getKey(), var.getValue());

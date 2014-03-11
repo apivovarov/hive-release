@@ -145,7 +145,7 @@ public class Utils {
     JdbcConnectionParams connParams = new JdbcConnectionParams();
 
     if (!uri.startsWith(URL_PREFIX)) {
-      throw new IllegalArgumentException("Bad URL format: Missing prefix " + URL_PREFIX);
+      throw new IllegalArgumentException("Bad URL format");
     }
 
     // For URLs with no other configuration
@@ -197,9 +197,7 @@ public class Utils {
         if (sessVars != null) {
           Matcher sessMatcher = pattern.matcher(sessVars);
           while (sessMatcher.find()) {
-            if (connParams.getSessionVars().put(sessMatcher.group(1), sessMatcher.group(2)) != null) {
-              throw new IllegalArgumentException("Bad URL format: Multiple values for property " + sessMatcher.group(1));
-            }
+            connParams.getSessionVars().put(sessMatcher.group(1), sessMatcher.group(2));
           }
         }
       }

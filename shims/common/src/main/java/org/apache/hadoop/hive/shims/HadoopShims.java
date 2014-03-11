@@ -230,7 +230,7 @@ public interface HadoopShims {
    * @return the string form of the token found
    * @throws IOException
    */
-  public String getTokenStrForm(String tokenSignature) throws IOException;
+  String getTokenStrForm(String tokenSignature) throws IOException;
 
   /**
    * Add a delegation token to the given ugi
@@ -239,18 +239,9 @@ public interface HadoopShims {
    * @param tokenService
    * @throws IOException
    */
-  public void setTokenStr(UserGroupInformation ugi, String tokenStr, String tokenService)
+  void setTokenStr(UserGroupInformation ugi, String tokenStr, String tokenService)
       throws IOException;
 
-  /**
-   * Add given service to the string format token
-   * @param tokenStr
-   * @param tokenService
-   * @return
-   * @throws IOException
-   */
-  public String addServiceToToken(String tokenStr, String tokenService)
-    throws IOException;
 
   enum JobTrackerState { INITIALIZING, RUNNING };
 
@@ -356,14 +347,7 @@ public interface HadoopShims {
    * @param userName
    * @return
    */
-  public UserGroupInformation createProxyUser(String userName) throws IOException;
-
-  /**
-   * Verify proxy access to given UGI for given user
-   * @param ugi
-   */
-  public void authorizeProxyAccess(String proxyUser, UserGroupInformation realUserUgi,
-      String ipAddress, Configuration conf) throws IOException;
+  UserGroupInformation createProxyUser(String userName) throws IOException;
 
   /**
    * The method sets to set the partition file has a different signature between

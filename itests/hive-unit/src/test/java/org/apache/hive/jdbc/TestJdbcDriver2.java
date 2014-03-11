@@ -239,7 +239,7 @@ public class TestJdbcDriver2 {
     try{
       DriverManager.getConnection(url, "", "");
       fail("should have thrown IllegalArgumentException but did not ");
-    } catch(SQLException i) {
+    }catch(IllegalArgumentException i){
       assertTrue(i.getMessage().contains("Bad URL format. Hostname not found "
           + " in authority part of the url"));
     }

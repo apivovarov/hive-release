@@ -43,7 +43,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.hive.thrift.client.TUGIAssumingTransport;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.SaslRpcServer.AuthMethod;
@@ -425,13 +424,6 @@ public class HadoopThriftAuthBridge20S extends HadoopThriftAuthBridge {
         }
       });
     }
-    
-    @Override
-    public String getDelegationTokenWithService(String owner, String renewer, String service)
-        throws IOException, InterruptedException {
-      String token = getDelegationToken(owner, renewer);
-      return ShimLoader.getHadoopShims().addServiceToToken(token, service);
-    }
 
     @Override
     public long renewDelegationToken(String tokenStrForm) throws IOException {
@@ -444,11 +436,6 @@ public class HadoopThriftAuthBridge20S extends HadoopThriftAuthBridge {
       return secretManager.renewDelegationToken(tokenStrForm);
     }
 
-    @Override
-    public String getUserFromToken(String tokenStr) throws IOException {
-      return secretManager.getUserFromToken(tokenStr);
-    }
-    
     @Override
     public void cancelDelegationToken(String tokenStrForm) throws IOException {
       secretManager.cancelDelegationToken(tokenStrForm);
