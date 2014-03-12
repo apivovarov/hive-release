@@ -83,11 +83,7 @@ public class ThriftHttpServlet extends TServlet {
       
       // Set the thread local username to be used for doAs if true
       SessionManager.setUserName(clientUserName);
-
       super.doPost(request, response);
-
-      // Clear the thread local username since we set it in each http request
-      SessionManager.clearUserName();
     }
     catch (HttpAuthenticationException e) {
       // Send a 403 to the client
@@ -96,6 +92,10 @@ public class ThriftHttpServlet extends TServlet {
       response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       // Send the response back to the client
       response.getWriter().println("Authentication Error: " + e.getMessage());
+    }
+    finally {
+      // Clear the thread local username since we set it in each http request
+      SessionManager.clearUserName();
     }
   }
 
