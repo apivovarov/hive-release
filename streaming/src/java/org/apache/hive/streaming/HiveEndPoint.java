@@ -52,9 +52,8 @@ public class HiveEndPoint {
   public final String database;
   public final String table;
   public final List<String> partitionVals;
+  public final HiveConf conf;
 
-  private IMetaStoreClient msClient;
-  private HiveConf conf;
 
   static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
@@ -64,21 +63,7 @@ public class HiveEndPoint {
     this.database = database;
     this.table = table;
     this.partitionVals = partitionVals;
-
-    createHiveConf();
-    if(metaStoreUri!= null) {
-      conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
-    }
-
-    try {
-      msClient = Hive.get(conf).getMSC();
-    } catch (MetaException e) {
-      throw new ConnectionError("Error connecting to Hive Metastore URI: "
-              + metaStoreUri, e);
-    } catch (HiveException e) {
-      throw new ConnectionError("Error connecting to Hive Metastore URI: "
-              + metaStoreUri, e);
-    }
+    this.conf = createHiveConf(metaStoreUri);
   }
 
   /**
@@ -94,10 +79,7 @@ public class HiveEndPoint {
   public StreamingConnection newConnection(String user, boolean createPartIfNotExists)
           throws ConnectionError, InvalidPartition, ClassNotFoundException
                 , StreamingException {
-    if(createPartIfNotExists) {
-      createPartitionIfNotExists();
-    }
-    return new ConnectionImpl(this, user, conf, msClient);
+    return new ConnectionImpl(this, user, conf, createPartIfNotExists);
   }
 
   @Override
@@ -147,65 +129,20 @@ public class HiveEndPoint {
             ", partitionVals=(" + partitionVals +  ") }";
   }
 
-  private boolean createPartitionIfNotExists() throws InvalidTable, StreamingException {
-    /*
-    HiveConf conf = createHiveConf(this.getClass());
-    IMetaStoreClient msClient = getMetaStoreClient(this, conf);
-    */
 
-    StringBuilder partName = new StringBuilder();
-    for (String p : partitionVals) {
-      partName.append(p);
-      partName.append(':');
-    }
-    LOG.info("Will create partition " + database + "." + table + "." + partName.toString());
-    try {
-      Partition part = new Partition();
-      try {
-        Table table1 = msClient.getTable(database, table);
-        part.setDbName(database);
-        part.setTableName(table);
-        part.setValues(partitionVals);
-        part.setParameters(new HashMap<String, String>());
-        part.setSd(table1.getSd());
-      } catch (NoSuchObjectException e) {
-        LOG.error("Table " + database + "." + table + " does not exist");
-        throw new InvalidTable(database, table);
-      } catch (TException e) {
-        LOG.error("Caught exception configuring partition for table " + database + "." + table
-            + ",  " + StringUtils.stringifyException(e));
-        throw new StreamingException("Cannot connect to table DB:"
-                + database + ", Table: " + table, e);
-      }
-
-      try {
-        msClient.add_partition(part);
-        LOG.info("Partition created.");
-        return true;
-      } catch (AlreadyExistsException e) {
-        LOG.info("Partition already exists.");
-        return false;
-      } catch (TException e) {
-        LOG.error("Partition creation failed: " + StringUtils.stringifyException(e));
-        throw new StreamingException("Partition creation failed");
-      }
-    } finally {
-      //msClient.close();
-    }
-
-
-  }
-
-  private void createHiveConf() {
-    conf = new HiveConf(this.getClass());
+  private HiveConf createHiveConf(String metaStoreUri) {
+    HiveConf conf = new HiveConf(this.getClass());
     conf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
             "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
     conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
+    if(metaStoreUri!= null) {
+      conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
+    }
+    return conf;
   }
 
 
   // uses embedded store if endpoint.metastoreUri is null
-  /*
   private static IMetaStoreClient getMetaStoreClient(HiveEndPoint endPoint, HiveConf conf)
           throws ConnectionError {
 
@@ -223,29 +160,45 @@ public class HiveEndPoint {
               + endPoint.metaStoreUri, e);
     }
   }
-  */
 
 
 
   private static class ConnectionImpl implements StreamingConnection {
-    private final HiveConf conf;
     private final IMetaStoreClient msClient;
-    private final LockRequest lockRequest;
-    private String user;
+    private final HiveEndPoint endPt;
+    private final String user;
 
-    private ConnectionImpl(HiveEndPoint endPoint, String user, HiveConf conf, IMetaStoreClient msClient)
-            throws ConnectionError, InvalidPartition, ClassNotFoundException {
-      this.conf = conf;
-      this.msClient = msClient;
+    /**
+     *
+     *
+     * @param endPoint
+     * @param user
+     * @param conf
+     * @param createPart
+     * @throws ConnectionError if there is trouble connecting
+     * @throws InvalidPartition if specified partition does not exist (and createPart=false)
+     * @throws InvalidTable if specified table does not exist
+     * @throws StreamingException
+     */
+    private ConnectionImpl(HiveEndPoint endPoint, String user, HiveConf conf,
+                           boolean createPart)
+            throws ConnectionError, InvalidPartition,
+                   InvalidTable, StreamingException {
       this.user = user;
-      this.lockRequest = createLockRequest(endPoint,user);
+      this.endPt = endPoint;
+      this.msClient = getMetaStoreClient(endPoint, conf);
+
+      if(createPart) {
+        createPartitionIfNotExists(endPoint, msClient);
+      }
     }
+
 
     /**
      * Close connection
      */
     public void close() {
-      //msClient.close();
+      msClient.close();
     }
 
     /**
@@ -265,24 +218,55 @@ public class HiveEndPoint {
     public TransactionBatch fetchTransactionBatch(int numTransactions,
                                                   RecordWriter recordWriter)
             throws ConnectionError, InvalidPartition, StreamingException {
-      return new TransactionBatchImpl(user, numTransactions, msClient,
-                  lockRequest, recordWriter);
+      return new TransactionBatchImpl(user, endPt, numTransactions, msClient, recordWriter);
     }
 
-    private static LockRequest createLockRequest(HiveEndPoint hiveEndPoint, String user)
-            throws InvalidPartition {
-      LockRequestBuilder rqstBuilder = new LockRequestBuilder();
-      rqstBuilder.setUser(user);
+    private static boolean createPartitionIfNotExists(HiveEndPoint ep, IMetaStoreClient msClient)
+            throws InvalidTable, StreamingException {
 
-      for( String partition : hiveEndPoint.partitionVals ) {
-          rqstBuilder.addLockComponent(new LockComponentBuilder()
-                  .setDbName(hiveEndPoint.database)
-                  .setTableName(hiveEndPoint.table)
-                  .setPartitionName(partition)
-                  .setShared()
-                  .build());
+      StringBuilder partName = new StringBuilder();
+      for (String p : ep.partitionVals) {
+        partName.append(p);
+        partName.append(':');
       }
-      return rqstBuilder.build();
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Attempting to create partition : " + ep);
+      }
+
+      Partition part = new Partition();
+
+      try {
+        Table table1 = msClient.getTable(ep.database, ep.table);
+        part.setDbName(ep.database);
+        part.setTableName(ep.table);
+        part.setValues(ep.partitionVals);
+        part.setParameters(new HashMap<String, String>());
+//        Warehouse.makePartPath();
+        part.setSd(table1.getSd());
+
+      } catch (NoSuchObjectException e) {
+        LOG.error("Table " + ep.database + "." + ep.table + " does not exist");
+        throw new InvalidTable(ep.database, ep.table);
+      } catch (TException e) {
+        LOG.error("Error configuring partition object for table " + ep.database + "." + ep.table
+                + ": " + e.getMessage(), e);
+        throw new StreamingException("Cannot connect to table DB:"
+                + ep.database + ", Table: " + ep.table, e);
+      }
+
+      try {
+        msClient.add_partition(part);
+        LOG.info("Partition created : " + ep);
+        return true;
+      } catch (AlreadyExistsException e) {
+        LOG.debug("Partition already exists : " + ep);
+        return false;
+      } catch (TException e) {
+        LOG.error("Partition creation failed: " + ep + ".  "
+                + StringUtils.stringifyException(e));
+        throw new StreamingException("Partition creation failed", e);
+      }
+
     }
   } // class ConnectionImpl
 
@@ -291,18 +275,19 @@ public class HiveEndPoint {
     private int currentTxnIndex;
     private final IMetaStoreClient msClient;
     private final RecordWriter recordWriter;
+    private final String user;
 
     private TxnState state;
-    private final LockRequest lockRequest;
+    private LockRequest lockRequest = null;
+    private final HiveEndPoint endPt;
 
-    private TransactionBatchImpl(String user, int numTxns, IMetaStoreClient msClient,
-                                 LockRequest lockRequest,
-                                 RecordWriter recordWriter)
+    private TransactionBatchImpl(String user, HiveEndPoint endPt, int numTxns,
+                                 IMetaStoreClient msClient, RecordWriter recordWriter)
             throws StreamingException {
       try {
+        this.user = user;
+        this.endPt = endPt;
         this.msClient = msClient;
-
-        this.lockRequest = lockRequest;
         this.recordWriter = recordWriter;
         this.txnIds = msClient.openTxns(user, numTxns).getTxn_ids();
         this.currentTxnIndex = -1;
@@ -322,7 +307,7 @@ public class HiveEndPoint {
         throw new InvalidTrasactionState("No more transactions available in" +
                 " current batch");
       ++currentTxnIndex;
-
+      lockRequest = createLockRequest(endPt, user, getCurrentTxnId());
       try {
         LockResponse res = msClient.lock(lockRequest);
         if(res.getState() != LockState.ACQUIRED) {
@@ -439,6 +424,26 @@ public class HiveEndPoint {
     public void close() throws StreamingException {
       state = TxnState.INACTIVE;
       recordWriter.closeBatch();
+    }
+
+    private static LockRequest createLockRequest(final HiveEndPoint hiveEndPoint
+            , String user, long txnId)
+            throws InvalidPartition {
+      LockRequestBuilder rqstBuilder = new LockRequestBuilder();
+      rqstBuilder.setUser(user);
+      rqstBuilder.setTransactionId(txnId);
+
+//      Warehouse.makePartName(table)
+      for( String partition : hiveEndPoint.partitionVals ) {
+        rqstBuilder.addLockComponent(new LockComponentBuilder()
+                .setDbName(hiveEndPoint.database)
+                .setTableName(hiveEndPoint.table)
+                //partition = Warehouse.makePartName() : TODO
+                .setPartitionName(partition )
+                .setShared()
+                .build());
+      }
+      return rqstBuilder.build();
     }
   } // class TransactionBatchImpl
 
