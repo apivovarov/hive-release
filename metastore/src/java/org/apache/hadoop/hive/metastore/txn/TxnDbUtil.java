@@ -204,7 +204,7 @@ public class TxnDbUtil {
     String passwd = HiveConf.getVar(conf, HiveConf.ConfVars.METASTOREPWD);
     prop.put("user", user);
     prop.put("password", passwd);
-    return driver.connect(driverUrl, new Properties());
+    return driver.connect(driverUrl, prop);
   }
 
 }
