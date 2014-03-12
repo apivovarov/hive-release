@@ -1017,7 +1017,19 @@
                         <replacement>
                             <token>@final.name@</token>
                             <value>hive-${project.version}</value>
-                        </replacement>
+                       </replacement>
+                       <replacement>
+                            <token>@version@</token>
+                            <value>${project.version}</value>
+                       </replacement>
+                       <replacement>
+                            <token>@hadoop.version@</token>
+                            <value>${hadoop.version}</value>
+                       </replacement>
+                       <replacement>
+                            <token>@zookeeper.version@</token>
+                            <value>${zookeeper.version}</value>
+                       </replacement>
                     </replacements>
                     </configuration>
                 </plugin>
