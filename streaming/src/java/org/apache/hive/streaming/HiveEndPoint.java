@@ -20,12 +20,12 @@ package org.apache.hive.streaming;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.LockComponentBuilder;
 import org.apache.hadoop.hive.metastore.LockRequestBuilder;
 import org.apache.hadoop.hive.metastore.Warehouse;
-import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
@@ -33,17 +33,19 @@ import org.apache.hadoop.hive.metastore.api.LockState;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
-import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
+import org.apache.hadoop.hive.ql.CommandNeedRetryException;
+import org.apache.hadoop.hive.ql.Driver;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.util.StringUtils;
+import org.apache.hadoop.hive.ql.session.SessionState;
+
 import org.apache.thrift.TException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -53,7 +55,7 @@ public class HiveEndPoint {
   public final String metaStoreUri;
   public final String database;
   public final String table;
-  public final List<String> partitionVals;
+  public final ArrayList<String> partitionVals;
   public final HiveConf conf;
 
 
@@ -64,7 +66,7 @@ public class HiveEndPoint {
     this.metaStoreUri = metaStoreUri;
     this.database = database;
     this.table = table;
-    this.partitionVals = partitionVals;
+    this.partitionVals = new ArrayList<String>( partitionVals );
     this.conf = createHiveConf(metaStoreUri);
   }
 
@@ -191,7 +193,7 @@ public class HiveEndPoint {
       this.msClient = getMetaStoreClient(endPoint, conf);
 
       if(createPart) {
-        createPartitionIfNotExists(endPoint, msClient);
+        createPartitionIfNotExists(endPoint, msClient, conf);
       }
     }
 
@@ -223,54 +225,85 @@ public class HiveEndPoint {
       return new TransactionBatchImpl(user, endPt, numTransactions, msClient, recordWriter);
     }
 
-    private static boolean createPartitionIfNotExists(HiveEndPoint ep, IMetaStoreClient msClient)
+
+    private static void createPartitionIfNotExists(HiveEndPoint ep,
+                                                   IMetaStoreClient msClient, HiveConf conf)
             throws InvalidTable, StreamingException {
-
-      StringBuilder partName = new StringBuilder();
-      for (String p : ep.partitionVals) {
-        partName.append(p);
-        partName.append(':');
+      if(ep.partitionVals.isEmpty()) {
+        return;
       }
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("Attempting to create partition : " + ep);
-      }
-
-      Partition part = new Partition();
+      SessionState state = SessionState.start(new CliSessionState(conf));
+      Driver driver = new Driver(conf);
 
       try {
-        Table table1 = msClient.getTable(ep.database, ep.table);
-        part.setDbName(ep.database);
-        part.setTableName(ep.table);
-        part.setValues(ep.partitionVals);
-        part.setParameters(new HashMap<String, String>());
-//        Warehouse.makePartPath();
-        part.setSd(table1.getSd());
+        if(LOG.isDebugEnabled()) {
+          LOG.debug("attempting to create partition if it does not exist " + ep);
+        }
 
+        List<FieldSchema> partKeys = msClient.getTable(ep.database, ep.table)
+                .getPartitionKeys();
+        runDDL(driver, "use " + ep.database);
+        String query = "alter table " + ep.table + " add if not exists partition "
+                + partSpecStr(partKeys, ep.partitionVals);
+        runDDL(driver, query);
+      } catch (MetaException e) {
+        throw new StreamingException(e.getMessage(), e);
       } catch (NoSuchObjectException e) {
-        LOG.error("Table " + ep.database + "." + ep.table + " does not exist");
         throw new InvalidTable(ep.database, ep.table);
       } catch (TException e) {
-        LOG.error("Error configuring partition object for table " + ep.database + "." + ep.table
-                + ": " + e.getMessage(), e);
-        throw new StreamingException("Cannot connect to table DB:"
-                + ep.database + ", Table: " + ep.table, e);
+        throw new StreamingException(e.getMessage(), e);
+      } catch (QueryFailedException e) {
+        throw new StreamingException("Failed when attempting to create partition: " + ep, e);
+      } finally {
+        driver.close();
+        try {
+          state.close();
+        } catch (IOException e) {
+          LOG.warn("Error closing SessionState used to run Hive DDL.");
+        }
       }
+    }
 
-      try {
-        msClient.add_partition(part);
-        LOG.info("Partition created : " + ep);
-        return true;
-      } catch (AlreadyExistsException e) {
-        LOG.debug("Partition already exists : " + ep);
-        return false;
-      } catch (TException e) {
-        LOG.error("Partition creation failed: " + ep + ".  "
-                + StringUtils.stringifyException(e));
-        throw new StreamingException("Partition creation failed", e);
+    private static boolean runDDL(Driver driver, String sql) throws QueryFailedException {
+      int retryCount = 1; // # of times to retry if first attempt fails
+      for(int attempt=0; attempt<=retryCount; ++attempt) {
+        try {
+          LOG.debug("Running Hive Query: " + sql);
+          driver.run(sql);
+          if(LOG.isDebugEnabled()) {
+           LOG.debug("Running Hive Query: "+ sql);
+          }
+          return true;
+        } catch (CommandNeedRetryException e) {
+          if(attempt==retryCount) {
+            throw new QueryFailedException(sql, e);
+          }
+          continue;
+        }
+      } // for
+      return false;
+    }
+
+    private static String partSpecStr(List<FieldSchema> partKeys, ArrayList<String> partVals) {
+      StringBuffer buff = new StringBuffer(partKeys.size()*20);
+      buff.append(" ( ");
+      int i=0;
+      for(FieldSchema schema : partKeys) {
+        buff.append(schema.getName());
+        buff.append("='");
+        buff.append(partVals.get(i));
+        buff.append("'");
+        if(i!=partKeys.size()-1) {
+          buff.append(",");
+        }
+        ++i;
       }
-
+      buff.append(" )");
+      return buff.toString();
     }
   } // class ConnectionImpl
+
+
 
   private static class TransactionBatchImpl implements TransactionBatch {
     private final List<Long> txnIds;
