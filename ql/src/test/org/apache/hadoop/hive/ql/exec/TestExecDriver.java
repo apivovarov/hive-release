@@ -21,6 +21,7 @@ package org.apache.hadoop.hive.ql.exec;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -457,6 +458,8 @@ public class TestExecDriver extends TestCase {
 
   private void executePlan() throws Exception {
     String testName = new Exception().getStackTrace()[1].getMethodName();
+    // localMapRedErrors needs to be set or else get NPE if any errors are encountered.
+    SessionState.get().setLocalMapRedErrors(new HashMap<String, List<String>>());
     MapRedTask mrtask = new MapRedTask();
     DriverContext dctx = new DriverContext ();
     mrtask.setWork(mr);
