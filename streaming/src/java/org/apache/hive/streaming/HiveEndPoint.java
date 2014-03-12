@@ -24,7 +24,9 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.LockComponentBuilder;
 import org.apache.hadoop.hive.metastore.LockRequestBuilder;
+import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.LockState;
@@ -276,6 +278,7 @@ public class HiveEndPoint {
     private final IMetaStoreClient msClient;
     private final RecordWriter recordWriter;
     private final String user;
+    private final String partNameForLock;
 
     private TxnState state;
     private LockRequest lockRequest = null;
@@ -283,8 +286,16 @@ public class HiveEndPoint {
 
     private TransactionBatchImpl(String user, HiveEndPoint endPt, int numTxns,
                                  IMetaStoreClient msClient, RecordWriter recordWriter)
-            throws StreamingException {
+            throws  StreamingException {
       try {
+        if( endPt.partitionVals!=null   &&   !endPt.partitionVals.isEmpty() ) {
+          Table tableObj = msClient.getTable(endPt.database, endPt.table);
+          List<FieldSchema> partKeys = tableObj.getPartitionKeys();
+          partNameForLock = Warehouse.makePartName(partKeys, endPt.partitionVals);
+        } else {
+          partNameForLock = null;
+        }
+
         this.user = user;
         this.endPt = endPt;
         this.msClient = msClient;
@@ -307,7 +318,7 @@ public class HiveEndPoint {
         throw new InvalidTrasactionState("No more transactions available in" +
                 " current batch");
       ++currentTxnIndex;
-      lockRequest = createLockRequest(endPt, user, getCurrentTxnId());
+      lockRequest = createLockRequest(endPt, partNameForLock, user, getCurrentTxnId());
       try {
         LockResponse res = msClient.lock(lockRequest);
         if(res.getState() != LockState.ACQUIRED) {
@@ -426,23 +437,22 @@ public class HiveEndPoint {
       recordWriter.closeBatch();
     }
 
-    private static LockRequest createLockRequest(final HiveEndPoint hiveEndPoint
-            , String user, long txnId)
+    private static LockRequest createLockRequest(final HiveEndPoint hiveEndPoint,
+            String partNameForLock, String user, long txnId)
             throws InvalidPartition {
       LockRequestBuilder rqstBuilder = new LockRequestBuilder();
       rqstBuilder.setUser(user);
       rqstBuilder.setTransactionId(txnId);
 
-//      Warehouse.makePartName(table)
-      for( String partition : hiveEndPoint.partitionVals ) {
-        rqstBuilder.addLockComponent(new LockComponentBuilder()
-                .setDbName(hiveEndPoint.database)
-                .setTableName(hiveEndPoint.table)
-                //partition = Warehouse.makePartName() : TODO
-                .setPartitionName(partition )
-                .setShared()
-                .build());
+      LockComponentBuilder lockCompBuilder = new LockComponentBuilder()
+              .setDbName(hiveEndPoint.database)
+              .setTableName(hiveEndPoint.table)
+              .setShared();
+      if(partNameForLock!=null && !partNameForLock.isEmpty() ) {
+          lockCompBuilder.setPartitionName(partNameForLock);
       }
+      rqstBuilder.addLockComponent(lockCompBuilder.build());
+
       return rqstBuilder.build();
     }
   } // class TransactionBatchImpl
