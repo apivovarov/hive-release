@@ -59,7 +59,7 @@ public class Initiator extends CompactorThread {
       int abortedThreashold = HiveConf.getIntVar(conf,
           HiveConf.ConfVars.HIVE_COMPACTOR_ABORTEDTXN_THRESHOLD);
 
-      while (!stop.timeToStop) {
+      while (!stop.boolVal) {
         long startedAt = System.currentTimeMillis();
 
         // Wrap the inner parts of the loop in a catch throwable so that any errors in the loop

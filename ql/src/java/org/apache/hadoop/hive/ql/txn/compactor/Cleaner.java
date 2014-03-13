@@ -48,7 +48,7 @@ public class Cleaner extends CompactorThread {
   public void run() {
     // Make sure nothing escapes this run method and kills the metastore at large,
     // so wrap it in a big catch Throwable statement.
-    while (!stop.timeToStop) {
+    while (!stop.boolVal) {
       try {
         long startedAt = System.currentTimeMillis();
 
