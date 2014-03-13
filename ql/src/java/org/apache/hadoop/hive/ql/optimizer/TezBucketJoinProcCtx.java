@@ -16,14 +16,35 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.plan;
+package org.apache.hadoop.hive.ql.optimizer;
 
-import java.io.Serializable;
+import java.util.List;
+import java.util.Map;
 
-public interface OperatorDesc extends Serializable, Cloneable {
-  public Object clone() throws CloneNotSupportedException;
-  public Statistics getStatistics();
-  public void setStatistics(Statistics statistics);
-  public OpTraits getOpTraits();
-  public void setOpTraits(OpTraits metaInfo);
+import org.apache.hadoop.hive.conf.HiveConf;
+
+public class TezBucketJoinProcCtx extends BucketJoinProcCtx {
+  // determines if we need to use custom edge or one-to-one edge
+  boolean isSubQuery = false;
+  int numBuckets = -1;
+
+  public TezBucketJoinProcCtx(HiveConf conf) {
+    super(conf);
+  }
+
+  public void setIsSubQuery (boolean isSubQuery) {
+    this.isSubQuery = isSubQuery;
+  }
+
+  public boolean isSubQuery () {
+    return isSubQuery;
+  }
+
+  public void setNumBuckets(int numBuckets) {
+    this.numBuckets = numBuckets;
+  }
+
+  public Integer getNumBuckets() {
+    return numBuckets;
+  }
 }
