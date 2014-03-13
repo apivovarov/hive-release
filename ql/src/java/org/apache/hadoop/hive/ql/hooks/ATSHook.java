@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,16 +46,35 @@ public class ATSHook implements ExecuteWithHookContext {
 
   private static final Log LOG = LogFactory.getLog(ATSHook.class.getName());
   private final ExecutorService executor;
+  private final TimelineClient timelineClient;
   private enum EntityTypes { HIVE_QUERY_ID };
   private enum EventTypes { QUERY_SUBMITTED, QUERY_COMPLETED };
   private enum OtherInfoTypes { query, status };
   private enum PrimaryFilterTypes { user };
   private YarnConfiguration yarnConf;
+  private static final int WAIT_TIME = 3;
 
   public ATSHook() {
+    yarnConf = new YarnConfiguration();
+    timelineClient = TimelineClient.createTimelineClient();
+    timelineClient.init(yarnConf);
+    timelineClient.start();
+
     executor = Executors.newSingleThreadExecutor(
          new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build());
-    yarnConf = new YarnConfiguration();
+
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
+        public void run() {
+          try {
+            executor.shutdown();
+            executor.awaitTermination(WAIT_TIME, TimeUnit.SECONDS);
+          } catch(InterruptedException ie) { /* ignore */ }
+          timelineClient.stop();
+        }
+      });
+
+    LOG.info("Created ATS Hook");
   }
 
   @Override
@@ -90,7 +110,7 @@ public class ATSHook implements ExecuteWithHookContext {
               break;
             }
           } catch (Exception e) {
-            LOG.warn("Failed to submit plan to ATS: "+StringUtils.stringifyException(e));
+            LOG.info("Failed to submit plan to ATS: "+StringUtils.stringifyException(e));
           }
         }
       });
@@ -103,8 +123,9 @@ public class ATSHook implements ExecuteWithHookContext {
     queryObj.put("queryText", query);
     queryObj.put("queryPlan", explainPlan);
   
+    LOG.info("Received pre-hook notification for :"+queryId);
     if (LOG.isDebugEnabled()) {
-      LOG.warn("Otherinfo: "+queryObj.toString());
+      LOG.info("Otherinfo: "+queryObj.toString());
     }
 
     TimelineEntity atsEntity = new TimelineEntity();
@@ -122,6 +143,7 @@ public class ATSHook implements ExecuteWithHookContext {
   }
 
   TimelineEntity createPostHookEvent(String queryId, long stopTime, String user, boolean success) {
+    LOG.info("Received post-hook notification for :"+queryId);
 
     TimelineEntity atsEntity = new TimelineEntity();
     atsEntity.setEntityId(queryId);
@@ -139,10 +161,6 @@ public class ATSHook implements ExecuteWithHookContext {
   }
   
   void fireAndForget(Configuration conf, TimelineEntity entity) throws Exception {
-    TimelineClient timelineClient = TimelineClient.createTimelineClient();
-    timelineClient.init(yarnConf);
-    timelineClient.start();
     timelineClient.putEntities(entity);
-    timelineClient.stop();
   }
 }
