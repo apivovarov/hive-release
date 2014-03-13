@@ -5047,6 +5047,18 @@ public class HiveMetaStore extends ThriftHiveMetastore {
   }
 
   /**
+   * Start the metastore store.
+   * @param port
+   * @param bridge
+   * @param conf
+   * @throws Throwable
+   */
+  public static void startMetaStore(int port, HadoopThriftAuthBridge bridge,
+                                    HiveConf conf) throws Throwable {
+    startMetaStore(port, bridge, conf, null, null, null);
+  }
+
+  /**
    * Start Metastore based on a passed {@link HadoopThriftAuthBridge}
    *
    * @param port
