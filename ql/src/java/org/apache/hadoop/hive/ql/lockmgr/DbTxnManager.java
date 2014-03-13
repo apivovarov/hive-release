@@ -237,7 +237,7 @@ public class DbTxnManager extends HiveTxnManagerImpl {
 
   @Override
   public void heartbeat() throws LockException {
-    LOG.debug("Heartbeating lock and transaction " + txnId);
+    LOG.info("Heartbeating lock and transaction " + txnId);
     List<HiveLock> locks = lockMgr.getLocks(false, false);
     if (locks.size() == 0) {
       if (txnId == 0) {

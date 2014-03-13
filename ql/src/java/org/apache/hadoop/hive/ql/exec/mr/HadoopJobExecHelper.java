@@ -36,11 +36,14 @@ import org.apache.hadoop.hive.common.JavaUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.MapRedStats;
+import org.apache.hadoop.hive.ql.exec.Heartbeater;
 import org.apache.hadoop.hive.ql.exec.Operator;
 import org.apache.hadoop.hive.ql.exec.Task;
 import org.apache.hadoop.hive.ql.exec.TaskHandle;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.history.HiveHistory.Keys;
+import org.apache.hadoop.hive.ql.lockmgr.HiveTxnManager;
+import org.apache.hadoop.hive.ql.lockmgr.LockException;
 import org.apache.hadoop.hive.ql.plan.ReducerTimeStatsPerJob;
 import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
@@ -70,6 +73,7 @@ public class HadoopJobExecHelper {
   public transient String jobId;
   private LogHelper console;
   private HadoopJobExecHook callBackObj;
+
 
   /**
    * Update counters relevant to this task.
@@ -231,11 +235,14 @@ public class HadoopJobExecHelper {
     int numReduce = -1;
     List<ClientStatsPublisher> clientStatPublishers = getClientStatPublishers();
 
+    Heartbeater heartbeater = new Heartbeater(th.getTxnManager(), job);
+
     while (!rj.isComplete()) {
       try {
         Thread.sleep(pullInterval);
       } catch (InterruptedException e) {
       }
+      heartbeater.heartbeat();
 
       if (initializing && rj.getJobState() == JobStatus.PREP) {
         // No reason to poll untill the job is initialized
@@ -415,6 +422,7 @@ public class HadoopJobExecHelper {
     return mapRedStats;
   }
 
+
   private String getId() {
     return this.task.getId();
   }
@@ -444,6 +452,7 @@ public class HadoopJobExecHelper {
   private static class ExecDriverTaskHandle extends TaskHandle {
     JobClient jc;
     RunningJob rj;
+    HiveTxnManager txnMgr;
 
     JobClient getJobClient() {
       return jc;
@@ -453,9 +462,14 @@ public class HadoopJobExecHelper {
       return rj;
     }
 
-    public ExecDriverTaskHandle(JobClient jc, RunningJob rj) {
+    HiveTxnManager getTxnManager() {
+      return txnMgr;
+    }
+
+    public ExecDriverTaskHandle(JobClient jc, RunningJob rj, HiveTxnManager txnMgr) {
       this.jc = jc;
       this.rj = rj;
+      this.txnMgr = txnMgr;
     }
 
     public void setRunningJob(RunningJob job) {
@@ -508,7 +522,7 @@ public class HadoopJobExecHelper {
   }
 
 
-  public int progress(RunningJob rj, JobClient jc) throws IOException {
+  public int progress(RunningJob rj, JobClient jc, HiveTxnManager txnMgr) throws IOException {
     jobId = rj.getJobID();
 
     int returnVal = 0;
@@ -529,7 +543,7 @@ public class HadoopJobExecHelper {
 
     runningJobKillURIs.put(rj.getJobID(), rj.getTrackingURL() + "&action=kill");
 
-    ExecDriverTaskHandle th = new ExecDriverTaskHandle(jc, rj);
+    ExecDriverTaskHandle th = new ExecDriverTaskHandle(jc, rj, txnMgr);
     jobInfo(rj);
     MapRedStats mapRedStats = progress(th);
 

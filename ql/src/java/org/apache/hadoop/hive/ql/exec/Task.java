@@ -342,7 +342,9 @@ public abstract class Task<T extends Serializable> implements Serializable, Node
     return isrunnable;
   }
 
-
+  public DriverContext getDriverContext() {
+    return driverContext;
+  }
 
   public void setWork(T work) {
     this.work = work;
