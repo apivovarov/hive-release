@@ -38,7 +38,7 @@ function Main( $scriptDir )
     ###
     $FinalName = "@final.name@"
     Uninstall "hive" $nodeInstallRoot
-
+    [Environment]::SetEnvironmentVariable( "HIVE_CLASSPATH", $null, [EnvironmentVariableTarget]::Machine )
     Write-Log "Successfully uninstalled Hive."
 }
 

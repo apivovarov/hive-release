@@ -90,6 +90,10 @@ function Main( $scriptDir )
     ### Install and Configure Hive
     ###
     Install "hive" $nodeInstallRoot $serviceCredential $hiveRoles
+    if ((Test-Path ENV:IS_TEZ) -and ($ENV:IS_TEZ -ieq "yes"))
+    {
+      [Environment]::SetEnvironmentVariable( "HIVE_CLASSPATH", "$ENV:TEZ_CLASSPATH", [EnvironmentVariableTarget]::Machine )
+    }
 
     Write-Log "Installation of Hive completed successfully"
     ###
