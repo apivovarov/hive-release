@@ -57,79 +57,79 @@ public class HashTableLoader implements org.apache.hadoop.hive.ql.exec.HashTable
   private MapJoinKey lastKey = null;
 
   @Override
-    public void init(ExecMapperContext context, Configuration hconf, MapJoinOperator joinOp) {
-      this.context = context;
-      this.hconf = hconf;
-      this.desc = joinOp.getConf();
-    }
+  public void init(ExecMapperContext context, Configuration hconf, MapJoinOperator joinOp) {
+    this.context = context;
+    this.hconf = hconf;
+    this.desc = joinOp.getConf();
+  }
 
   @Override
-    public void load(
-        MapJoinTableContainer[] mapJoinTables,
-        MapJoinTableContainerSerDe[] mapJoinTableSerdes) throws HiveException {
+  public void load(
+      MapJoinTableContainer[] mapJoinTables,
+      MapJoinTableContainerSerDe[] mapJoinTableSerdes) throws HiveException {
 
-      LOG.info("Loading the hashtable");
-      TezContext tezContext = (TezContext) MapredContext.get();
-      Map<Integer, String> parentToInput = desc.getParentToInput();
-      int hashTableThreshold = HiveConf.getIntVar(hconf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
-      float hashTableLoadFactor = HiveConf.getFloatVar(hconf,
-          HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
-      boolean useLazyRows = HiveConf.getBoolVar(hconf, HiveConf.ConfVars.HIVEMAPJOINLAZYHASHTABLE);
+    TezContext tezContext = (TezContext) MapredContext.get();
+    Map<Integer, String> parentToInput = desc.getParentToInput();
+    int hashTableThreshold = HiveConf.getIntVar(hconf, HiveConf.ConfVars.HIVEHASHTABLETHRESHOLD);
+    float hashTableLoadFactor = HiveConf.getFloatVar(hconf,
+        HiveConf.ConfVars.HIVEHASHTABLELOADFACTOR);
+    boolean useLazyRows = HiveConf.getBoolVar(hconf, HiveConf.ConfVars.HIVEMAPJOINLAZYHASHTABLE);
 
-      // We only check if we can use optimized keys here; that is ok because we don't
-      // create optimized keys in MapJoin if hash map doesn't have optimized keys.
-      if (!HiveConf.getBoolVar(hconf, HiveConf.ConfVars.HIVEMAPJOINUSEOPTIMIZEDKEYS)) {
-        lastKey = new MapJoinKeyObject();
+    // We only check if we can use optimized keys here; that is ok because we don't
+    // create optimized keys in MapJoin if hash map doesn't have optimized keys.
+    if (!HiveConf.getBoolVar(hconf, HiveConf.ConfVars.HIVEMAPJOINUSEOPTIMIZEDKEYS)) {
+      lastKey = new MapJoinKeyObject();
+    }
+    Output output = new Output(); // Reusable output for serialization.
+    for (int pos = 0; pos < mapJoinTables.length; pos++) {
+      if (pos == desc.getPosBigTable()) {
+        continue;
       }
-      Output output = new Output(); // Reusable output for serialization.
-      for (int pos = 0; pos < mapJoinTables.length; pos++) {
-        if (pos == desc.getPosBigTable()) {
-          continue;
-        }
 
-        LogicalInput input = tezContext.getInput(parentToInput.get(pos));
+      LogicalInput input = tezContext.getInput(parentToInput.get(pos));
 
-        try {
-          KeyValueReader kvReader = (KeyValueReader) input.getReader();
+      try {
+        KeyValueReader kvReader = (KeyValueReader) input.getReader();
 
-          MapJoinTableContainer tableContainer = new HashMapWrapper(hashTableThreshold,
-              hashTableLoadFactor);
+        MapJoinTableContainer tableContainer = new HashMapWrapper(hashTableThreshold,
+            hashTableLoadFactor);
 
-          // simply read all the kv pairs into the hashtable.
-          while (kvReader.next()) {
-            count++;
-            // We pass key in as reference, to find out quickly if optimized keys can be used.
-            // However, we do not reuse the object since we are putting them into the hashmap.
-            lastKey = MapJoinKey.read(output, lastKey, mapJoinTableSerdes[pos].getKeyContext(),
-                (Writable)kvReader.getCurrentKey(), false);
-            LazyFlatRowContainer values = (LazyFlatRowContainer)tableContainer.get(lastKey);
-            if (values == null) {
-              values = new LazyFlatRowContainer();
-              tableContainer.put(lastKey, values);
-            }
-            values.add(mapJoinTableSerdes[pos].getValueContext(),
-                (BytesWritable)kvReader.getCurrentValue(), useLazyRows);
+        // simply read all the kv pairs into the hashtable.
+
+        while (kvReader.next()) {
+          // We pass key in as reference, to find out quickly if optimized keys can be used.
+          // However, we do not reuse the object since we are putting them into the hashmap.
+          lastKey = MapJoinKey.read(output, lastKey, mapJoinTableSerdes[pos].getKeyContext(),
+              (Writable)kvReader.getCurrentKey(), false);
+
+          LazyFlatRowContainer values = (LazyFlatRowContainer)tableContainer.get(lastKey);
+          if (values == null) {
+            values = new LazyFlatRowContainer();
+            tableContainer.put(lastKey, values);
           }
+          values.add(mapJoinTableSerdes[pos].getValueContext(),
+              (BytesWritable)kvReader.getCurrentValue(), useLazyRows);
+        }
 
-          mapJoinTables[pos] = tableContainer;
-        } catch (IOException e) {
-          throw new HiveException(e);
-        } catch (SerDeException e) {
-          throw new HiveException(e);
-        } catch (Exception e) {
-          throw new HiveException(e);
-        }
+        mapJoinTables[pos] = tableContainer;
+      } catch (IOException e) {
+        throw new HiveException(e);
+      } catch (SerDeException e) {
+        throw new HiveException(e);
+      } catch (Exception e) {
+        throw new HiveException(e);
       }
-      if (lastKey == null) {
-        lastKey = new MapJoinKeyObject(); // No rows in tables, the key type doesn't matter.
-      }
-        }
+    }
+    if (lastKey == null) {
+      lastKey = new MapJoinKeyObject(); // No rows in tables, the key type doesn't matter.
+    }
+  }
 
   @Override
-    public MapJoinKey getKeyType() {
-      if (lastKey == null) {
-        throw new AssertionError("Should be called after loading tables");
-      }
-      return lastKey;
+  public MapJoinKey getKeyType() {
+    if (lastKey == null) {
+      throw new AssertionError("Should be called after loading tables");
     }
+    return lastKey;
+  }
 }

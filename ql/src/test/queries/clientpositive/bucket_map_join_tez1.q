@@ -24,6 +24,7 @@ CREATE TABLE tab(key int, value string) PARTITIONED BY(ds STRING) CLUSTERED BY (
 insert overwrite table tab partition (ds='2008-04-08')
 select key,value from srcbucket_mapjoin;
 
+set hive.convert.join.bucket.mapjoin.tez = true;
 explain
 select a.key, a.value, b.value
 from tab a join tab_part b on a.key = b.key;
