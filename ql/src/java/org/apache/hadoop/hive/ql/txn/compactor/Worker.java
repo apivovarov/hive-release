@@ -63,7 +63,7 @@ public class Worker extends CompactorThread {
     // Make sure nothing escapes this run method and kills the metastore at large,
     // so wrap it in a big catch Throwable statement.
     try {
-      while (!stop.timeToStop) {
+      while (!stop.boolVal) {
         CompactionInfo ci = txnHandler.findNextToCompact(name);
 
         if (ci == null) {

@@ -93,12 +93,12 @@ public abstract class CompactorTest {
   }
 
   protected void stopThreads() throws Exception {
-    stop.timeToStop = true;
+    stop.boolVal = true;
     for (Thread t : threads) t.interrupt();
   }
 
   protected void joinThreads() throws Exception {
-    stop.timeToStop = true;
+    stop.boolVal = true;
     for (Thread t : threads) t.join();
   }
 

@@ -1045,7 +1045,7 @@ public class MetaStoreUtils {
       @Override
       public void run() {
         try {
-          HiveMetaStore.startMetaStore(port, bridge, conf);
+          HiveMetaStore.startMetaStore(port, bridge, conf, null, null, null);
         } catch (Throwable e) {
           LOG.error("Metastore Thrift Server threw an exception...",e);
         }

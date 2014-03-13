@@ -54,10 +54,10 @@ public interface MetaStoreThread {
   void start();
 
   class BooleanPointer {
-    public boolean timeToStop;
+    public boolean boolVal;
 
     public BooleanPointer() {
-      timeToStop = false;
+      boolVal = false;
     }
   }
 

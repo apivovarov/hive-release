@@ -45,6 +45,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 import org.apache.commons.cli.OptionBuilder;
@@ -5017,8 +5020,12 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         }
       });
 
-      startMetaStore(cli.port, ShimLoader.getHadoopThriftAuthBridge(), conf);
-      startMetaStoreThreads(conf);
+      Lock startLock = new ReentrantLock();
+      Condition startCondition = startLock.newCondition();
+      MetaStoreThread.BooleanPointer startedServing = new MetaStoreThread.BooleanPointer();
+      startMetaStoreThreads(conf, startLock, startCondition, startedServing);
+      startMetaStore(cli.port, ShimLoader.getHadoopThriftAuthBridge(), conf, startLock,
+          startCondition, startedServing);
     } catch (Throwable t) {
       // Catch the exception, log it and rethrow it.
       HMSHandler.LOG
@@ -5036,7 +5043,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
    */
   public static void startMetaStore(int port, HadoopThriftAuthBridge bridge)
       throws Throwable {
-    startMetaStore(port, bridge, new HiveConf(HMSHandler.class));
+    startMetaStore(port, bridge, new HiveConf(HMSHandler.class), null, null, null);
   }
 
   /**
@@ -5049,7 +5056,8 @@ public class HiveMetaStore extends ThriftHiveMetastore {
    * @throws Throwable
    */
   public static void startMetaStore(int port, HadoopThriftAuthBridge bridge,
-      HiveConf conf) throws Throwable {
+      HiveConf conf, Lock startLock, Condition startCondition,
+      MetaStoreThread.BooleanPointer startedServing) throws Throwable {
     try {
 
       // Server will create new threads up to max as necessary. After an idle
@@ -5117,6 +5125,10 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       HMSHandler.LOG.info("Options.maxWorkerThreads = "
           + maxWorkerThreads);
       HMSHandler.LOG.info("TCP keepalive = " + tcpKeepAlive);
+
+      if (startLock != null) {
+        signalOtherThreadsToStart(tServer, startLock, startCondition, startedServing);
+      }
       tServer.serve();
     } catch (Throwable x) {
       x.printStackTrace();
@@ -5125,26 +5137,70 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     }
   }
 
+  private static void signalOtherThreadsToStart(final TServer server, final Lock startLock,
+                                                final Condition startCondition,
+                                                final MetaStoreThread.BooleanPointer startedServing) {
+    // A simple thread to wait until the server has started and then signal the other threads to
+    // begin
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        do {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+          }
+        } while (!server.isServing());
+        startLock.lock();
+        try {
+          startedServing.boolVal = true;
+          startCondition.signalAll();
+        } finally {
+          startLock.unlock();
+        }
+      }
+    };
+    t.start();
+  }
+
   /**
    * Start threads outside of the thrift service, such as the compactor threads.
    * @param conf Hive configuration object
    */
-  private static void startMetaStoreThreads(HiveConf conf) {
-    // This is a massive hack.  The compactor threads have to access packages in ql (such as
-    // AcidInputFormat).  ql depends on metastore so we can't directly access those.  To deal
-    // with this the compactor thread classes have been put in ql and they are instantiated here
-    // dyanmically.  This is not ideal but it avoids a massive refactoring of Hive packages.
-    //
-    // Wrap the start of the threads in a catch Throwable loop so that any failures
-    // don't doom the rest of the metastore.
-    try {
-      startCompactorInitiator(conf);
-      startCompactorWorkers(conf);
-      startCompactorCleaner(conf);
-    } catch (Throwable e) {
-      LOG.error("Failure when starting the compactor, compactions may not happen, " +
-          StringUtils.stringifyException(e));
-    }
+  private static void startMetaStoreThreads(final HiveConf conf, final Lock startLock,
+                                            final Condition startCondition, final
+                                            MetaStoreThread.BooleanPointer startedServing) {
+    // A thread is spun up to start these other threads.  That's because we can't start them
+    // until after the TServer has started, but once TServer.serve is called we aren't given back
+    // control.
+    Thread t = new Thread() {
+      @Override
+      public void run() {
+        // This is a massive hack.  The compactor threads have to access packages in ql (such as
+        // AcidInputFormat).  ql depends on metastore so we can't directly access those.  To deal
+        // with this the compactor thread classes have been put in ql and they are instantiated here
+        // dyanmically.  This is not ideal but it avoids a massive refactoring of Hive packages.
+        //
+        // Wrap the start of the threads in a catch Throwable loop so that any failures
+        // don't doom the rest of the metastore.
+        startLock.lock();
+        try {
+          // Per the javadocs on Condition, do not depend on the condition alone as a start gate
+          // since spurious wake ups are possible.
+          while (!startedServing.boolVal) startCondition.await();
+          startCompactorInitiator(conf);
+          startCompactorWorkers(conf);
+          startCompactorCleaner(conf);
+        } catch (Throwable e) {
+          LOG.error("Failure when starting the compactor, compactions may not happen, " +
+              StringUtils.stringifyException(e));
+        } finally {
+          startLock.unlock();
+        }
+      }
+    };
+
+    t.start();
   }
 
   private static void startCompactorInitiator(HiveConf conf) throws Exception {
@@ -5173,10 +5229,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
   }
 
   private static MetaStoreThread instantiateThread(String classname) throws Exception {
-    MetaStoreThread t = null;
     Class c = Class.forName(classname);
     Object o = c.newInstance();
-    if (t.getClass().isAssignableFrom(c.getClass())) {
+    if (MetaStoreThread.class.isAssignableFrom(o.getClass())) {
       return (MetaStoreThread)o;
     } else {
       String s = classname + " is not an instance of MetaStoreThread.";
