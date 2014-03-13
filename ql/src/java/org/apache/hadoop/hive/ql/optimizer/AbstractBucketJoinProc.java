@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Stack;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
@@ -92,7 +93,7 @@ abstract public class AbstractBucketJoinProc implements NodeProcessor {
   }
 
   // This function checks whether all bucketing columns are also in join keys and are in same order
-  private static boolean checkBucketColumns(List<String> bucketColumns,
+  private boolean checkBucketColumns(List<String> bucketColumns,
       List<String> joinKeys,
       Integer[] joinKeyOrders) {
     if (joinKeys == null || bucketColumns == null || bucketColumns.isEmpty()) {
@@ -112,7 +113,7 @@ abstract public class AbstractBucketJoinProc implements NodeProcessor {
     return joinKeys.containsAll(bucketColumns);
   }
 
-  private static boolean checkNumberOfBucketsAgainstBigTable(
+  private boolean checkNumberOfBucketsAgainstBigTable(
       Map<String, List<Integer>> tblAliasToNumberOfBucketsInEachPartition,
       int numberOfBucketsInPartitionOfBigTable) {
     for (List<Integer> bucketNums : tblAliasToNumberOfBucketsInEachPartition.values()) {
@@ -127,83 +128,13 @@ abstract public class AbstractBucketJoinProc implements NodeProcessor {
     }
     return true;
   }
-  
-  public static boolean canConvertBucketMapJoin(Table tbl, 
-      ParseContext pGraphContext, 
-      BucketJoinProcCtx context, 
-      PrunedPartitionList prunedParts, List<ExprNodeDesc> keysExpr) throws SemanticException {
-    
-    LinkedHashMap<Partition, List<String>> bigTblPartsToBucketFileNames =
-        new LinkedHashMap<Partition, List<String>>();
-    LinkedHashMap<Partition, Integer> bigTblPartsToBucketNumber =
-        new LinkedHashMap<Partition, Integer>();
-    
-    boolean bigTablePartitioned = true;
-    List<String> keys = toColumns(keysExpr);
-    Integer[] joinKeyOrder = new Integer[keys .size()];
 
-    if (tbl.isPartitioned()) {
-      List<Partition> partitions = prunedParts.getNotDeniedPartns();
-      // construct a mapping of (Partition->bucket file names) and (Partition -> bucket number)
-      if (!partitions.isEmpty()) { 
-        for (Partition p : partitions) {
-          if (!checkBucketColumns(p.getBucketCols(), keys, joinKeyOrder)) {
-            return false;
-          }
-          List<String> fileNames =
-              getBucketFilePathsOfPartition(p.getDataLocation(), pGraphContext);
-          // The number of files for the table should be same as number of buckets.
-          int bucketCount = p.getBucketCount();
-
-          if (fileNames.size() != 0 && fileNames.size() != bucketCount) {
-            String msg = "The number of buckets for table " +
-                tbl.getTableName() + " partition " + p.getName() + " is " +
-                p.getBucketCount() + ", whereas the number of files is " + fileNames.size();
-            throw new SemanticException(
-                ErrorMsg.BUCKETED_TABLE_METADATA_INCORRECT.getMsg(msg));
-          }
-
-          bigTblPartsToBucketFileNames.put(p, fileNames);
-          bigTblPartsToBucketNumber.put(p, bucketCount);
-        }
-      }
-    } else {
-      if (!checkBucketColumns(tbl.getBucketCols(), keys, joinKeyOrder)) {
-        return false;
-      }
-      List<String> fileNames =
-          getBucketFilePathsOfPartition(tbl.getDataLocation(), pGraphContext);
-      Integer num = new Integer(tbl.getNumBuckets());
-
-      // The number of files for the table should be same as number of buckets.
-      if (fileNames.size() != 0 && fileNames.size() != num) {
-        String msg = "The number of buckets for table " +
-            tbl.getTableName() + " is " + tbl.getNumBuckets() +
-            ", whereas the number of files is " + fileNames.size();
-        throw new SemanticException(
-            ErrorMsg.BUCKETED_TABLE_METADATA_INCORRECT.getMsg(msg));
-      }
-
-      bigTblPartsToBucketFileNames.put(null, fileNames);
-      bigTblPartsToBucketNumber.put(null, tbl.getNumBuckets());
-      bigTablePartitioned = false;
-
-    }
-
-    context.setBigTblPartsToBucketFileNames(bigTblPartsToBucketFileNames);
-    context.setBigTblPartsToBucketNumber(bigTblPartsToBucketNumber);
-    context.setBigTablePartitioned(bigTablePartitioned);
-
-    return true;
-
-  }
-
-  protected static boolean canConvertMapJoinToBucketMapJoin(
+  protected boolean canConvertMapJoinToBucketMapJoin(
       MapJoinOperator mapJoinOp,
       ParseContext pGraphContext,
       BucketJoinProcCtx context) throws SemanticException {
 
-    QBJoinTree joinCtx = pGraphContext.getMapJoinContext().get(mapJoinOp);
+    QBJoinTree joinCtx = this.pGraphContext.getMapJoinContext().get(mapJoinOp);
     if (joinCtx == null) {
       return false;
     }
@@ -257,7 +188,7 @@ abstract public class AbstractBucketJoinProc implements NodeProcessor {
    * c. All partitions contain the expected number of files (number of buckets).
    * d. The number of buckets in the big table can be divided by no of buckets in small tables.
    */
-  protected static boolean checkConvertBucketMapJoin(
+  protected boolean checkConvertBucketMapJoin(
       ParseContext pGraphContext,
       BucketJoinProcCtx context,
       QBJoinTree joinCtx,
@@ -523,7 +454,7 @@ abstract public class AbstractBucketJoinProc implements NodeProcessor {
     return converted;
   }
 
-  public static List<String> toColumns(List<ExprNodeDesc> keys) {
+  public List<String> toColumns(List<ExprNodeDesc> keys) {
     List<String> columns = new ArrayList<String>();
     for (ExprNodeDesc key : keys) {
       if (!(key instanceof ExprNodeColumnDesc)) {

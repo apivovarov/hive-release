@@ -30,7 +30,6 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import org.apache.tez.mapreduce.processor.MRTaskReporter;
 import org.apache.tez.runtime.api.LogicalInput;
-import org.apache.zookeeper.Environment.Entry;
 
 /**
  * Process input from tez LogicalInput and write output

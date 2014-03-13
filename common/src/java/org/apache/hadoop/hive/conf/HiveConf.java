@@ -981,9 +981,7 @@ public class HiveConf extends Configuration {
     // column: implies column names can contain any character.
     HIVE_QUOTEDID_SUPPORT("hive.support.quoted.identifiers", "column",
         new PatternValidator("none", "column")),
-    USERS_IN_ADMIN_ROLE("hive.users.in.admin.role",""), 
-    
-    HIVE_CONVERT_JOIN_BUCKET_MAPJOIN_TEZ("hive.convert.join.bucket.mapjoin.tez", false)
+    USERS_IN_ADMIN_ROLE("hive.users.in.admin.role","")
     ;
 
     public final String varname;
