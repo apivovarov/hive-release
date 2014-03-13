@@ -225,6 +225,11 @@ if exist %HIVE_HOME%\auxlib (
 @rem pass classpath to hadoop
 set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%CLASSPATH%;%AUX_CLASSPATH%
 
+@rem also pass hive classpath to hadoop
+if defined HIVE_CLASSPATH (
+  set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HIVE_CLASSPATH%
+)
+
 if defined AUX_PARAM (
         set HIVE_OPTS=%HIVE_OPTS% -hiveconf hive.aux.jars.path="%AUX_PARAM%"
 	set AUX_JARS_CMD_LINE="-libjars %AUX_PARAM%"
