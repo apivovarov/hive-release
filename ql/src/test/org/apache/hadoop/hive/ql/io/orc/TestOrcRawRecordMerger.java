@@ -461,6 +461,44 @@ public class TestOrcRawRecordMerger {
     return OrcRecordUpdater.getRow(event).getFieldValue(0).toString();
   }
 
+  @Test
+  public void testEmpty() throws Exception {
+    final int BUCKET = 0;
+    Configuration conf = new Configuration();
+    OrcOutputFormat of = new OrcOutputFormat();
+    FileSystem fs = FileSystem.getLocal(conf);
+    Path root = new Path(System.getProperty("test.tmp.dir",
+        "target" + File.separator + "test" + File.separator + "tmp" +
+            File.separator + "testEmpty")).makeQualified(fs);
+    fs.delete(root, true);
+    ObjectInspector inspector;
+    synchronized (TestOrcFile.class) {
+      inspector = ObjectInspectorFactory.getReflectionObjectInspector
+          (MyRow.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
+    }
+
+    // write the empty base
+    AcidOutputFormat.Options options = new AcidOutputFormat.Options(conf)
+        .inspector(inspector).bucket(BUCKET).writingBase(true)
+        .maximumTransactionId(100);
+    of.getRecordUpdater(root, options).close(false);
+
+    ValidTxnList txnList = new ValidTxnListImpl("200:");
+    AcidUtils.Directory directory = AcidUtils.getAcidState(root, conf, txnList);
+
+    Path basePath = AcidUtils.createBucketFile(directory.getBaseDirectory(),
+        BUCKET);
+    Reader baseReader = OrcFile.createReader(basePath,
+        OrcFile.readerOptions(conf));
+    OrcRawRecordMerger merger =
+        new OrcRawRecordMerger(conf, true, baseReader, false, BUCKET,
+            createMaximalTxnList(), new Reader.Options(),
+            AcidUtils.getPaths(directory.getCurrentDirectories()));
+    RecordIdentifier key = merger.createKey();
+    OrcStruct value = merger.createValue();
+    assertEquals(false, merger.next(key, value));
+  }
+
   /**
    * Test the OrcRecordUpdater with the OrcRawRecordMerger when there is
    * a base and a delta.

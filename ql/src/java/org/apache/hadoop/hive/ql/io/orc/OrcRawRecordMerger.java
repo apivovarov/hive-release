@@ -464,17 +464,18 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     }
 
     // get the first record
-    primary = readers.pollFirstEntry().getValue();
-    if (readers.isEmpty()) {
-      secondaryKey = null;
-    } else {
-      secondaryKey = readers.firstKey();
-    }
-
-    // get the number of columns in the user's rows
-    if (primary == null) {
+    Map.Entry<ReaderKey, ReaderPair> entry = readers.pollFirstEntry();
+    if (entry == null) {
       columns = 0;
+      primary = null;
     } else {
+      primary = entry.getValue();
+      if (readers.isEmpty()) {
+        secondaryKey = null;
+      } else {
+        secondaryKey = readers.firstKey();
+      }
+      // get the number of columns in the user's rows
       columns = primary.getColumns();
     }
   }
