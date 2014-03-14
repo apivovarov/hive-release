@@ -92,7 +92,13 @@ function Main( $scriptDir )
     Install "hive" $nodeInstallRoot $serviceCredential $hiveRoles
     if ((Test-Path ENV:IS_TEZ) -and ($ENV:IS_TEZ -ieq "yes"))
     {
+
+      Write-Log "Setting HIVE_CLASSPATH to $ENV:TEZ_CLASSPATH at machine scope"
       [Environment]::SetEnvironmentVariable( "HIVE_CLASSPATH", "$ENV:TEZ_CLASSPATH", [EnvironmentVariableTarget]::Machine )
+    }
+    else
+    {
+      Write-Log "Not Setting HIVE_CLASSPATH to TEZ_CLASSPATH since TEZ is not enabled."
     }
 
     Write-Log "Installation of Hive completed successfully"
