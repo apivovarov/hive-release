@@ -66,9 +66,16 @@ public class HiveEndPoint {
   public HiveEndPoint(String metaStoreUri
           , String database, String table, List<String> partitionVals) throws ConnectionError {
     this.metaStoreUri = metaStoreUri;
+    if(database==null) {
+      throw new IllegalArgumentException("Database cannot be null for HiveEndPoint");
+    }
     this.database = database;
     this.table = table;
-    this.partitionVals = new ArrayList<String>( partitionVals );
+    if(table==null) {
+      throw new IllegalArgumentException("Table cannot be null for HiveEndPoint");
+    }
+    this.partitionVals = partitionVals==null ? new ArrayList<String>()
+                                             : new ArrayList<String>( partitionVals );
     this.conf = createHiveConf(metaStoreUri);
   }
 
@@ -202,21 +209,21 @@ public class HiveEndPoint {
      * @param proxyUser  can be null
      * @param ugi of prody user. If ugi is null, impersonation of proxy user will be disabled
      * @param conf
-     * @param createPart
+     * @param createPart create the partition if it does not exist
      * @throws ConnectionError if there is trouble connecting
      * @throws InvalidPartition if specified partition does not exist (and createPart=false)
      * @throws InvalidTable if specified table does not exist
      * @throws PartitionCreationFailed if createPart=true and not able to create partition
      */
-    private ConnectionImpl(HiveEndPoint endPoint, String proxyUser, UserGroupInformation ugi, HiveConf conf,
-                           boolean createPart)
+    private ConnectionImpl(HiveEndPoint endPoint, String proxyUser, UserGroupInformation ugi,
+                           HiveConf conf, boolean createPart)
             throws ConnectionError, InvalidPartition, InvalidTable
                    , PartitionCreationFailed {
       this.proxyUser = proxyUser;
       this.endPt = endPoint;
       this.ugi = ugi;
       this.msClient = getMetaStoreClient(endPoint, conf);
-      if(createPart) {
+      if(createPart  &&  !endPoint.partitionVals.isEmpty()) {
         createPartitionIfNotExists(endPoint, msClient, conf);
       }
     }
@@ -335,11 +342,10 @@ public class HiveEndPoint {
       int retryCount = 1; // # of times to retry if first attempt fails
       for(int attempt=0; attempt<=retryCount; ++attempt) {
         try {
-          LOG.debug("Running Hive Query: " + sql);
-          driver.run(sql);
           if(LOG.isDebugEnabled()) {
-           LOG.debug("Running Hive Query: "+ sql);
+            LOG.debug("Running Hive Query: "+ sql);
           }
+          driver.run(sql);
           return true;
         } catch (CommandNeedRetryException e) {
           if(attempt==retryCount) {

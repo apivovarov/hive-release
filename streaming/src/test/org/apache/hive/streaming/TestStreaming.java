@@ -71,19 +71,24 @@ public class TestStreaming {
   final String metaStoreURI = "thrift://172.16.0.21:9083";
 //  final String metaStoreURI = null;
 
+  // partitioned table
   private final static String proxyUser = "flume";
   private final static String dbName = "testing";
   private final static String tblName = "alerts";
-  private final static String[] fieldNames = new String[]{COL1,COL2};;
+  private final static String[] fieldNames = new String[]{COL1,COL2};
+  List<String> partitionVals;
+  private static String partLocation;
+
+  // unpartitioned table
+  private final static String dbName2 = "testing";
+  private final static String tblName2 = "alerts";
+  private final static String[] fieldNames2 = new String[]{COL1,COL2};
 
   private final String PART1_CONTINENT = "Asia";
   private final String PART1_COUNTRY = "India";
 
-  List<String> partitionVals;
-  private static String partLocation;
 
   //private Driver driver;
-
   public TestStreaming() throws Exception {
     partitionVals = new ArrayList<String>(2);
     partitionVals.add(PART1_CONTINENT);
@@ -131,6 +136,9 @@ public class TestStreaming {
     // drop and recreate the necessary databases and tables
     dropDB(msClient, dbName);
     createDbAndTable(msClient, dbName, tblName, partitionVals);
+
+    dropDB(msClient, dbName2);
+    createDbAndTable(msClient, dbName2, tblName2, partitionVals);
   }
 
   private void printResults(ArrayList<String> res) {
@@ -199,10 +207,15 @@ public class TestStreaming {
 
   @Test
   public void testEndpointConnection() throws Exception {
+    // 1) Basic
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName
             , partitionVals);
     StreamingConnection connection = endPt.newConnection(proxyUser, false); //shouldn't throw
     connection.close();
+
+    // 2) Leave partition unspecified
+    endPt = new HiveEndPoint(metaStoreURI, dbName, tblName, null);
+    endPt.newConnection(proxyUser, false).close(); // should not throw
   }
 
   @Test
@@ -232,6 +245,7 @@ public class TestStreaming {
 
   @Test
   public void testTransactionBatchEmptyCommit() throws Exception {
+    // 1)  to partitioned table
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
@@ -244,16 +258,43 @@ public class TestStreaming {
             , txnBatch.getCurrentTransactionState());
     txnBatch.close();
     connection.close();
+
+    // 2) To unpartitioned table
+    endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
+    writer = new DelimitedInputWriter(fieldNames2,",", endPt);
+    connection = endPt.newConnection(null, false);
+
+    txnBatch =  connection.fetchTransactionBatch(10, writer);
+    txnBatch.beginNextTransaction();
+    txnBatch.commit();
+    Assert.assertEquals(TransactionBatch.TxnState.COMMITTED
+            , txnBatch.getCurrentTransactionState());
+    txnBatch.close();
+    connection.close();
   }
 
   @Test
   public void testTransactionBatchEmptyAbort() throws Exception {
+    // 1) to partitioned table
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
     StreamingConnection connection = endPt.newConnection(proxyUser, true);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
+    txnBatch.beginNextTransaction();
+    txnBatch.abort();
+    Assert.assertEquals(TransactionBatch.TxnState.ABORTED
+            , txnBatch.getCurrentTransactionState());
+    txnBatch.close();
+    connection.close();
+
+    // 2) to unpartitioned table
+    endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
+    writer = new DelimitedInputWriter(fieldNames,",", endPt);
+    connection = endPt.newConnection(null, true);
+
+    txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
     txnBatch.abort();
     Assert.assertEquals(TransactionBatch.TxnState.ABORTED
@@ -301,6 +342,24 @@ public class TestStreaming {
             , txnBatch.getCurrentTransactionState());
 
 
+    connection.close();
+
+
+    // To Unpartitioned table
+    endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
+    writer = new DelimitedInputWriter(fieldNames,",", endPt);
+    connection = endPt.newConnection(null, true);
+
+    // 1st Txn
+    txnBatch =  connection.fetchTransactionBatch(10, writer);
+    txnBatch.beginNextTransaction();
+    Assert.assertEquals(TransactionBatch.TxnState.OPEN
+            , txnBatch.getCurrentTransactionState());
+    txnBatch.write("1,Hello streaming".getBytes());
+    txnBatch.commit();
+
+    Assert.assertEquals(TransactionBatch.TxnState.COMMITTED
+            , txnBatch.getCurrentTransactionState());
     connection.close();
   }
 

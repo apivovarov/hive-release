@@ -96,8 +96,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
       this.serde = createSerde(tableProps, conf);
       this.inspector = this.serde.getObjectInspector();
       this.tableColumns = getPartitionCols(tbl);
-      this.partitionPath = getPathForPartition(hive, endPoint.database,
-              endPoint.table, endPoint.partitionVals);
+      this.partitionPath = getPathForEndPoint(hive, endPoint);
       this.totalBuckets = tbl.getNumBuckets();
       this.serdeSeparator = serdeSeparator;
 
@@ -204,19 +203,24 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
     }
   }
 
-  private Path getPathForPartition(Hive hive, String database, String table,
-                                   List<String> partitionVals)
+  private Path getPathForEndPoint(Hive hive, HiveEndPoint endPoint)
           throws StreamingException {
     try {
       IMetaStoreClient msClient = hive.getMSC();
-      String location =
-              msClient.getPartition(database,table,partitionVals).getSd().getLocation();
+      String location = null;
+      if(endPoint.partitionVals==null || endPoint.partitionVals.isEmpty() ) {
+        location = msClient.getTable(endPoint.database,endPoint.table)
+                .getSd().getLocation();
+      } else {
+        location = msClient.getPartition(endPoint.database, endPoint.table,
+                endPoint.partitionVals).getSd().getLocation();
+      }
       msClient.close();
       return new Path(location);
     } catch (TException e) {
       throw new StreamingException(e.getMessage()
-              + ". Unable to get partitionPath for specified partition: "
-              + partitionVals, e);
+              + ". Unable to get path for end point: "
+              + endPoint.partitionVals, e);
     }
   }
 
