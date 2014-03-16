@@ -18,25 +18,12 @@
 
 package org.apache.hive.streaming;
 
-import java.io.IOException;
+public class TransactionError extends StreamingException {
+  public TransactionError(String msg, Exception e) {
+    super(msg, e);
+  }
 
-public interface RecordWriter {
-
-  /** Write using RecordUpdater
-   *
-   * @param transactionId
-   * @param record
-   * @throws StreamingIOFailure on I/O errors
-   * @throws SerializationError if failed serializing record
-   */
-  public void write(long transactionId, byte[] record) throws StreamingIOFailure, SerializationError;
-
-  /** flush records */
-  public void flush() throws StreamingIOFailure;
-
-  /** acquire a new RecordUpdater */
-  public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingIOFailure;
-
-  /** close the RecordUpdater */
-  public void closeBatch() throws StreamingIOFailure;
+  public TransactionError(String msg) {
+    super(msg);
+  }
 }

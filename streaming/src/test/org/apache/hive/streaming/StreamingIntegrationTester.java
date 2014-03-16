@@ -75,6 +75,13 @@ public class StreamingIntegrationTester {
       .create('d'));
 
     options.addOption(OptionBuilder
+            .hasArg()
+            .withArgName("user")
+            .withDescription("User to impersonate")
+            .withLongOpt("user")
+            .create('u'));
+
+    options.addOption(OptionBuilder
       .hasArg()
       .withArgName("frequency")
       .withDescription("How often to commit a transaction, in seconds, defaults to 1")
@@ -152,6 +159,8 @@ public class StreamingIntegrationTester {
     } catch (ParseException e) {
       usage(options);
     }
+
+    String user = cmdline.getOptionValue('u');
     String db = cmdline.getOptionValue('d');
     String table = cmdline.getOptionValue('t');
     String uri = cmdline.getOptionValue('m');
@@ -166,7 +175,7 @@ public class StreamingIntegrationTester {
     String[] cols = cmdline.getOptionValues('c');
     String[] types = cmdline.getOptionValues('s');
 
-    StreamingIntegrationTester sit = new StreamingIntegrationTester(db, table, uri,
+    StreamingIntegrationTester sit = new StreamingIntegrationTester(db, table, uri, user,
         txnsPerBatch, writers, batches, recordsPerTxn, frequency, abortPct, partVals, cols, types);
     sit.go();
   }
@@ -177,6 +186,7 @@ public class StreamingIntegrationTester {
     System.exit(-1);
   }
 
+  private String user;
   private String db;
   private String table;
   private String uri;
@@ -191,10 +201,11 @@ public class StreamingIntegrationTester {
   private String[] types;
 
 
-  private StreamingIntegrationTester(String db, String table, String uri, int txnsPerBatch,
-                                     int writers, int batches, int recordsPerTxn, int frequency,
-                                     float abortPct, String[] partVals, String[] cols,
-                                     String[] types) {
+  private StreamingIntegrationTester(String db, String table, String uri, String user,
+                                     int txnsPerBatch, int writers, int batches,
+                                     int recordsPerTxn, int frequency, float abortPct,
+                                     String[] partVals, String[] cols, String[] types) {
+    this.user = user;
     this.db = db;
     this.table = table;
     this.uri = uri;
@@ -210,10 +221,16 @@ public class StreamingIntegrationTester {
   }
 
   private void go() {
+    HiveEndPoint endPoint = null;
     try {
-      HiveEndPoint endPoint = new HiveEndPoint(uri, db, table, Arrays.asList(partVals));
+      if(partVals == null) {
+        endPoint = new HiveEndPoint(uri, db, table, null);
+      } else {
+        endPoint = new HiveEndPoint(uri, db, table, Arrays.asList(partVals));
+      }
+
       for (int i = 0; i < writers; i++) {
-        Writer w = new Writer(endPoint, i, txnsPerBatch, batches, recordsPerTxn, frequency, abortPct,
+        Writer w = new Writer(endPoint, user, i, txnsPerBatch, batches, recordsPerTxn, frequency, abortPct,
                 cols, types);
         w.start();
       }
@@ -225,6 +242,7 @@ public class StreamingIntegrationTester {
 
   private static class Writer extends Thread {
     private HiveEndPoint endPoint;
+    private final String user;
     private int txnsPerBatch;
     private int batches;
     private int writerNumber;
@@ -235,9 +253,10 @@ public class StreamingIntegrationTester {
     private String[] types;
     private Random rand;
 
-    Writer(HiveEndPoint endPoint, int writerNumber, int txnsPerBatch, int batches,
+    Writer(HiveEndPoint endPoint, String user, int writerNumber, int txnsPerBatch, int batches,
            int recordsPerTxn, int frequency, float abortPct, String[] cols, String[] types) {
       this.endPoint = endPoint;
+      this.user = user;
       this.txnsPerBatch = txnsPerBatch;
       this.batches = batches;
       this.writerNumber = writerNumber;
@@ -252,7 +271,7 @@ public class StreamingIntegrationTester {
     @Override
     public void run() {
       try {
-        StreamingConnection conn = endPoint.newConnection(System.getProperty("user.name"), true);
+        StreamingConnection conn = endPoint.newConnection(user, true);
         RecordWriter writer = new DelimitedInputWriter(cols, ",", endPoint);
 
         long start = System.currentTimeMillis();

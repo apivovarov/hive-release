@@ -109,17 +109,13 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
   }
 
   private RecordUpdater createRecordUpdater(int bucketId, Long minTxnId, Long maxTxnID)
-          throws StreamingException {
-    try {
-      return  outf.getRecordUpdater(partitionPath,
-                   new AcidOutputFormat.Options(conf)
-                      .inspector(inspector)
-                      .bucket(bucketId)
-                      .minimumTransactionId(minTxnId)
-                      .maximumTransactionId(maxTxnID));
-    } catch (IOException e) {
-      throw new StreamingException("Failed to get record updater", e);
-    }
+          throws IOException {
+    return  outf.getRecordUpdater(partitionPath,
+                 new AcidOutputFormat.Options(conf)
+                    .inspector(inspector)
+                    .bucket(bucketId)
+                    .minimumTransactionId(minTxnId)
+                    .maximumTransactionId(maxTxnID));
   }
 
   protected abstract byte[] reorderFields(byte[] record)
@@ -151,11 +147,20 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
     }
   }
 
-
+  /**
+   * Creates a new record updater for the new batch
+   * @param minTxnId
+   * @param maxTxnID
+   * @throws StreamingIOFailure if failed to create record updater
+   */
   @Override
-  public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingException {
-    this.currentBucketId = rand.nextInt(totalBuckets);
-    updater = createRecordUpdater(currentBucketId, minTxnId, maxTxnID);
+  public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingIOFailure {
+    try {
+      this.currentBucketId = rand.nextInt(totalBuckets);
+      updater = createRecordUpdater(currentBucketId, minTxnId, maxTxnID);
+    } catch (IOException e) {
+      throw new StreamingIOFailure("Unable to get new record Updater", e);
+    }
   }
 
   @Override

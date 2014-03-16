@@ -39,7 +39,7 @@ public interface StreamingConnection {
    */
   public TransactionBatch fetchTransactionBatch(int numTransactionsHint,
                                                 RecordWriter writer)
-          throws ConnectionError, StreamingException;
+          throws ConnectionError, StreamingException, InterruptedException;
 
   /**
    * Close connection

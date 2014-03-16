@@ -18,25 +18,8 @@
 
 package org.apache.hive.streaming;
 
-import java.io.IOException;
-
-public interface RecordWriter {
-
-  /** Write using RecordUpdater
-   *
-   * @param transactionId
-   * @param record
-   * @throws StreamingIOFailure on I/O errors
-   * @throws SerializationError if failed serializing record
-   */
-  public void write(long transactionId, byte[] record) throws StreamingIOFailure, SerializationError;
-
-  /** flush records */
-  public void flush() throws StreamingIOFailure;
-
-  /** acquire a new RecordUpdater */
-  public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingIOFailure;
-
-  /** close the RecordUpdater */
-  public void closeBatch() throws StreamingIOFailure;
+public class TransactionBatchUnAvailable extends StreamingException {
+  public TransactionBatchUnAvailable(HiveEndPoint ep, Exception e) {
+    super("Unable to acquire transaction batch on end point: " + ep, e);
+  }
 }

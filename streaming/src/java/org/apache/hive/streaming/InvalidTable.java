@@ -18,7 +18,7 @@
 
 package org.apache.hive.streaming;
 
-public class InvalidTable extends ConnectionError {
+public class InvalidTable extends StreamingException {
 
   private static String makeMsg(String db, String table) {
     return "Invalid table db:" + db + ", table:" + table;

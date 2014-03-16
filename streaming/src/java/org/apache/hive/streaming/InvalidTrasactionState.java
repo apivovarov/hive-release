@@ -18,7 +18,7 @@
 
 package org.apache.hive.streaming;
 
-public class InvalidTrasactionState extends RuntimeException {
+public class InvalidTrasactionState extends TransactionError {
   public InvalidTrasactionState(String msg) {
     super(msg);
   }

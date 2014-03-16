@@ -68,9 +68,10 @@ public class TestStreaming {
 
   //public boolean local = false;
   //private final int port ;
-  final String metaStoreURI ;
+  final String metaStoreURI = "thrift://172.16.0.21:9083";
+//  final String metaStoreURI = null;
 
-  private final static String user = "roshan";
+  private final static String proxyUser = "flume";
   private final static String dbName = "testing";
   private final static String tblName = "alerts";
   private final static String[] fieldNames = new String[]{COL1,COL2};;
@@ -99,7 +100,7 @@ public class TestStreaming {
     */
     //port = MetaStoreUtils.findFreePort();
     //metaStoreURI = "thrift://localhost:" + port;
-    metaStoreURI = null;
+//    metaStoreURI = null;
 
     conf = new HiveConf(this.getClass());
     TxnDbUtil.setConfValues(conf);
@@ -200,7 +201,7 @@ public class TestStreaming {
   public void testEndpointConnection() throws Exception {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName
             , partitionVals);
-    StreamingConnection connection = endPt.newConnection(user, false); //shouldn't throw
+    StreamingConnection connection = endPt.newConnection(proxyUser, false); //shouldn't throw
     connection.close();
   }
 
@@ -222,7 +223,7 @@ public class TestStreaming {
     }
 
     // Create partition
-    Assert.assertNotNull(endPt.newConnection(user, true));
+    Assert.assertNotNull(endPt.newConnection(proxyUser, true));
 
     // Ensure partition is present
     Partition p = msClient.getPartition(endPt.database, endPt.table, endPt.partitionVals);
@@ -234,7 +235,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(user, false);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -250,7 +251,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(user, true);
+    StreamingConnection connection = endPt.newConnection(proxyUser, true);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -266,7 +267,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(user, true);
+    StreamingConnection connection = endPt.newConnection(proxyUser, true);
 
     // 1st Txn
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -308,7 +309,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(user, true);
+    StreamingConnection connection = endPt.newConnection(proxyUser, true);
 
     // 1) test with txn.Commit()
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -364,7 +365,7 @@ public class TestStreaming {
 
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
-    StreamingConnection connection = endPt.newConnection(user, false);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -391,7 +392,7 @@ public class TestStreaming {
 
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
-    StreamingConnection connection = endPt.newConnection(user, false);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -422,7 +423,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(user, false);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -471,7 +472,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames, ",", endPt);
-    StreamingConnection connection = endPt.newConnection(user, false);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
 
     // Acquire 1st Txn Batch
     TransactionBatch txnBatch1 =  connection.fetchTransactionBatch(10, writer);

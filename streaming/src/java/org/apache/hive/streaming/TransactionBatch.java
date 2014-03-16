@@ -51,7 +51,7 @@ public interface TransactionBatch  {
    * Activate the next available transaction in the current transaction batch
    * @throws StreamingException
    */
-  public void beginNextTransaction() throws StreamingException;
+  public void beginNextTransaction() throws StreamingException, InterruptedException;
 
   /**
    * Get Id of currently open transaction
@@ -68,13 +68,13 @@ public interface TransactionBatch  {
    * Commit the currently open transaction
    * @throws StreamingException
    */
-  public void commit() throws StreamingException;
+  public void commit() throws StreamingException, InterruptedException;
 
   /**
    * Abort the currently open transaction
    * @throws StreamingException
    */
-  public void abort() throws StreamingException;
+  public void abort() throws StreamingException, InterruptedException;
 
   /**
    * Remaining transactions are the ones that are not committed or aborted or open.
@@ -91,7 +91,7 @@ public interface TransactionBatch  {
    * @throws IOException
    * @throws StreamingException
    */
-  public void write(byte[] record) throws ConnectionError, IOException, StreamingException;
+  public void write(byte[] record) throws StreamingException, InterruptedException;
   /**
    *  Write records using RecordWriter
    * @param records collection of rows to be written
@@ -99,11 +99,11 @@ public interface TransactionBatch  {
    * @throws IOException
    * @throws StreamingException
    */
-  public void write(Collection<byte[]> records) throws ConnectionError, IOException, StreamingException;
+  public void write(Collection<byte[]> records) throws StreamingException, InterruptedException;
 
   /**
    * Close the TransactionBatch
    * @throws StreamingException
    */
-  public void close() throws StreamingException;
+  public void close() throws StreamingException, InterruptedException;
 }
