@@ -53,7 +53,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
   private final int  totalBuckets;
 
   private OrcOutputFormat outf = new OrcOutputFormat();
-  private HiveConf conf = new HiveConf(this.getClass());
+  private final HiveConf conf;
   private RecordUpdater updater = null;
   private final ArrayList<String> tableColumns;
   private final static String serdeClassName = "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe";
@@ -83,10 +83,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
           throws ConnectionError, ClassNotFoundException, SerializationError
                  , StreamingException {
     try {
-      if(endPoint.metaStoreUri!=null) {
-        TxnDbUtil.setConfValues(conf);
-        conf.setVar(HiveConf.ConfVars.METASTOREURIS, endPoint.metaStoreUri);
-      }
+      conf = HiveEndPoint.createHiveConf(this.getClass(), endPoint.metaStoreUri);
 
       Hive hive = Hive.get(conf, false);
 
@@ -103,7 +100,8 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
     } catch (HiveException e) {
       throw new ConnectionError("Problem connecting to Hive", e);
     } catch (SerDeException e) {
-      throw new SerializationError("Failed to get object inspector from Serde "  + serdeClassName, e);
+      throw new SerializationError("Failed to get object inspector from Serde "
+              + serdeClassName, e);
     }
   }
 

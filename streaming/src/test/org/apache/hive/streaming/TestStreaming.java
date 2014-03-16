@@ -424,8 +424,9 @@ public class TestStreaming {
 
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
+
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -451,8 +452,8 @@ public class TestStreaming {
 
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
+    StreamingConnection connection = endPt.newConnection(proxyUser, false);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();

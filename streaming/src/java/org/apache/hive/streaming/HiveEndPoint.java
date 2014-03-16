@@ -76,7 +76,7 @@ public class HiveEndPoint {
     }
     this.partitionVals = partitionVals==null ? new ArrayList<String>()
                                              : new ArrayList<String>( partitionVals );
-    this.conf = createHiveConf(metaStoreUri);
+    this.conf = createHiveConf(this.getClass(),metaStoreUri);
   }
 
   /**
@@ -182,18 +182,6 @@ public class HiveEndPoint {
             ", database='" + database + '\'' +
             ", table='" + table + '\'' +
             ", partitionVals=(" + partitionVals +  ") }";
-  }
-
-
-  private HiveConf createHiveConf(String metaStoreUri) {
-    HiveConf conf = new HiveConf(this.getClass());
-    conf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
-            "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
-    conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
-    if(metaStoreUri!= null) {
-      conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
-    }
-    return conf;
   }
 
 
@@ -742,6 +730,17 @@ public class HiveEndPoint {
       return rqstBuilder.build();
     }
   } // class TransactionBatchImpl
+
+  static HiveConf createHiveConf(Class<?> clazz, String metaStoreUri) {
+    HiveConf conf = new HiveConf(clazz);
+    conf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
+            "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
+    conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
+    if(metaStoreUri!= null) {
+      conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
+    }
+    return conf;
+  }
 
 }  // class HiveEndPoint
 
