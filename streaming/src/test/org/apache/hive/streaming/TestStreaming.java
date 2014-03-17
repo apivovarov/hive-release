@@ -528,7 +528,7 @@ public class TestStreaming {
 
 
   @Test
-  public void testConcurrentTransactionBatchCommits() throws Exception {
+  public void testInterleavedTransactionBatchCommits() throws Exception {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames, ",", endPt);
@@ -587,6 +587,75 @@ public class TestStreaming {
     txnBatch2.close();
 
     connection.close();
+  }
+
+  class WriterThd extends Thread {
+
+    private StreamingConnection conn;
+    private HiveEndPoint ep;
+    private DelimitedInputWriter writer;
+    private String data;
+
+    WriterThd(HiveEndPoint ep, String data) throws Exception {
+      String uri = "thrift://172.16.0.21:9083";
+      this.ep = ep;
+      writer = new DelimitedInputWriter(fieldNames, ",", ep);
+      conn = ep.newConnection(null, false);
+      this.data = data;
+    }
+
+    WriterThd(StreamingConnection conn, HiveEndPoint ep, DelimitedInputWriter writer, String data) {
+      this.conn = conn;
+      this.ep = ep;
+      this.writer = writer;
+      this.data = data;
+    }
+    @Override
+    public void run() {
+      TransactionBatch txnBatch = null;
+      try {
+        txnBatch =  conn.fetchTransactionBatch(1000, writer);
+        while(txnBatch.remainingTransactions() > 0) {
+          txnBatch.beginNextTransaction();
+          txnBatch.write(data.getBytes());
+          txnBatch.write(data.getBytes());
+          txnBatch.commit();
+        } // while
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      } finally {
+        if (txnBatch != null) {
+          try {
+            txnBatch.close();
+          } catch (Exception e) {
+            conn.close();
+            throw new RuntimeException(e);
+          }
+        }
+        try {
+          conn.close();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+
+      }
+    }
+  }
+  @Test
+  public void testConcurrentTransactionBatchCommits() throws Exception {
+    String uri = "thrift://172.16.0.21:9083";
+    final HiveEndPoint ep = new HiveEndPoint(uri, dbName, tblName, partitionVals);
+    WriterThd t1 = new WriterThd(ep, "1,Matrix");
+    WriterThd t2 = new WriterThd(ep, "2,Gandhi");
+    WriterThd t3 = new WriterThd(ep, "3,Silence");
+
+    t1.start();
+    t2.start();
+    t3.start();
+
+    t1.join();
+    t2.join();
+    t3.join();
 
   }
 
@@ -671,5 +740,3 @@ public class TestStreaming {
     return fields;
   }
 }
-
-// TODO: support for unpartitioned tables
