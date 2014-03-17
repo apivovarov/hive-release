@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
+import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputFormat;
@@ -108,8 +109,8 @@ public class TestOrcSplitElimination {
         100000, CompressionKind.NONE, 10000, 10000);
     writeData(writer);
     writer.close();
-    conf.set("mapred.min.split.size", "1000");
-    conf.set("mapred.max.split.size", "5000");
+    conf.set(ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMINSPLITSIZE"), "1000");
+    conf.set(ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMAXSPLITSIZE"), "5000");
     InputFormat<?, ?> in = new OrcInputFormat();
     FileInputFormat.setInputPaths(conf, testFilePath.toString());
 
@@ -186,8 +187,8 @@ public class TestOrcSplitElimination {
         100000, CompressionKind.NONE, 10000, 10000);
     writeData(writer);
     writer.close();
-    conf.set("mapred.min.split.size", "1000");
-    conf.set("mapred.max.split.size", "150000");
+    conf.set(ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMINSPLITSIZE"), "1000");
+    conf.set(ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMAXSPLITSIZE"), "150000");
     InputFormat<?, ?> in = new OrcInputFormat();
     FileInputFormat.setInputPaths(conf, testFilePath.toString());
 
@@ -275,8 +276,8 @@ public class TestOrcSplitElimination {
         100000, CompressionKind.NONE, 10000, 10000);
     writeData(writer);
     writer.close();
-    conf.set("mapred.min.split.size", "1000");
-    conf.set("mapred.max.split.size", "150000");
+    conf.set(ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMINSPLITSIZE"), "1000");
+    conf.set(ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMAXSPLITSIZE"), "150000");
     InputFormat<?, ?> in = new OrcInputFormat();
     FileInputFormat.setInputPaths(conf, testFilePath.toString());
 

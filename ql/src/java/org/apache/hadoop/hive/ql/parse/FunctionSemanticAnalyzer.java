@@ -157,7 +157,10 @@ public class FunctionSemanticAnalyzer extends BaseSemanticAnalyzer {
   private void addEntities(String functionName, boolean isTemporaryFunction)
       throws SemanticException {
     Database database = null;
-    if (!isTemporaryFunction) {
+    if (isTemporaryFunction) {
+      // This means temp function creation is also restricted.
+      database = getDatabase(MetaStoreUtils.DEFAULT_DATABASE_NAME);
+    } else {
       try {
         String[] qualifiedNameParts = FunctionUtils.getQualifiedFunctionNameParts(functionName);
         String dbName = qualifiedNameParts[0];

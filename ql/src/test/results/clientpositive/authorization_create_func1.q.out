@@ -6,8 +6,15 @@ set role ADMIN
 POSTHOOK: type: SHOW_ROLES
 PREHOOK: query: create temporary function temp_fn as 'org.apache.hadoop.hive.ql.udf.UDFAscii'
 PREHOOK: type: CREATEFUNCTION
+<<<<<<< HEAD
 POSTHOOK: query: create temporary function temp_fn as 'org.apache.hadoop.hive.ql.udf.UDFAscii'
 POSTHOOK: type: CREATEFUNCTION
+=======
+PREHOOK: Output: database:default
+POSTHOOK: query: create temporary function temp_fn as 'org.apache.hadoop.hive.ql.udf.UDFAscii'
+POSTHOOK: type: CREATEFUNCTION
+POSTHOOK: Output: database:default
+>>>>>>> upstream/branch-0.13
 PREHOOK: query: create function perm_fn as 'org.apache.hadoop.hive.ql.udf.UDFAscii'
 PREHOOK: type: CREATEFUNCTION
 PREHOOK: Output: database:default
@@ -16,8 +23,15 @@ POSTHOOK: type: CREATEFUNCTION
 POSTHOOK: Output: database:default
 PREHOOK: query: drop temporary function temp_fn
 PREHOOK: type: DROPFUNCTION
+<<<<<<< HEAD
 POSTHOOK: query: drop temporary function temp_fn
 POSTHOOK: type: DROPFUNCTION
+=======
+PREHOOK: Output: database:default
+POSTHOOK: query: drop temporary function temp_fn
+POSTHOOK: type: DROPFUNCTION
+POSTHOOK: Output: database:default
+>>>>>>> upstream/branch-0.13
 PREHOOK: query: drop function perm_fn
 PREHOOK: type: DROPFUNCTION
 PREHOOK: Output: database:default

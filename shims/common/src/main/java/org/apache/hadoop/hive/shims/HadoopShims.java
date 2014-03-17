@@ -240,7 +240,7 @@ public interface HadoopShims {
    * @throws IOException
    */
   public void setTokenStr(UserGroupInformation ugi, String tokenStr, String tokenService)
-      throws IOException;
+    throws IOException;
 
   /**
    * Add given service to the string format token

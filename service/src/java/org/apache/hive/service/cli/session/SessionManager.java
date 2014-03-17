@@ -32,6 +32,7 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.hooks.HookUtils;
 import org.apache.hive.service.CompositeService;
+import org.apache.hive.service.auth.TSetIpAddressProcessor;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.SessionHandle;
 import org.apache.hive.service.cli.operation.OperationManager;
@@ -104,15 +105,16 @@ public class SessionManager extends CompositeService {
     HiveSession session;
     if (withImpersonation) {
       HiveSessionImplwithUGI hiveSessionUgi = new HiveSessionImplwithUGI(protocol, username, password,
-        hiveConf, sessionConf, threadLocalIpAddress.get(), delegationToken);
+        hiveConf, sessionConf, TSetIpAddressProcessor.getUserIpAddress(), delegationToken);
       session = HiveSessionProxy.getProxy(hiveSessionUgi, hiveSessionUgi.getSessionUgi());
       hiveSessionUgi.setProxySession(session);
     } else {
-      session = new HiveSessionImpl(protocol, username, password, hiveConf, sessionConf, threadLocalIpAddress.get());
+      session = new HiveSessionImpl(protocol, username, password, hiveConf, sessionConf,
+          TSetIpAddressProcessor.getUserIpAddress());
     }
     session.setSessionManager(this);
     session.setOperationManager(operationManager);
-
+    session.open();
     handleToSession.put(session.getSessionHandle(), session);
 
     try {

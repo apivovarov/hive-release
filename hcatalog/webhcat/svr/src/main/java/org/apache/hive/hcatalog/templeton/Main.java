@@ -290,7 +290,7 @@ public class Main {
       * This is added in Hive 0.13 and should be de-supported in 0.15*/
         String userName = request.getParameter(PseudoAuthenticator.USER_NAME);
         if(userName != null) {
-          LOG.warn(PseudoAuthenticator.USER_NAME +
+          LOG.warn(PseudoAuthenticator.USER_NAME + 
             " is sent as form parameter which is deprecated as of Hive 0.13.  Should send it in the query string.");
         }
         return userName;

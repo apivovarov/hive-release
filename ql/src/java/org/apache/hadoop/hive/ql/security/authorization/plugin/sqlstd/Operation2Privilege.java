@@ -170,8 +170,10 @@ public class Operation2Privilege {
     op2Priv.put(HiveOperationType.SHOWINDEXES, new InOutPrivs(null, null));
     op2Priv.put(HiveOperationType.SHOWPARTITIONS, new InOutPrivs(null, null));
     op2Priv.put(HiveOperationType.SHOWLOCKS, new InOutPrivs(null, null));
+
     op2Priv.put(HiveOperationType.SHOW_COMPACTIONS, new InOutPrivs(null, null));
     op2Priv.put(HiveOperationType.SHOW_TRANSACTIONS, new InOutPrivs(null, null));
+
     op2Priv.put(HiveOperationType.CREATEFUNCTION, new InOutPrivs(null, ADMIN_PRIV_AR));
     op2Priv.put(HiveOperationType.DROPFUNCTION, new InOutPrivs(null, ADMIN_PRIV_AR));
     op2Priv.put(HiveOperationType.CREATEMACRO, new InOutPrivs(null, ADMIN_PRIV_AR));
@@ -202,6 +204,9 @@ public class Operation2Privilege {
     op2Priv.put(HiveOperationType.SHOW_ROLES, new InOutPrivs(null, null));
     op2Priv.put(HiveOperationType.SHOW_ROLE_GRANT, new InOutPrivs(null,
         null));
+    op2Priv.put(HiveOperationType.SHOW_ROLE_PRINCIPALS, new InOutPrivs(null,
+        null));
+
 
   }
 

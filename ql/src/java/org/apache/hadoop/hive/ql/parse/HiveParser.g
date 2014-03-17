@@ -284,6 +284,7 @@ TOK_REVOKE_ROLE;
 TOK_SHOW_ROLE_GRANT;
 TOK_SHOW_ROLES;
 TOK_SHOW_SET_ROLE;
+TOK_SHOW_ROLE_PRINCIPALS;
 TOK_SHOWINDEXES;
 TOK_SHOWDBLOCKS;
 TOK_INDEXCOMMENT;
@@ -354,6 +355,8 @@ import java.util.HashMap;
     xlateMap.put("KW_TRUE", "TRUE");
     xlateMap.put("KW_FALSE", "FALSE");
     xlateMap.put("KW_ALL", "ALL");
+    xlateMap.put("KW_NONE", "NONE");
+    xlateMap.put("KW_DEFAULT", "DEFAULT");
     xlateMap.put("KW_AND", "AND");
     xlateMap.put("KW_OR", "OR");
     xlateMap.put("KW_NOT", "NOT");
@@ -680,6 +683,7 @@ ddlStatement
     | revokePrivileges
     | showGrants
     | showRoleGrants
+    | showRolePrincipals
     | showRoles
     | grantRole
     | revokeRole
@@ -1403,6 +1407,7 @@ showRoleGrants
     -> ^(TOK_SHOW_ROLE_GRANT principalName)
     ;
 
+
 showRoles
 @init {pushMsg("show roles", state);}
 @after {popMsg(state);}
@@ -1430,6 +1435,14 @@ showGrants
     : KW_SHOW KW_GRANT principalName? (KW_ON privilegeIncludeColObject)?
     -> ^(TOK_SHOW_GRANT principalName? privilegeIncludeColObject?)
     ;
+
+showRolePrincipals
+@init {pushMsg("show role principals", state);}
+@after {popMsg(state);}
+    : KW_SHOW KW_PRINCIPALS roleName=identifier
+    -> ^(TOK_SHOW_ROLE_PRINCIPALS $roleName)
+    ;
+
 
 privilegeIncludeColObject
 @init {pushMsg("privilege object including columns", state);}

@@ -300,3 +300,4 @@ public abstract class ThriftCLIServiceTest {
     client.closeSession(sessHandle);
   }
 }
+

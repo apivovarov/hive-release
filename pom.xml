@@ -52,7 +52,7 @@
   </modules>
 
   <properties>
-    <hive.version.shortname>0.14.0</hive.version.shortname>
+    <hive.version.shortname>0.13.0</hive.version.shortname>
 
     <!-- Build Properties -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -270,6 +270,11 @@
         <groupId>com.sun.jersey.contribs</groupId>
         <artifactId>wadl-resourcedoc-doclet</artifactId>
         <version>${wadl-resourcedoc-doclet.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-servlet</artifactId>
+        <version>${jersey.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
@@ -987,6 +992,11 @@
             <groupId>org.apache.hbase</groupId>
             <artifactId>hbase-server</artifactId>
             <version>${hbase.hadoop2.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-minicluster</artifactId>
+            <version>${hadoop-23.version}</version>
           </dependency>
         </dependencies>
       </dependencyManagement>

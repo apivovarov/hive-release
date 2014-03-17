@@ -35,6 +35,7 @@ import org.apache.hadoop.hive.thrift.HadoopThriftAuthBridge;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.thrift.ThriftCLIService;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TServerSocket;
@@ -296,7 +297,7 @@ public class HiveAuthFactory {
       }
       if (!proxyUser.equalsIgnoreCase(realUser)) {
         ShimLoader.getHadoopShims().
-        authorizeProxyAccess(proxyUser, sessionUgi, ipAddress, hiveConf);
+          authorizeProxyAccess(proxyUser, sessionUgi, ipAddress, hiveConf);
       }
     } catch (IOException e) {
       throw new HiveSQLException("Failed to validate proxy privilage of " + realUser +
