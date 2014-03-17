@@ -152,6 +152,14 @@ public class StreamingIntegrationTester {
       .withLongOpt("writers")
       .create('w'));
 
+    options.addOption(OptionBuilder
+            .hasArg(false)
+            .withArgName("pause")
+            .withDescription("pause for keyboard input on every commit and batch close. disabled by default")
+            .withLongOpt("pause")
+            .create('x'));
+
+
     Parser parser = new GnuParser();
     CommandLine cmdline = null;
     try {
@@ -160,6 +168,7 @@ public class StreamingIntegrationTester {
       usage(options);
     }
 
+    boolean pause = cmdline.hasOption('x');
     String user = cmdline.getOptionValue('u');
     String db = cmdline.getOptionValue('d');
     String table = cmdline.getOptionValue('t');
@@ -176,7 +185,7 @@ public class StreamingIntegrationTester {
     String[] types = cmdline.getOptionValues('s');
 
     StreamingIntegrationTester sit = new StreamingIntegrationTester(db, table, uri, user,
-        txnsPerBatch, writers, batches, recordsPerTxn, frequency, abortPct, partVals, cols, types);
+        txnsPerBatch, writers, batches, recordsPerTxn, frequency, abortPct, partVals, cols, types, pause);
     sit.go();
   }
 
@@ -199,12 +208,13 @@ public class StreamingIntegrationTester {
   private String[] partVals;
   private String[] cols;
   private String[] types;
+  private boolean pause;
 
 
   private StreamingIntegrationTester(String db, String table, String uri, String user,
                                      int txnsPerBatch, int writers, int batches,
                                      int recordsPerTxn, int frequency, float abortPct,
-                                     String[] partVals, String[] cols, String[] types) {
+                                     String[] partVals, String[] cols, String[] types, boolean pause) {
     this.user = user;
     this.db = db;
     this.table = table;
@@ -218,6 +228,7 @@ public class StreamingIntegrationTester {
     this.partVals = partVals;
     this.cols = cols;
     this.types = types;
+    this.pause = pause;
   }
 
   private void go() {
@@ -231,7 +242,7 @@ public class StreamingIntegrationTester {
 
       for (int i = 0; i < writers; i++) {
         Writer w = new Writer(endPoint, user, i, txnsPerBatch, batches, recordsPerTxn, frequency, abortPct,
-                cols, types);
+                cols, types, pause);
         w.start();
       }
 
@@ -251,10 +262,11 @@ public class StreamingIntegrationTester {
     private float abortPct;
     private String[] cols;
     private String[] types;
+    private boolean pause;
     private Random rand;
 
     Writer(HiveEndPoint endPoint, String user, int writerNumber, int txnsPerBatch, int batches,
-           int recordsPerTxn, int frequency, float abortPct, String[] cols, String[] types) {
+           int recordsPerTxn, int frequency, float abortPct, String[] cols, String[] types, boolean pause) {
       this.endPoint = endPoint;
       this.user = user;
       this.txnsPerBatch = txnsPerBatch;
@@ -265,13 +277,15 @@ public class StreamingIntegrationTester {
       this.abortPct = abortPct;
       this.cols = cols;
       this.types = types;
+      this.pause = pause;
       rand = new Random();
     }
 
     @Override
     public void run() {
+      StreamingConnection conn = null;
       try {
-        StreamingConnection conn = endPoint.newConnection(user, true);
+        conn = endPoint.newConnection(user, true);
         RecordWriter writer = new DelimitedInputWriter(cols, ",", endPoint);
 
         long start = System.currentTimeMillis();
@@ -285,17 +299,28 @@ public class StreamingIntegrationTester {
                 batch.write(generateRecord(cols, types));
               }
               if (rand.nextFloat() < abortPct) batch.abort();
-              else batch.commit();
+              else
+              batch.commit();
+              if(pause) {
+                System.out.println("Writer " + writerNumber + " committed... press Enter to continue. " + Thread.currentThread().getId());
+                System.in.read();
+              }
             }
             long end = System.currentTimeMillis();
             if (end - start < frequency) Thread.sleep(frequency - (end - start));
           } finally {
             batch.close();
+            if(pause) {
+              System.out.println("Writer " + writerNumber + " has closed a Batch.. press Enter to continue. " + Thread.currentThread().getId());
+              System.in.read();
+            }
           }
         }
       } catch (Throwable t) {
        System.err.println("Writer number " + writerNumber + " caught exception while testing: " +
            StringUtils.stringifyException(t));
+      } finally {
+        if(conn!=null) conn.close();
       }
     }
 

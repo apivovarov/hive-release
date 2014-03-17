@@ -177,11 +177,11 @@ public class HiveEndPoint {
 
   @Override
   public String toString() {
-    return "HiveEndPoint{" +
+    return "{" +
             "metaStoreUri='" + metaStoreUri + '\'' +
             ", database='" + database + '\'' +
             ", table='" + table + '\'' +
-            ", partitionVals=(" + partitionVals +  ") }";
+            ", partitionVals=" + partitionVals + " }";
   }
 
 
