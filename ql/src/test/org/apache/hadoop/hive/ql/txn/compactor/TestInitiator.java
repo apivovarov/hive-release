@@ -48,8 +48,6 @@ public class TestInitiator extends CompactorTest {
     // Test that the whole things works when there's nothing in the queue.  This is just a
     // survival test.
     startInitiator(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    stopThreads();
   }
 
   @Test
@@ -66,7 +64,6 @@ public class TestInitiator extends CompactorTest {
     txnHandler.findNextToCompact("nosuchhost-193892");
 
     startInitiator(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -82,7 +79,6 @@ public class TestInitiator extends CompactorTest {
       }
     }
     Assert.assertTrue(sawInitiated);
-    stopThreads();
   }
 
   @Test
@@ -95,16 +91,13 @@ public class TestInitiator extends CompactorTest {
 
     HiveConf conf = new HiveConf();
     HiveConf.setLongVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_WORKER_TIMEOUT, 1L);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
     Assert.assertEquals(1, compacts.size());
     Assert.assertEquals("initiated", compacts.get(0).getState());
-    stopThreads();
   }
 
   @Test
@@ -127,7 +120,6 @@ public class TestInitiator extends CompactorTest {
     }
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -135,7 +127,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("initiated", compacts.get(0).getState());
     Assert.assertEquals("mcottma", compacts.get(0).getTablename());
     Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -160,7 +151,6 @@ public class TestInitiator extends CompactorTest {
     }
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -169,7 +159,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("mcoptma", compacts.get(0).getTablename());
     Assert.assertEquals("ds=today", compacts.get(0).getPartitionname());
     Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -196,11 +185,9 @@ public class TestInitiator extends CompactorTest {
     }
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     Assert.assertNull(rsp.getCompacts());
-    stopThreads();
   }
 
   @Test
@@ -230,11 +217,9 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals(101, openTxns.getOpen_txnsSize());
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     openTxns = txnHandler.getOpenTxns();
     Assert.assertEquals(1, openTxns.getOpen_txnsSize());
-    stopThreads();
   }
 
   @Test
@@ -259,11 +244,9 @@ public class TestInitiator extends CompactorTest {
     }
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     Assert.assertNull(rsp.getCompacts());
-    stopThreads();
   }
 
   @Test
@@ -295,7 +278,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("ncwcas", compacts.get(0).getTablename());
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     rsp = txnHandler.showCompact(new ShowCompactRequest());
     compacts = rsp.getCompacts();
@@ -303,7 +285,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("initiated", compacts.get(0).getState());
     Assert.assertEquals("ncwcas", compacts.get(0).getTablename());
     Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -329,7 +310,6 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -337,7 +317,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("initiated", compacts.get(0).getState());
     Assert.assertEquals("cthdp", compacts.get(0).getTablename());
     Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -365,7 +344,6 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -374,7 +352,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("cphdp", compacts.get(0).getTablename());
     Assert.assertEquals("ds=today", compacts.get(0).getPartitionname());
     Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -400,11 +377,9 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     Assert.assertNull(rsp.getCompacts());
-    stopThreads();
   }
 
   @Test
@@ -439,7 +414,6 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -447,7 +421,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("initiated", compacts.get(0).getState());
     Assert.assertEquals("cttmd", compacts.get(0).getTablename());
     Assert.assertEquals(CompactionType.MINOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -484,7 +457,6 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -493,7 +465,6 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("cptmd", compacts.get(0).getTablename());
     Assert.assertEquals("ds=today", compacts.get(0).getPartitionname());
     Assert.assertEquals(CompactionType.MINOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -519,11 +490,9 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     Assert.assertNull(rsp.getCompacts());
-    stopThreads();
   }
 
   @Test
@@ -558,7 +527,6 @@ public class TestInitiator extends CompactorTest {
     txnHandler.commitTxn(new CommitTxnRequest(txnid));
 
     startInitiator(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
     List<ShowCompactResponseElement> compacts = rsp.getCompacts();
@@ -566,7 +534,95 @@ public class TestInitiator extends CompactorTest {
     Assert.assertEquals("initiated", compacts.get(0).getState());
     Assert.assertEquals("cmomwbv", compacts.get(0).getTablename());
     Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
-    stopThreads();
+  }
+
+  @Test
+  public void enoughDeltasNoBase() throws Exception {
+    Table t = newTable("default", "ednb", true);
+    Partition p = newPartition(t, "today");
+
+    HiveConf conf = new HiveConf();
+
+    addDeltaFile(conf, t, p, 1L, 201L, 200);
+    addDeltaFile(conf, t, p, 202L, 202L, 1);
+    addDeltaFile(conf, t, p, 203L, 203L, 1);
+    addDeltaFile(conf, t, p, 204L, 204L, 1);
+    addDeltaFile(conf, t, p, 205L, 205L, 1);
+    addDeltaFile(conf, t, p, 206L, 206L, 1);
+    addDeltaFile(conf, t, p, 207L, 207L, 1);
+    addDeltaFile(conf, t, p, 208L, 208L, 1);
+    addDeltaFile(conf, t, p, 209L, 209L, 1);
+    addDeltaFile(conf, t, p, 210L, 210L, 1);
+    addDeltaFile(conf, t, p, 211L, 211L, 1);
+
+    burnThroughTransactions(210);
+
+    long txnid = openTxn();
+    LockComponent comp = new LockComponent(LockType.SHARED_WRITE, LockLevel.PARTITION, "default");
+    comp.setTablename("ednb");
+    comp.setPartitionname("ds=today");
+    List<LockComponent> components = new ArrayList<LockComponent>(1);
+    components.add(comp);
+    LockRequest req = new LockRequest(components, "me", "localhost");
+    req.setTxnid(txnid);
+    LockResponse res = txnHandler.lock(req);
+    txnHandler.commitTxn(new CommitTxnRequest(txnid));
+
+    startInitiator(conf);
+
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("initiated", compacts.get(0).getState());
+    Assert.assertEquals("ednb", compacts.get(0).getTablename());
+    Assert.assertEquals("ds=today", compacts.get(0).getPartitionname());
+    Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
+  }
+
+  @Test
+  public void twoTxnsOnSamePartitionGenerateOneCompactionRequest() throws Exception {
+    Table t = newTable("default", "ttospgocr", true);
+    Partition p = newPartition(t, "today");
+
+    HiveConf conf = new HiveConf();
+
+    addBaseFile(conf, t, p, 20L, 20);
+    addDeltaFile(conf, t, p, 21L, 22L, 2);
+    addDeltaFile(conf, t, p, 23L, 24L, 2);
+
+    burnThroughTransactions(23);
+
+    long txnid = openTxn();
+    LockComponent comp = new LockComponent(LockType.SHARED_WRITE, LockLevel.PARTITION, "default");
+    comp.setTablename("ttospgocr");
+    comp.setPartitionname("ds=today");
+    List<LockComponent> components = new ArrayList<LockComponent>(1);
+    components.add(comp);
+    LockRequest req = new LockRequest(components, "me", "localhost");
+    req.setTxnid(txnid);
+    LockResponse res = txnHandler.lock(req);
+    txnHandler.commitTxn(new CommitTxnRequest(txnid));
+
+    txnid = openTxn();
+    comp = new LockComponent(LockType.SHARED_WRITE, LockLevel.PARTITION, "default");
+    comp.setTablename("ttospgocr");
+    comp.setPartitionname("ds=today");
+    components = new ArrayList<LockComponent>(1);
+    components.add(comp);
+    req = new LockRequest(components, "me", "localhost");
+    req.setTxnid(txnid);
+    res = txnHandler.lock(req);
+    txnHandler.commitTxn(new CommitTxnRequest(txnid));
+
+    startInitiator(conf);
+
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("initiated", compacts.get(0).getState());
+    Assert.assertEquals("ttospgocr", compacts.get(0).getTablename());
+    Assert.assertEquals("ds=today", compacts.get(0).getPartitionname());
+    Assert.assertEquals(CompactionType.MAJOR, compacts.get(0).getType());
   }
 
   // TODO test compactions with legacy file types
@@ -574,12 +630,5 @@ public class TestInitiator extends CompactorTest {
   @Before
   public void setUpTxnDb() throws Exception {
     TxnDbUtil.setConfValues(new HiveConf());
-    //TxnDbUtil.prepDb();
   }
-
-  @After
-  public void tearDownTxnDb() throws Exception {
-    //TxnDbUtil.cleanDb();
-  }
-
 }

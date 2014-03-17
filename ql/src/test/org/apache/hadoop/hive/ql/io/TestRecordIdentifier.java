@@ -19,6 +19,14 @@ package org.apache.hadoop.hive.ql.io;
 
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestRecordIdentifier {
@@ -41,5 +49,19 @@ public class TestRecordIdentifier {
     right.setValues(1, 100, 3);
     assertTrue(left.compareTo(right) < 0);
     assertTrue(right.compareTo(left) > 0);
+  }
+
+  @Test
+  public void readWrite() throws Exception {
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    DataOutput out = new DataOutputStream(bout);
+    RecordIdentifier ri = new RecordIdentifier(1L, 2, 3L);
+    ri.write(out);
+    ri = new RecordIdentifier();
+    DataInput in = new DataInputStream(new ByteArrayInputStream(bout.toByteArray()));
+    ri.readFields(in);
+    assertEquals(1L, ri.getTransactionId());
+    assertEquals(2, ri.getBucketId());
+    assertEquals(3L, ri.getRowId());
   }
 }

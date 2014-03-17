@@ -29,14 +29,25 @@ import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
-import org.apache.hadoop.hive.ql.io.*;
-import org.apache.hadoop.hive.serde2.AbstractSerDe;
+import org.apache.hadoop.hive.ql.io.AcidInputFormat;
+import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
+import org.apache.hadoop.hive.ql.io.AcidUtils;
+import org.apache.hadoop.hive.ql.io.FSRecordWriter;
+import org.apache.hadoop.hive.ql.io.RecordIdentifier;
+import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapred.*;
 
+import org.apache.hadoop.mapred.InputFormat;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobClient;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.Mapper;
+import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.StringUtils;
 
@@ -44,6 +55,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
 
 /**
  * Class to do compactions via an MR job.  This has to be in the ql package rather than metastore
@@ -51,7 +63,7 @@ import java.util.*;
  * and output formats, which are in ql.  ql depends on metastore and we can't have a circular
  * dependency.
  */
-public class CompactorMR<V extends Writable> {
+public class CompactorMR {
 
   static final private String CLASS_NAME = CompactorMR.class.getName();
   static final private Log LOG = LogFactory.getLog(CLASS_NAME);
@@ -59,7 +71,6 @@ public class CompactorMR<V extends Writable> {
   static final private String INPUT_FORMAT_CLASS_NAME = "hive.compactor.input.format.class.name";
   static final private String OUTPUT_FORMAT_CLASS_NAME = "hive.compactor.output.format.class.name";
   static final private String LOCATION = "hive.compactor.input.dir";
-  static final private String SERDE = "hive.compactor.serde";
   static final private String MIN_TXN = "hive.compactor.txn.min";
   static final private String MAX_TXN = "hive.compactor.txn.max";
   static final private String IS_MAJOR = "hive.compactor.is.major";
@@ -81,100 +92,88 @@ public class CompactorMR<V extends Writable> {
    * @param sd metastore storage descriptor
    * @param txns list of valid transactions
    * @param isMajor is this a major compaction?
+   * @throws java.io.IOException if the job fails
    */
   void run(HiveConf conf, String jobName, Table t, StorageDescriptor sd,
-           ValidTxnList txns, boolean isMajor) {
-    try {
-      JobConf job = new JobConf(conf);
-      job.setJobName(jobName);
-      job.setOutputKeyClass(NullWritable.class);
-      job.setOutputValueClass(NullWritable.class);
-      job.setJarByClass(CompactorMR.class);
-      LOG.debug("User jar set to " + job.getJar());
-      job.setMapperClass(CompactorMap.class);
-      job.setNumReduceTasks(0);
-      job.setInputFormat(CompactorInputFormat.class);
-      job.setOutputFormat(NullOutputFormat.class);
+           ValidTxnList txns, boolean isMajor) throws IOException {
+    JobConf job = new JobConf(conf);
+    job.setJobName(jobName);
+    job.setOutputKeyClass(NullWritable.class);
+    job.setOutputValueClass(NullWritable.class);
+    job.setJarByClass(CompactorMR.class);
+    LOG.debug("User jar set to " + job.getJar());
+    job.setMapperClass(CompactorMap.class);
+    job.setNumReduceTasks(0);
+    job.setInputFormat(CompactorInputFormat.class);
+    job.setOutputFormat(NullOutputFormat.class);
 
-      job.set(LOCATION, sd.getLocation());
-      job.set(INPUT_FORMAT_CLASS_NAME, sd.getInputFormat());
-      job.set(OUTPUT_FORMAT_CLASS_NAME, sd.getOutputFormat());
-      job.set(SERDE, sd.getSerdeInfo().getName());
-      job.setBoolean(IS_MAJOR, isMajor);
-      job.setBoolean(IS_COMPRESSED, sd.isCompressed());
-      job.set(TABLE_PROPS, new StringableMap(t.getParameters()).toString());
-      job.setInt(NUM_BUCKETS, sd.getBucketColsSize());
-      job.set(ValidTxnList.VALID_TXNS_KEY, txns.toString());
+    job.set(LOCATION, sd.getLocation());
+    job.set(INPUT_FORMAT_CLASS_NAME, sd.getInputFormat());
+    job.set(OUTPUT_FORMAT_CLASS_NAME, sd.getOutputFormat());
+    job.setBoolean(IS_MAJOR, isMajor);
+    job.setBoolean(IS_COMPRESSED, sd.isCompressed());
+    job.set(TABLE_PROPS, new StringableMap(t.getParameters()).toString());
+    job.setInt(NUM_BUCKETS, sd.getBucketColsSize());
+    job.set(ValidTxnList.VALID_TXNS_KEY, txns.toString());
 
-      // Figure out and encode what files we need to read.  We do this here (rather than in
-      // getSplits below) because as part of this we discover our minimum and maximum transactions,
-      // and discovering that in getSplits is too late as we then have no way to pass it to our
-      // mapper.
+    // Figure out and encode what files we need to read.  We do this here (rather than in
+    // getSplits below) because as part of this we discover our minimum and maximum transactions,
+    // and discovering that in getSplits is too late as we then have no way to pass it to our
+    // mapper.
 
-      AcidUtils.Directory dir = AcidUtils.getAcidState(new Path(sd.getLocation()), conf, txns);
-      StringableList dirsToSearch = new StringableList();
-      Path baseDir = null;
-      if (isMajor) {
-        // There may not be a base dir if the partition was empty before inserts or if this
-        // partition is just now being converted to ACID.
-        baseDir = dir.getBaseDirectory();
-        if (baseDir == null) {
-          List<FileStatus> originalFiles = dir.getOriginalFiles();
-          if (!(originalFiles == null) && !(originalFiles.size() == 0)) {
-            // There are original format files
-            for (FileStatus stat : originalFiles) {
-              dirsToSearch.add(stat.getPath());
-              LOG.debug("Adding original file " + stat.getPath().toString() + " to dirs to search");
-            }
-            // Set base to the location so that the input format reads the original files.
-            baseDir = new Path(sd.getLocation());
-
-            /*
-            Path origDir = new Path(sd.getLocation());
-            dirsToSearch.add(origDir);
-            LOG.debug("Adding original directory " + origDir + " to dirs to search");
-            */
+    AcidUtils.Directory dir = AcidUtils.getAcidState(new Path(sd.getLocation()), conf, txns);
+    StringableList dirsToSearch = new StringableList();
+    Path baseDir = null;
+    if (isMajor) {
+      // There may not be a base dir if the partition was empty before inserts or if this
+      // partition is just now being converted to ACID.
+      baseDir = dir.getBaseDirectory();
+      if (baseDir == null) {
+        List<FileStatus> originalFiles = dir.getOriginalFiles();
+        if (!(originalFiles == null) && !(originalFiles.size() == 0)) {
+          // There are original format files
+          for (FileStatus stat : originalFiles) {
+            dirsToSearch.add(stat.getPath());
+            LOG.debug("Adding original file " + stat.getPath().toString() + " to dirs to search");
           }
-        } else {
-          // add our base to the list of directories to search for files in.
-          LOG.debug("Adding base directory " + baseDir + " to dirs to search");
-          dirsToSearch.add(baseDir);
+          // Set base to the location so that the input format reads the original files.
+          baseDir = new Path(sd.getLocation());
         }
+      } else {
+        // add our base to the list of directories to search for files in.
+        LOG.debug("Adding base directory " + baseDir + " to dirs to search");
+        dirsToSearch.add(baseDir);
       }
-
-      List<AcidUtils.ParsedDelta> parsedDeltas = dir.getCurrentDirectories();
-
-      if (parsedDeltas == null || parsedDeltas.size() == 0) {
-        // Seriously, no deltas?  Can't compact that.
-        LOG.error("No delta files found to compact in " + sd.getLocation());
-        return;
-      }
-
-      StringableList deltaDirs = new StringableList();
-      long minTxn = Long.MAX_VALUE;
-      long maxTxn = Long.MIN_VALUE;
-      for (AcidUtils.ParsedDelta delta : parsedDeltas) {
-        LOG.debug("Adding delta " + delta.getPath() + " to directories to search");
-        dirsToSearch.add(delta.getPath());
-        deltaDirs.add(delta.getPath());
-        minTxn = Math.min(minTxn, delta.getMinTransaction());
-        maxTxn = Math.max(maxTxn, delta.getMaxTransaction());
-      }
-
-      if (baseDir != null) job.set(BASE_DIR, baseDir.toString());
-      job.set(DELTA_DIRS, deltaDirs.toString());
-      job.set(DIRS_TO_SEARCH, dirsToSearch.toString());
-      job.setLong(MIN_TXN, minTxn);
-      job.setLong(MAX_TXN, maxTxn);
-      LOG.debug("Setting minimum transaction to " + minTxn);
-      LOG.debug("Setting maximume transaction to " + maxTxn);
-
-      JobClient.runJob(job);
-    } catch (Throwable e) {
-      // Don't let anything past us.
-      LOG.error("Running MR job " + jobName + " to compact failed, " +
-          StringUtils.stringifyException(e));
     }
+
+    List<AcidUtils.ParsedDelta> parsedDeltas = dir.getCurrentDirectories();
+
+    if (parsedDeltas == null || parsedDeltas.size() == 0) {
+      // Seriously, no deltas?  Can't compact that.
+      LOG.error("No delta files found to compact in " + sd.getLocation());
+      return;
+    }
+
+    StringableList deltaDirs = new StringableList();
+    long minTxn = Long.MAX_VALUE;
+    long maxTxn = Long.MIN_VALUE;
+    for (AcidUtils.ParsedDelta delta : parsedDeltas) {
+      LOG.debug("Adding delta " + delta.getPath() + " to directories to search");
+      dirsToSearch.add(delta.getPath());
+      deltaDirs.add(delta.getPath());
+      minTxn = Math.min(minTxn, delta.getMinTransaction());
+      maxTxn = Math.max(maxTxn, delta.getMaxTransaction());
+    }
+
+    if (baseDir != null) job.set(BASE_DIR, baseDir.toString());
+    job.set(DELTA_DIRS, deltaDirs.toString());
+    job.set(DIRS_TO_SEARCH, dirsToSearch.toString());
+    job.setLong(MIN_TXN, minTxn);
+    job.setLong(MAX_TXN, maxTxn);
+    LOG.debug("Setting minimum transaction to " + minTxn);
+    LOG.debug("Setting maximume transaction to " + maxTxn);
+
+    JobClient.runJob(job);
   }
 
   static class CompactorInputSplit implements InputSplit {
@@ -289,6 +288,14 @@ public class CompactorMR<V extends Writable> {
       }
     }
 
+    public void set(CompactorInputSplit other) {
+      length = other.length;
+      locations = other.locations;
+      bucketNum = other.bucketNum;
+      base = other.base;
+      deltas = other.deltas;
+    }
+
     int getBucket() {
       return bucketNum;
     }
@@ -302,72 +309,146 @@ public class CompactorMR<V extends Writable> {
     }
   }
 
-  static class CompactorInputFormat<V extends Writable>
-      implements InputFormat<RecordIdentifier, V> {
+  /**
+   * This input format returns its own input split as a value.  This is because our splits
+   * contain information needed to properly construct the writer.  Crazy, huh?
+   */
+  static class CompactorInputFormat implements InputFormat<NullWritable, CompactorInputSplit> {
 
     @Override
     public InputSplit[] getSplits(JobConf entries, int i) throws IOException {
       Path baseDir = null;
       if (entries.get(BASE_DIR) != null) baseDir = new Path(entries.get(BASE_DIR));
-      StringableList deltaDirs = new StringableList(entries.get(DELTA_DIRS));
+      StringableList tmpDeltaDirs = new StringableList(entries.get(DELTA_DIRS));
+      Path[] deltaDirs = tmpDeltaDirs.toArray(new Path[tmpDeltaDirs.size()]);
       StringableList dirsToSearch = new StringableList(entries.get(DIRS_TO_SEARCH));
+      Map<Integer, List<Path>> splitToBucketMap = new HashMap<Integer, List<Path>>();
+      for (Path dir : dirsToSearch) {
+        FileSystem fs = dir.getFileSystem(entries);
 
-      InputSplit[] splits = new InputSplit[entries.getInt(NUM_BUCKETS, 1)];
-      for (int bucket = 0; bucket < splits.length; bucket++) {
-
-        // Go find the actual files to read.  This will change for each split.
-        List<Path> filesToRead = new ArrayList<Path>();
-        for (Path d : dirsToSearch) {
-          // If this is a base or delta directory, then we need to be looking for a bucket file.
-          // But if it's a legacy file then we need to add it directly.
-          if (d.getName().startsWith(AcidUtils.BASE_PREFIX) ||
-              d.getName().startsWith(AcidUtils.DELTA_PREFIX)) {
-            Path bucketFile = AcidUtils.createBucketFile(d, bucket);
-            filesToRead.add(bucketFile);
-            LOG.debug("Adding " + bucketFile.toString() + " to files to read");
-          } else {
-            filesToRead.add(d);
-            LOG.debug("Adding " + d + " to files to read");
+        // If this is a base or delta directory, then we need to be looking for the bucket files.
+        // But if it's a legacy file then we need to add it directly.
+        if (dir.getName().startsWith(AcidUtils.BASE_PREFIX) ||
+            dir.getName().startsWith(AcidUtils.DELTA_PREFIX)) {
+          FileStatus[] files = fs.listStatus(dir, AcidUtils.bucketFileFilter);
+          for (int j = 0; j < files.length; j++) {
+            // For each file, figure out which bucket it is.
+            Matcher matcher = AcidUtils.BUCKET_DIGIT_PATTERN.matcher(files[j].getPath().getName());
+            addFileToMap(matcher, files[j].getPath(), splitToBucketMap);
           }
+        } else {
+          // Legacy file, see if it's a bucket file
+          Matcher matcher = AcidUtils.LEGACY_BUCKET_DIGIT_PATTERN.matcher(dir.getName());
+          addFileToMap(matcher, dir, splitToBucketMap);
         }
-        splits[bucket] = new CompactorInputSplit(entries, bucket, filesToRead, baseDir,
-            deltaDirs.toArray(new Path[deltaDirs.size()]));
       }
-      LOG.debug("Returning " + splits.length + " splits");
-      return splits;
+      List<InputSplit> splits = new ArrayList<InputSplit>(splitToBucketMap.size());
+      for (Map.Entry<Integer, List<Path>> e : splitToBucketMap.entrySet()) {
+        splits.add(new CompactorInputSplit(entries, e.getKey(), e.getValue(), baseDir, deltaDirs));
+      }
+
+      LOG.debug("Returning " + splits.size() + " splits");
+      return splits.toArray(new InputSplit[splits.size()]);
     }
 
     @Override
-    public RecordReader<RecordIdentifier, V> getRecordReader(InputSplit inputSplit, JobConf entries,
-                                                         Reporter reporter) throws IOException {
-      CompactorInputSplit split = (CompactorInputSplit)inputSplit;
-      AcidInputFormat<V> aif =
-          instantiate(AcidInputFormat.class, entries.get(INPUT_FORMAT_CLASS_NAME));
-      ValidTxnList txnList =
-          new ValidTxnListImpl(entries.get(ValidTxnList.VALID_TXNS_KEY));
-      return aif.getRawReader(entries, entries.getBoolean(IS_MAJOR, false), split.getBucket(),
-          txnList, split.getBaseDir(), split.getDeltaDirs());
+    public RecordReader<NullWritable, CompactorInputSplit> getRecordReader(
+        InputSplit inputSplit,  JobConf entries, Reporter reporter) throws IOException {
+      return new CompactorRecordReader((CompactorInputSplit)inputSplit);
+    }
+
+    private void addFileToMap(Matcher matcher, Path file,
+                              Map<Integer, List<Path>> splitToBucketMap) {
+      if (!matcher.find()) {
+        LOG.warn("Found a non-bucket file that we thought matched the bucket pattern! " +
+            file.toString());
+      }
+      int bucketNum = Integer.valueOf(matcher.group());
+      List<Path> p = splitToBucketMap.get(bucketNum);
+      if (p == null) {
+        p = new ArrayList<Path>();
+        splitToBucketMap.put(bucketNum, p);
+      }
+      LOG.debug("Adding " + file.toString() + " to list of files for splits");
+      p.add(file);
+    }
+  }
+
+  static class CompactorRecordReader
+      implements RecordReader<NullWritable, CompactorInputSplit> {
+    private CompactorInputSplit split;
+
+    CompactorRecordReader(CompactorInputSplit split) {
+      this.split = split;
+    }
+
+    @Override
+    public boolean next(NullWritable key,
+                        CompactorInputSplit compactorInputSplit) throws IOException {
+      if (split != null) {
+        compactorInputSplit.set(split);
+        split = null;
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public NullWritable createKey() {
+      return NullWritable.get();
+    }
+
+    @Override
+    public CompactorInputSplit createValue() {
+      return new CompactorInputSplit();
+    }
+
+    @Override
+    public long getPos() throws IOException {
+      return 0;
+    }
+
+    @Override
+    public void close() throws IOException {
+
+    }
+
+    @Override
+    public float getProgress() throws IOException {
+      return 0;
     }
   }
 
   static class CompactorMap<V extends Writable>
-      implements Mapper<RecordIdentifier, V,  NullWritable,  NullWritable> {
+      implements Mapper<NullWritable, CompactorInputSplit,  NullWritable,  NullWritable> {
 
     JobConf jobConf;
     FSRecordWriter writer;
 
     @Override
-    public void map(RecordIdentifier identifier, V value,
+    public void map(NullWritable key, CompactorInputSplit split,
                     OutputCollector<NullWritable, NullWritable> nullWritableVOutputCollector,
                     Reporter reporter) throws IOException {
-      // After all this setup there's actually almost nothing to do.
-      getWriter(reporter, identifier.getBucketId()); // Make sure we've opened the writer
-      writer.write(value);
-    }
-
-    @Override
-    public void close() throws IOException {
-      if (writer != null) writer.close(false);
+      // This will only get called once, since CompactRecordReader only returns one record,
+      // the input split.
+      // Based on the split we're passed we go instantiate the real reader and then iterate on it
+      // until it finishes.
+      AcidInputFormat aif =
+          instantiate(AcidInputFormat.class, jobConf.get(INPUT_FORMAT_CLASS_NAME));
+      ValidTxnList txnList =
+          new ValidTxnListImpl(jobConf.get(ValidTxnList.VALID_TXNS_KEY));
+      AcidInputFormat.RawReader<V> reader =
+          aif.getRawReader(jobConf, jobConf.getBoolean(IS_MAJOR, false), split.getBucket(),
+              txnList, split.getBaseDir(), split.getDeltaDirs());
+      while (true) {
+        RecordIdentifier identifier = reader.createKey();
+        V value = reader.createValue();
+        if (!reader.next(identifier, value)) break;
+        // Make sure we've opened the writer
+        getWriter(reporter, reader.getObjectInspector(), identifier.getBucketId());
+        writer.write(value);
+        reporter.progress();
+      }
     }
 
     @Override
@@ -375,17 +456,14 @@ public class CompactorMR<V extends Writable> {
       jobConf = entries;
     }
 
-    private void getWriter(Reporter reporter, int bucket) throws IOException {
-      if (writer == null) {
-        AbstractSerDe serde = instantiate(AbstractSerDe.class, jobConf.get(SERDE));
-        ObjectInspector inspector;
-        try {
-          inspector = serde.getObjectInspector();
-        } catch (SerDeException e) {
-          LOG.error("Unable to get object inspector, " + StringUtils.stringifyException(e));
-          throw new IOException(e);
-        }
+    @Override
+    public void close() throws IOException {
+      if (writer != null) writer.close(false);
+    }
 
+    private void getWriter(Reporter reporter, ObjectInspector inspector,
+                           int bucket) throws IOException {
+      if (writer == null) {
         AcidOutputFormat.Options options = new AcidOutputFormat.Options(jobConf);
         options.inspector(inspector)
             .writingBase(jobConf.getBoolean(IS_MAJOR, false))
@@ -404,6 +482,7 @@ public class CompactorMR<V extends Writable> {
         writer = aof.getRawRecordWriter(location, options);
       }
     }
+
   }
 
   static class StringableMap extends HashMap<String, String> {

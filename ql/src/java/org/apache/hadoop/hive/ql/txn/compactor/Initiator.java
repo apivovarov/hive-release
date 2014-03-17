@@ -23,9 +23,16 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
-import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.api.*;
+import org.apache.hadoop.hive.metastore.api.CompactionRequest;
+import org.apache.hadoop.hive.metastore.api.CompactionType;
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.ShowCompactRequest;
+import org.apache.hadoop.hive.metastore.api.ShowCompactResponse;
+import org.apache.hadoop.hive.metastore.api.ShowCompactResponseElement;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
+import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.txn.CompactionInfo;
 import org.apache.hadoop.hive.metastore.txn.TxnHandler;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
@@ -34,8 +41,8 @@ import org.apache.hadoop.util.StringUtils;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A class to initiate compactions.  This will run in a separate thread.
@@ -59,7 +66,10 @@ public class Initiator extends CompactorThread {
       int abortedThreashold = HiveConf.getIntVar(conf,
           HiveConf.ConfVars.HIVE_COMPACTOR_ABORTEDTXN_THRESHOLD);
 
-      while (!stop.boolVal) {
+      // Make sure we run through the loop once before checking to stop as this makes testing
+      // much easier.  The stop value is only for testing anyway and not used when called from
+      // HiveMetaStore.
+      do {
         long startedAt = System.currentTimeMillis();
 
         // Wrap the inner parts of the loop in a catch throwable so that any errors in the loop
@@ -67,7 +77,7 @@ public class Initiator extends CompactorThread {
         try {
           ShowCompactResponse currentCompactions = txnHandler.showCompact(new ShowCompactRequest());
           ValidTxnList txns = TxnHandler.createValidTxnList(txnHandler.getOpenTxns());
-          List<CompactionInfo> potentials = txnHandler.findPotentialCompactions(abortedThreashold);
+          Set<CompactionInfo> potentials = txnHandler.findPotentialCompactions(abortedThreashold);
           LOG.debug("Found " + potentials.size() + " potential compactions, " +
               "checking to see if we should compact any of them");
           for (CompactionInfo ci : potentials) {
@@ -95,11 +105,8 @@ public class Initiator extends CompactorThread {
               StorageDescriptor sd = resolveStorageDescriptor(t, p);
               String runAs = findUserToRunAs(sd.getLocation(), t);
 
-              if (checkForMajor(ci, txns, sd, runAs)) {
-                requestCompaction(ci, runAs, CompactionType.MAJOR);
-              } else if (checkForMinor(ci, txns, sd, runAs)) {
-                requestCompaction(ci, runAs, CompactionType.MINOR);
-              }
+              CompactionType compactionNeeded = checkForCompaction(ci, txns, sd, runAs);
+              if (compactionNeeded != null) requestCompaction(ci, runAs, compactionNeeded);
             } catch (Throwable t) {
               LOG.error("Caught exception while trying to determine if we should compact " +
                   ci.getFullPartitionName() + ".  Marking clean to avoid repeated failures, " +
@@ -119,10 +126,10 @@ public class Initiator extends CompactorThread {
         }
 
         long elapsedTime = System.currentTimeMillis() - startedAt;
-        if (elapsedTime >= checkInterval)  continue;
+        if (elapsedTime >= checkInterval || stop.boolVal)  continue;
         else Thread.sleep(checkInterval - elapsedTime);
 
-      }
+      } while (!stop.boolVal);
     } catch (Throwable t) {
       LOG.error("Caught an exception in the main loop of compactor initiator, exiting " +
           StringUtils.stringifyException(t));
@@ -132,7 +139,8 @@ public class Initiator extends CompactorThread {
   @Override
   public void init(BooleanPointer stop) throws MetaException {
     super.init(stop);
-    checkInterval = HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_CHECK_INTERVAL);
+    checkInterval =
+        HiveConf.getLongVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_CHECK_INTERVAL) * 1000;
   }
 
   private void recoverFailedCompactions(boolean remoteOnly) throws MetaException {
@@ -158,46 +166,48 @@ public class Initiator extends CompactorThread {
     return false;
   }
 
-  private boolean checkForMajor(final CompactionInfo ci,
-                                final ValidTxnList txns,
-                                final StorageDescriptor sd,
-                                String runAs) throws IOException, InterruptedException {
+  private CompactionType checkForCompaction(final CompactionInfo ci,
+                                            final ValidTxnList txns,
+                                            final StorageDescriptor sd,
+                                            String runAs) throws IOException, InterruptedException {
     // If it's marked as too many aborted, we already know we need to compact
     if (ci.tooManyAborts) {
       LOG.debug("Found too many aborted transactions for " + ci.getFullPartitionName() + ", " +
           "initiating major compaction");
-      return true;
+      return CompactionType.MAJOR;
     }
     if (runJobAsSelf(runAs)) {
-      return deltaSizeBigEnough(ci, txns, sd);
+      return determineCompactionType(ci, txns, sd);
     } else {
-      final List<Boolean> hackery = new ArrayList<Boolean>(1);
       UserGroupInformation ugi = UserGroupInformation.createProxyUser(ci.runAs,
         UserGroupInformation.getLoginUser());
-      ugi.doAs(new PrivilegedExceptionAction<Object>() {
+      return ugi.doAs(new PrivilegedExceptionAction<CompactionType>() {
         @Override
-        public Object run() throws Exception {
-          hackery.add(deltaSizeBigEnough(ci, txns, sd));
-          return null;
+        public CompactionType run() throws Exception {
+          return determineCompactionType(ci, txns, sd);
         }
       });
-      return hackery.get(0);
     }
   }
 
-  private boolean deltaSizeBigEnough(CompactionInfo ci,
-                                     ValidTxnList txns,
-                                     StorageDescriptor sd) throws IOException {
+  private CompactionType determineCompactionType(CompactionInfo ci, ValidTxnList txns,
+                                                 StorageDescriptor sd)
+      throws IOException, InterruptedException {
+    boolean noBase = false;
     Path location = new Path(sd.getLocation());
     FileSystem fs = location.getFileSystem(conf);
     AcidUtils.Directory dir = AcidUtils.getAcidState(location, conf, txns);
     Path base = dir.getBaseDirectory();
-    FileStatus stat = fs.getFileStatus(base);
-    if (!stat.isDir()) {
-      LOG.error("Was assuming base " + base.toString() + " is directory, but it's a file!");
-      return false;
+    long baseSize = 0;
+    FileStatus stat = null;
+    if (base != null) {
+      stat = fs.getFileStatus(base);
+      if (!stat.isDir()) {
+        LOG.error("Was assuming base " + base.toString() + " is directory, but it's a file!");
+        return null;
+      }
+      baseSize = sumDirSize(fs, base);
     }
-    long baseSize = sumDirSize(fs, base);
 
     List<FileStatus> originals = dir.getOriginalFiles();
     for (FileStatus origStat : originals) {
@@ -211,26 +221,42 @@ public class Initiator extends CompactorThread {
       if (!stat.isDir()) {
         LOG.error("Was assuming delta " + delta.getPath().toString() + " is a directory, " +
             "but it's a file!");
-        return false;
+        return null;
       }
       deltaSize += sumDirSize(fs, delta.getPath());
     }
 
-    float threshold = HiveConf.getFloatVar(conf,
-        HiveConf.ConfVars.HIVE_COMPACTOR_DELTA_PCT_THRESHOLD);
-    boolean bigEnough =   (float)deltaSize/(float)baseSize > threshold;
-    if (LOG.isDebugEnabled()) {
-      StringBuffer msg = new StringBuffer("delta size: ");
-      msg.append(deltaSize);
-      msg.append(" base size: ");
-      msg.append(baseSize);
-      msg.append(" threshold: ");
-      msg.append(threshold);
-      msg.append(" will major compact: ");
-      msg.append(bigEnough);
-      LOG.debug(msg);
+    if (baseSize == 0 && deltaSize > 0) {
+      noBase = true;
+    } else {
+      float deltaPctThreshold = HiveConf.getFloatVar(conf,
+          HiveConf.ConfVars.HIVE_COMPACTOR_DELTA_PCT_THRESHOLD);
+      boolean bigEnough =   (float)deltaSize/(float)baseSize > deltaPctThreshold;
+      if (LOG.isDebugEnabled()) {
+        StringBuffer msg = new StringBuffer("delta size: ");
+        msg.append(deltaSize);
+        msg.append(" base size: ");
+        msg.append(baseSize);
+        msg.append(" threshold: ");
+        msg.append(deltaPctThreshold);
+        msg.append(" will major compact: ");
+        msg.append(bigEnough);
+        LOG.debug(msg);
+      }
+      if (bigEnough) return CompactionType.MAJOR;
     }
-    return bigEnough;
+
+    int deltaNumThreshold = HiveConf.getIntVar(conf,
+        HiveConf.ConfVars.HIVE_COMPACTOR_DELTA_NUM_THRESHOLD);
+    boolean enough = deltas.size() > deltaNumThreshold;
+    if (enough) {
+      LOG.debug("Found " + deltas.size() + " delta files, threshold is " + deltaNumThreshold +
+          (enough ? "" : "not") + " and no base, requesting " + (noBase ? "major" : "minor") +
+          " compaction");
+      // If there's no base file, do a major compaction
+      return noBase ? CompactionType.MAJOR : CompactionType.MINOR;
+    }
+    return null;
   }
 
   private long sumDirSize(FileSystem fs, Path dir) throws IOException {
@@ -240,41 +266,6 @@ public class Initiator extends CompactorThread {
       size += buckets[i].getLen();
     }
     return size;
-  }
-
-  private boolean checkForMinor(final CompactionInfo ci,
-                                final ValidTxnList txns,
-                                final StorageDescriptor sd,
-                                String runAs) throws IOException, InterruptedException {
-
-    if (runJobAsSelf(runAs)) {
-      return tooManyDeltas(ci, txns, sd);
-    } else {
-      final List<Boolean> hackery = new ArrayList<Boolean>(1);
-      UserGroupInformation ugi = UserGroupInformation.createProxyUser(ci.runAs,
-        UserGroupInformation.getLoginUser());
-      ugi.doAs(new PrivilegedExceptionAction<Object>() {
-        @Override
-        public Object run() throws Exception {
-          hackery.add(tooManyDeltas(ci, txns, sd));
-          return null;
-        }
-      });
-      return hackery.get(0);
-    }
-  }
-
-  private boolean tooManyDeltas(CompactionInfo ci, ValidTxnList txns,
-                                StorageDescriptor sd) throws IOException {
-    Path location = new Path(sd.getLocation());
-
-    AcidUtils.Directory dir = AcidUtils.getAcidState(location, conf, txns);
-    List<AcidUtils.ParsedDelta> deltas = dir.getCurrentDirectories();
-    int threshold = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_COMPACTOR_DELTA_NUM_THRESHOLD);
-    boolean enough = deltas.size() > threshold;
-    LOG.debug("Found " + deltas.size() + " delta files, threshold is " + threshold +
-        (enough ? "" : "not") + " requesting minor compaction");
-    return enough;
   }
 
   private void requestCompaction(CompactionInfo ci, String runAs, CompactionType type) throws MetaException {

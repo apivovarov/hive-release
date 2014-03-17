@@ -50,8 +50,6 @@ public class TestWorker extends CompactorTest {
     // Test that the whole things works when there's nothing in the queue.  This is just a
     // survival test.
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    stopThreads();
   }
 
   @Test
@@ -221,8 +219,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    stopThreads();
 
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
@@ -251,8 +247,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    stopThreads();
 
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
@@ -277,8 +271,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -291,9 +283,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("delta_0000021_0000024")) {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(208L, buckets[0].getLen());
+        Assert.assertEquals(208L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the delta file you are looking for " + stat[i].getPath().getName());
       }
@@ -318,8 +312,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
@@ -332,9 +324,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("delta_0000021_0000024")) {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(208L, buckets[0].getLen());
+        Assert.assertEquals(208L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the delta file you are looking for " + stat[i].getPath().getName());
       }
@@ -358,8 +352,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -372,9 +364,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("delta_0000001_0000004")) {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(208L, buckets[0].getLen());
+        Assert.assertEquals(208L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the delta file you are looking for " + stat[i].getPath().getName());
       }
@@ -399,8 +393,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -413,9 +405,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("base_0000024")) {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(1248L, buckets[0].getLen());
+        Assert.assertEquals(1248L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
@@ -425,6 +419,7 @@ public class TestWorker extends CompactorTest {
 
   @Test
   public void majorPartitionWithBase() throws Exception {
+    LOG.debug("Starting majorPartitionWithBase");
     Table t = newTable("default", "mapwb", true);
     Partition p = newPartition(t, "today");
     HiveConf conf = new HiveConf();
@@ -440,8 +435,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
@@ -454,9 +447,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("base_0000024")) {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(1248L, buckets[0].getLen());
+        Assert.assertEquals(1248L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
@@ -480,8 +475,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -494,9 +487,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("base_0000004")) {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(208L, buckets[0].getLen());
+        Assert.assertEquals(208L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
@@ -521,8 +516,6 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -535,9 +528,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("base_0000024")) {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(1248L, buckets[0].getLen());
+        Assert.assertEquals(1248L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
@@ -562,13 +557,10 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    joinThreads();
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(t.getSd().getLocation()));
-    //Assert.assertEquals(4, stat.length);
 
     // Find the new delta file and make sure it has the right contents
     boolean sawNewDelta = false;
@@ -576,9 +568,11 @@ public class TestWorker extends CompactorTest {
       if (stat[i].getPath().getName().equals("delta_0000021_0000024")) {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
-        Assert.assertEquals(1, buckets.length);
+        Assert.assertEquals(2, buckets.length);
         Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
         Assert.assertEquals(208L, buckets[0].getLen());
+        Assert.assertEquals(208L, buckets[1].getLen());
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
@@ -586,14 +580,49 @@ public class TestWorker extends CompactorTest {
     Assert.assertTrue(sawNewDelta);
   }
 
+  @Test
+  public void majorPartitionWithBaseMissingBuckets() throws Exception {
+    Table t = newTable("default", "mapwbmb", true);
+    Partition p = newPartition(t, "today");
+    HiveConf conf = new HiveConf();
+
+    addBaseFile(conf, t, p, 20L, 20, 2, false);
+    addDeltaFile(conf, t, p, 21L, 22L, 2, 2, false);
+    addDeltaFile(conf, t, p, 23L, 24L, 2);
+
+    burnThroughTransactions(25);
+
+    CompactionRequest rqst = new CompactionRequest("default", "mapwbmb", CompactionType.MAJOR);
+    rqst.setPartitionname("ds=today");
+    txnHandler.compact(rqst);
+
+    startWorker(new HiveConf());
+
+    // There should still be four directories in the location.
+    FileSystem fs = FileSystem.get(conf);
+    FileStatus[] stat = fs.listStatus(new Path(p.getSd().getLocation()));
+    Assert.assertEquals(4, stat.length);
+
+    // Find the new delta file and make sure it has the right contents
+    boolean sawNewBase = false;
+    for (int i = 0; i < stat.length; i++) {
+      if (stat[i].getPath().getName().equals("base_0000024")) {
+        sawNewBase = true;
+        FileStatus[] buckets = fs.listStatus(stat[i].getPath());
+        Assert.assertEquals(2, buckets.length);
+        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
+        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertEquals(104L, buckets[0].getLen());
+        Assert.assertEquals(1248L, buckets[1].getLen());
+      } else {
+        LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
+      }
+    }
+    Assert.assertTrue(sawNewBase);
+  }
+
   @Before
   public void setUpTxnDb() throws Exception {
     TxnDbUtil.setConfValues(new HiveConf());
-    //TxnDbUtil.prepDb();
-  }
-
-  @After
-  public void tearDownTxnDb() throws Exception {
-    //TxnDbUtil.cleanDb();
   }
 }

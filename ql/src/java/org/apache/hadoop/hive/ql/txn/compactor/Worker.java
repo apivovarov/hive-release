@@ -20,8 +20,11 @@ package org.apache.hadoop.hive.ql.txn.compactor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.common.ValidTxnList;
-import org.apache.hadoop.hive.common.ValidTxnListImpl;
-import org.apache.hadoop.hive.metastore.api.*;
+import org.apache.hadoop.hive.metastore.api.CompactionType;
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
+import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.txn.CompactionInfo;
 import org.apache.hadoop.hive.metastore.txn.TxnHandler;
 import org.apache.hadoop.io.Text;
@@ -30,7 +33,7 @@ import org.apache.hadoop.util.StringUtils;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 
 /**
  * A class to do compactions.  This will run in a separate thread.  It will spin on the
@@ -63,10 +66,10 @@ public class Worker extends CompactorThread {
     // Make sure nothing escapes this run method and kills the metastore at large,
     // so wrap it in a big catch Throwable statement.
     try {
-      while (!stop.boolVal) {
+      do {
         CompactionInfo ci = txnHandler.findNextToCompact(name);
 
-        if (ci == null) {
+        if (ci == null && !stop.boolVal) {
           try {
             Thread.sleep(SLEEP_TIME);
             continue;
@@ -126,26 +129,31 @@ public class Worker extends CompactorThread {
         LOG.info("Starting " + ci.type.toString() + " compaction for " +
             ci.getFullPartitionName());
 
-        final CompactorMR<Text> mr = new CompactorMR<Text>();
-        if (runJobAsSelf(runAs)) {
-          mr.run(conf, jobName.toString(), t, sd, txns, isMajor);
-        } else {
-          UserGroupInformation ugi = UserGroupInformation.createProxyUser(t.getOwner(),
-            UserGroupInformation.getLoginUser());
-          ugi.doAs(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-              mr.run(conf, jobName.toString(), t, sd, txns, isMajor);
-              return null;
-            }
-          });
+        final CompactorMR mr = new CompactorMR();
+        try {
+          if (runJobAsSelf(runAs)) {
+            mr.run(conf, jobName.toString(), t, sd, txns, isMajor);
+          } else {
+            UserGroupInformation ugi = UserGroupInformation.createProxyUser(t.getOwner(),
+              UserGroupInformation.getLoginUser());
+            ugi.doAs(new PrivilegedExceptionAction<Object>() {
+              @Override
+              public Object run() throws Exception {
+                mr.run(conf, jobName.toString(), t, sd, txns, isMajor);
+                return null;
+              }
+            });
+          }
+        } catch (Exception e) {
+          LOG.error("Caught exception while trying to compact " + ci.getFullPartitionName() +
+              ".  Marking clean to avoid repeated failures, " + StringUtils.stringifyException(e));
+          txnHandler.markCleaned(ci);
         }
-      }
+      } while (!stop.boolVal);
     } catch (Throwable t) {
       LOG.error("Caught an exception in the main loop of compactor worker " + name +
           ", exiting " + StringUtils.stringifyException(t));
     }
-
   }
 
   @Override

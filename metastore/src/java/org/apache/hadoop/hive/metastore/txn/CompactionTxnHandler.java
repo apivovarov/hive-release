@@ -44,16 +44,18 @@ public class CompactionTxnHandler extends TxnHandler {
    * aborted transactions that we should add to the list.
    * @param maxAborted Maximum number of aborted queries to allow before marking this as a
    *                   potential compaction.
-   * @return list of CompactionInfo structs.  These will not have id, type,
-   * or runAs set since these are only potential compactions not actual ones.
+   * @return set of CompactionInfo structs.  These will not have id, type,
+   * or runAs set since these are only potential compactions not actual ones.  Returned as a set
+   * to avoid duplicates when the same partition is selected multiple times
    */
-  public List<CompactionInfo> findPotentialCompactions(int maxAborted) throws MetaException {
+  public Set<CompactionInfo> findPotentialCompactions(int maxAborted) throws MetaException {
     Connection dbConn = getDbConn();
-    List<CompactionInfo> response = new ArrayList<CompactionInfo>();
+    Set<CompactionInfo> response = new HashSet<CompactionInfo>();
     try {
       Statement stmt = dbConn.createStatement();
       // Check for completed transactions
-      String s = "select ctc_database, ctc_table, ctc_partition from COMPLETED_TXN_COMPONENTS";
+      String s = "select distinct ctc_database, ctc_table, " +
+          "ctc_partition from COMPLETED_TXN_COMPONENTS";
       LOG.debug("Going to execute query <" + s + ">");
       ResultSet rs = stmt.executeQuery(s);
       while (rs.next()) {
@@ -64,7 +66,8 @@ public class CompactionTxnHandler extends TxnHandler {
         response.add(info);
       }
 
-      s = "select tc_database, tc_table, tc_partition " +
+      // Check for aborted txns
+      s = "select distinct tc_database, tc_table, tc_partition " +
           "from TXNS, TXN_COMPONENTS " +
           "where txn_id = tc_txnid and txn_state = '" + TXN_ABORTED + "' " +
           "group by tc_database, tc_table, tc_partition " +

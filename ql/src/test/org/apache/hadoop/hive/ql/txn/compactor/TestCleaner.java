@@ -43,8 +43,6 @@ public class TestCleaner extends CompactorTest {
     // Test that the whole things works when there's nothing in the queue.  This is just a
     // survival test.
     startCleaner(new HiveConf());
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
-    stopThreads();
   }
 
   @Test
@@ -67,7 +65,6 @@ public class TestCleaner extends CompactorTest {
     txnHandler.setRunAs(ci.id, System.getProperty("user.name"));
 
     startCleaner(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     // Check there are no compactions requests left.
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
@@ -77,7 +74,6 @@ public class TestCleaner extends CompactorTest {
     List<Path> paths = getDirectories(conf, t, null);
     Assert.assertEquals(1, paths.size());
     Assert.assertEquals("base_25", paths.get(0).getName());
-    stopThreads();
   }
 
   @Test
@@ -102,7 +98,6 @@ public class TestCleaner extends CompactorTest {
     txnHandler.setRunAs(ci.id, System.getProperty("user.name"));
 
     startCleaner(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     // Check there are no compactions requests left.
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
@@ -112,7 +107,6 @@ public class TestCleaner extends CompactorTest {
     List<Path> paths = getDirectories(conf, t, p);
     Assert.assertEquals(1, paths.size());
     Assert.assertEquals("base_25", paths.get(0).getName());
-    stopThreads();
   }
 
   @Test
@@ -135,7 +129,6 @@ public class TestCleaner extends CompactorTest {
     txnHandler.setRunAs(ci.id, System.getProperty("user.name"));
 
     startCleaner(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     // Check there are no compactions requests left.
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
@@ -152,7 +145,6 @@ public class TestCleaner extends CompactorTest {
     }
     Assert.assertTrue(sawBase);
     Assert.assertTrue(sawDelta);
-    stopThreads();
   }
 
   @Test
@@ -177,7 +169,6 @@ public class TestCleaner extends CompactorTest {
     txnHandler.setRunAs(ci.id, System.getProperty("user.name"));
 
     startCleaner(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     // Check there are no compactions requests left.
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
@@ -194,7 +185,6 @@ public class TestCleaner extends CompactorTest {
     }
     Assert.assertTrue(sawBase);
     Assert.assertTrue(sawDelta);
-    stopThreads();
   }
 
   @Test
@@ -224,7 +214,6 @@ public class TestCleaner extends CompactorTest {
     LockResponse res = txnHandler.lock(req);
 
     startCleaner(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     // Check there are no compactions requests left.
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
@@ -233,7 +222,6 @@ public class TestCleaner extends CompactorTest {
     Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
     Assert.assertEquals("bblt", compacts.get(0).getTablename());
     Assert.assertEquals(CompactionType.MINOR, compacts.get(0).getType());
-    stopThreads();
   }
 
   @Test
@@ -266,7 +254,6 @@ public class TestCleaner extends CompactorTest {
     LockResponse res = txnHandler.lock(req);
 
     startCleaner(conf);
-    Thread.sleep(sleepTime); // should be long enough to get through the loop
 
     // Check there are no compactions requests left.
     ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
@@ -276,17 +263,42 @@ public class TestCleaner extends CompactorTest {
     Assert.assertEquals("bblp", compacts.get(0).getTablename());
     Assert.assertEquals("ds=today", compacts.get(0).getPartitionname());
     Assert.assertEquals(CompactionType.MINOR, compacts.get(0).getType());
-    stopThreads();
+  }
+
+  @Test
+  public void cleanupAfterMajorPartitionCompactionNoBase() throws Exception {
+    Table t = newTable("default", "campcnb", true);
+    Partition p = newPartition(t, "today");
+
+    HiveConf conf = new HiveConf();
+
+    addDeltaFile(conf, t, p, 1L, 22L, 22);
+    addDeltaFile(conf, t, p, 23L, 24L, 2);
+    addBaseFile(conf, t, p, 25L, 25);
+
+    burnThroughTransactions(25);
+
+    CompactionRequest rqst = new CompactionRequest("default", "campcnb", CompactionType.MAJOR);
+    rqst.setPartitionname("ds=today");
+    txnHandler.compact(rqst);
+    CompactionInfo ci = txnHandler.findNextToCompact("fred");
+    txnHandler.markCompacted(ci);
+    txnHandler.setRunAs(ci.id, System.getProperty("user.name"));
+
+    startCleaner(conf);
+
+    // Check there are no compactions requests left.
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    Assert.assertNull(rsp.getCompacts());
+
+    // Check that the files are removed
+    List<Path> paths = getDirectories(conf, t, p);
+    Assert.assertEquals(1, paths.size());
+    Assert.assertEquals("base_25", paths.get(0).getName());
   }
 
   @Before
   public void setUpTxnDb() throws Exception {
     TxnDbUtil.setConfValues(new HiveConf());
-    //TxnDbUtil.prepDb();
-  }
-
-  @After
-  public void tearDownTxnDb() throws Exception {
-    //TxnDbUtil.cleanDb();
   }
 }

@@ -36,7 +36,7 @@ public class CompactionInfo {
 
   public String getFullPartitionName() {
     if (fullPartitionName == null) {
-      StringBuffer buf = new StringBuffer(dbname);
+      StringBuilder buf = new StringBuilder(dbname);
       buf.append('.');
       buf.append(tableName);
       if (partName != null) {
@@ -50,11 +50,28 @@ public class CompactionInfo {
 
   public String getFullTableName() {
     if (fullTableName == null) {
-      StringBuffer buf = new StringBuffer(dbname);
+      StringBuilder buf = new StringBuilder(dbname);
       buf.append('.');
       buf.append(tableName);
       fullTableName = buf.toString();
     }
     return fullTableName;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof CompactionInfo)) return false;
+    CompactionInfo other = (CompactionInfo)o;
+    if (!dbname.equals(other.dbname)) return false;
+    if (!tableName.equals(other.tableName)) return false;
+    if (partName != null) return partName.equals(other.partName);
+    else return other.partName == null;
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = dbname.hashCode() ^ tableName.hashCode();
+    if (partName != null) hash ^= partName.hashCode();
+    return hash;
   }
 }

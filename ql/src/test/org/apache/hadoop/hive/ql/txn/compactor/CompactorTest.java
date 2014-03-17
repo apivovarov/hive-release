@@ -44,6 +44,7 @@ import org.apache.hadoop.mapred.*;
 import org.apache.hadoop.util.Progressable;
 import org.apache.thrift.TException;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -64,7 +65,6 @@ public abstract class CompactorTest {
   protected IMetaStoreClient ms;
   protected long sleepTime = 1000;
 
-  private List<Thread> threads = new ArrayList<Thread>();
   private MetaStoreThread.BooleanPointer stop = new MetaStoreThread.BooleanPointer();
   private File tmpdir;
 
@@ -90,16 +90,6 @@ public abstract class CompactorTest {
 
   protected void startCleaner(HiveConf conf) throws Exception {
     startThread('c', conf);
-  }
-
-  protected void stopThreads() throws Exception {
-    stop.boolVal = true;
-    for (Thread t : threads) t.interrupt();
-  }
-
-  protected void joinThreads() throws Exception {
-    stop.boolVal = true;
-    for (Thread t : threads) t.join();
   }
 
   protected Table newTable(String dbName, String tableName, boolean partitioned) throws TException {
@@ -155,17 +145,35 @@ public abstract class CompactorTest {
 
   protected void addDeltaFile(HiveConf conf, Table t, Partition p, long minTxn, long maxTxn,
                               int numRecords) throws Exception{
-    addFile(conf, t, p, minTxn, maxTxn, numRecords, FileType.DELTA);
+    addFile(conf, t, p, minTxn, maxTxn, numRecords, FileType.DELTA, 2, true);
   }
 
   protected void addBaseFile(HiveConf conf, Table t, Partition p, long maxTxn,
                              int numRecords) throws Exception{
-    addFile(conf, t, p, 0, maxTxn, numRecords, FileType.BASE);
+    addFile(conf, t, p, 0, maxTxn, numRecords, FileType.BASE, 2, true);
   }
 
   protected void addLegacyFile(HiveConf conf, Table t, Partition p,
                                int numRecords) throws Exception {
-    addFile(conf, t, p, 0, 0, numRecords, FileType.LEGACY);
+    addFile(conf, t, p, 0, 0, numRecords, FileType.LEGACY, 2, true);
+  }
+
+  protected void addDeltaFile(HiveConf conf, Table t, Partition p, long minTxn, long maxTxn,
+                              int numRecords, int numBuckets, boolean allBucketsPresent)
+      throws Exception {
+    addFile(conf, t, p, minTxn, maxTxn, numRecords, FileType.DELTA, numBuckets, allBucketsPresent);
+  }
+
+  protected void addBaseFile(HiveConf conf, Table t, Partition p, long maxTxn,
+                             int numRecords, int numBuckets, boolean allBucketsPresent)
+      throws Exception {
+    addFile(conf, t, p, 0, maxTxn, numRecords, FileType.BASE, numBuckets, allBucketsPresent);
+  }
+
+  protected void addLegacyFile(HiveConf conf, Table t, Partition p,
+                               int numRecords, int numBuckets, boolean allBucketsPresent)
+      throws Exception {
+    addFile(conf, t, p, 0, 0, numRecords, FileType.LEGACY, numBuckets, allBucketsPresent);
   }
 
   protected List<Path> getDirectories(HiveConf conf, Table t, Partition p) throws Exception {
@@ -195,7 +203,7 @@ public abstract class CompactorTest {
     sd.setOutputFormat(MockOutputFormat.class.getName());
     sd.setNumBuckets(1);
     SerDeInfo serde = new SerDeInfo();
-    serde.setName(LazySimpleSerDe.class.getName());
+    serde.setSerializationLib(LazySimpleSerDe.class.getName());
     sd.setSerdeInfo(serde);
     List<String> bucketCols = new ArrayList<String>(1);
     bucketCols.add("a");
@@ -218,11 +226,11 @@ public abstract class CompactorTest {
       case 'c': t = new Cleaner(); break;
       default: throw new RuntimeException("Huh? Unknown thread type.");
     }
-    threads.add(t);
     t.setThreadId((int) t.getId());
     t.setHiveConf(conf);
+    stop.boolVal = true;
     t.init(stop);
-    t.start();
+    t.run();
   }
 
   private String getLocation(String tableName, String partValue) {
@@ -237,30 +245,36 @@ public abstract class CompactorTest {
   private enum FileType {BASE, DELTA, LEGACY};
 
   private void addFile(HiveConf conf, Table t, Partition p, long minTxn, long maxTxn,
-                       int numRecords,  FileType type) throws Exception {
+                       int numRecords,  FileType type, int numBuckets,
+                       boolean allBucketsPresent) throws Exception {
     String partValue = (p == null) ? null : p.getValues().get(0);
     Path location = new Path(getLocation(t.getTableName(), partValue));
     String filename = null;
     switch (type) {
       case BASE: filename = "base_" + maxTxn; break;
       case DELTA: filename = "delta_" + minTxn + "_" + maxTxn; break;
-      case LEGACY: filename = "00000_0";
+      case LEGACY: break; // handled below
     }
 
     FileSystem fs = FileSystem.get(conf);
-    Path partFile = null;
-    if (type == FileType.LEGACY) {
-      partFile = new Path(location, filename);
-    } else {
-      Path dir = new Path(location, filename);
-      fs.mkdirs(dir);
-      partFile = new Path(dir, "bucket_00000");
+    for (int bucket = 0; bucket < numBuckets; bucket++) {
+      if (bucket == 0 && !allBucketsPresent) continue; // skip one
+      Path partFile = null;
+      if (type == FileType.LEGACY) {
+        partFile = new Path(location, String.format(AcidUtils.BUCKET_DIGITS, bucket) + "_0");
+      } else {
+        Path dir = new Path(location, filename);
+        fs.mkdirs(dir);
+        partFile = AcidUtils.createBucketFile(dir, bucket);
+      }
+      FSDataOutputStream out = fs.create(partFile);
+      for (int i = 0; i < numRecords; i++) {
+        RecordIdentifier ri = new RecordIdentifier(maxTxn - 1, bucket, i);
+        ri.write(out);
+        out.writeBytes("mary had a little lamb its fleece was white as snow\n");
+      }
+      out.close();
     }
-    FSDataOutputStream out = fs.create(partFile);
-    for (int i = 0; i < numRecords; i++) {
-      out.writeBytes("mary had a little lamb its fleece was white as snow\n");
-    }
-    out.close();
   }
 
   static class MockInputFormat implements AcidInputFormat<Text> {
@@ -337,7 +351,12 @@ public abstract class CompactorTest {
         LOG.debug("Reading records from " + p.toString());
         is = fs.open(p);
       }
-      String line = is.readLine();
+      String line = null;
+      try {
+        identifier.readFields(is);
+        line = is.readLine();
+      } catch (EOFException e) {
+      }
       if (line == null) {
         // Set our current entry to null (since it's done) and try again.
         is = null;
@@ -373,6 +392,9 @@ public abstract class CompactorTest {
     }
   }
 
+  // This class isn't used and I suspect does totally the wrong thing.  It's only here so that I
+  // can provide some output format to the tables and partitions I create.  I actually write to
+  // those tables directory.
   static class MockOutputFormat implements AcidOutputFormat<Text> {
 
     @Override
@@ -408,6 +430,9 @@ public abstract class CompactorTest {
     }
   }
 
+  // This class isn't used and I suspect does totally the wrong thing.  It's only here so that I
+  // can provide some output format to the tables and partitions I create.  I actually write to
+  // those tables directory.
   static class MockRecordWriter implements FSRecordWriter {
     private FSDataOutputStream os;
 
