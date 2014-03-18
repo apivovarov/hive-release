@@ -70,13 +70,12 @@ public class ValidTxnListImpl implements ValidTxnList {
     }
 
     if (count == 0) {
-      if (highWatermark >= maxTxnId) {
-        return RangeResponse.ALL;
-      }
+      return RangeResponse.ALL;
     } else if (count == (maxTxnId - minTxnId + 1)) {
       return RangeResponse.NONE;
+    } else {
+      return RangeResponse.SOME;
     }
-    return RangeResponse.SOME;
   }
 
   @Override
