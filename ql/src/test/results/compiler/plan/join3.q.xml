@@ -555,9 +555,6 @@
              </void> 
             </object> 
            </void> 
-           <void property="inputAlias"> 
-            <string>src2</string> 
-           </void> 
            <void property="operatorId"> 
             <string>RS_4</string> 
            </void> 
@@ -861,9 +858,6 @@
               </object> 
              </void> 
             </object> 
-           </void> 
-           <void property="inputAlias"> 
-            <string>src3</string> 
            </void> 
            <void property="operatorId"> 
             <string>RS_5</string> 
@@ -1169,9 +1163,6 @@
               </object> 
              </void> 
             </object> 
-           </void> 
-           <void property="inputAlias"> 
-            <string>src1</string> 
            </void> 
            <void property="operatorId"> 
             <string>RS_3</string> 
