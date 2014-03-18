@@ -36,12 +36,12 @@ setlocal enabledelayedexpansion
   @rem Compute the classpath
   @rem
   @rem webhcat depends on WEBHCAT_CONF_DIR env variable being set
-  set WEBHCAT_CONF_DIR=%HCATALOG_HOME%\etc\webhcat
-  set TEMPLETON_CLASSPATH=%WEBHCAT_CONF_DIR%;%HCATALOG_HOME%;%HCATALOG_HOME%\share\webhcat\svr;%HCATALOG_HOME%\conf
+  set WEBHCAT_CONF_DIR=%HCAT_HOME%\etc\webhcat
+  set TEMPLETON_CLASSPATH=%WEBHCAT_CONF_DIR%;%HCAT_HOME%;%HCAT_HOME%\share\webhcat\svr;%HCAT_HOME%\conf
 
-  set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HCATALOG_HOME%\share\hcatalog\*
-  set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HCATALOG_HOME%\share\webhcat\svr\*
-  set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HCATALOG_HOME%\share\webhcat\svr\lib\*
+  set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HCAT_HOME%\share\hcatalog\*
+  set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HCAT_HOME%\share\webhcat\svr\*
+  set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HCAT_HOME%\share\webhcat\svr\lib\*
   set TEMPLETON_CLASSPATH=!TEMPLETON_CLASSPATH!;%HIVE_HOME%\lib\*
   @rem TODO: append hcat classpath to the templeton classpath
   @rem append hadoop classpath
@@ -49,7 +49,7 @@ setlocal enabledelayedexpansion
 
   @rem compute templeton ops
   if not defined TEMPLETON_LOG_DIR (
-    set TEMPLETON_LOG_DIR=%HCATALOG_HOME%\logs
+    set TEMPLETON_LOG_DIR=%HCAT_HOME%\logs
   )
 
   if not defined TEMPLETON_LOG4J (

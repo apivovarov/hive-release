@@ -154,11 +154,11 @@ function Install(
         [Environment]::SetEnvironmentVariable( "WEBHCAT_CONF_DIR", "$webhcatConfDir", [EnvironmentVariableTarget]::Machine )
 
         ###
-        ### Set HCATALOG_HOME environment variable
+        ### Set HCAT_HOME environment variable
         ###
-        Write-Log "Setting the HCATALOG_HOME environment variable at machine scope to `"$hcatInstallPath`""
-        [Environment]::SetEnvironmentVariable("HCATALOG_HOME", $hcatInstallPath, [EnvironmentVariableTarget]::Machine)
-        $ENV:HCATALOG_HOME = "$hcatInstallPath"
+        Write-Log "Setting the HCAT_HOME environment variable at machine scope to `"$hcatInstallPath`""
+        [Environment]::SetEnvironmentVariable("HCAT_HOME", $hcatInstallPath, [EnvironmentVariableTarget]::Machine)
+        $ENV:HCAT_HOME = "$hcatInstallPath"
         Write-Log "Copying template files"
         $xcopy_cmd = "xcopy /EIYF `"$HDP_INSTALL_PATH\..\template\conf\*`" `"$installToDir\etc\webhcat`""
         Invoke-CmdChk $xcopy_cmd
@@ -311,9 +311,9 @@ function Uninstall(
         $cmd = "rd /s /q `"$installToDir`""
         Invoke-Cmd $cmd
 
-        ### Removing HCATALOG_HOME environment variable
-        Write-Log "Removing the HCATALOG_HOME environment variable"
-        [Environment]::SetEnvironmentVariable( "HCATALOG_HOME", $null, [EnvironmentVariableTarget]::Machine )
+        ### Removing HCAT_HOME environment variable
+        Write-Log "Removing the HCAT_HOME environment variable"
+        [Environment]::SetEnvironmentVariable( "HCAT_HOME", $null, [EnvironmentVariableTarget]::Machine )
 
         Write-Log "Successfully uninstalled Hcatalog"
 

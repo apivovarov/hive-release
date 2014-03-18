@@ -31,6 +31,8 @@ function Main( $scriptDir )
     Write-Log "Uninstalling Apache hcatalog $FinalName"
 
     Uninstall "hcatalog" $ENV:HADOOP_NODE_INSTALL_ROOT
+    [Environment]::SetEnvironmentVariable( "HCAT_HOME", $null, [EnvironmentVariableTarget]::Machine )
+    [Environment]::SetEnvironmentVariable( "HCATALOG_HOME", $null, [EnvironmentVariableTarget]::Machine )
     Write-Log "Finished Uninstalling Apache hcatalog"
 
     ###

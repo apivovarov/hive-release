@@ -33,7 +33,7 @@
   <li>Download and unpack the HCatalog distribution.</li>
   <li>Set the <code>TEMPLETON_HOME</code> environment variable to the base of the
       HCatalog REST server installation.  This will usually be same as
-       <code>HCATALOG_HOME</code>.
+       <code>HCAT_HOME</code>.
       This is used to find the Templeton
       configuration.</li>
   <li>Set JAVA_HOME,HADOOP_PREFIX, and HIVE_HOME environment variables</li>

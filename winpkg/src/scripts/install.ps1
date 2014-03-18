@@ -109,11 +109,11 @@ function Main( $scriptDir )
     Write-Log "Installing Hcatalog"
 
     $FinalName = "hcatalog"
-    $ENV:HCATALOG_HOME = Join-Path $env:HIVE_HOME "$FinalName"
+    $ENV:HCAT_HOME = Join-Path $env:HIVE_HOME "$FinalName"
     ###
     ### Install webhcat
     ###
-    $ENV:TEMPLETON_HOME = "$ENV:HCATALOG_HOME"
+    $ENV:TEMPLETON_HOME = "$ENV:HCAT_HOME"
     $ENV:TEMPLETON_LOG_DIR="$ENV:HDP_LOG_DIR\webhcat"
     Write-Log "Setting TEMPLETON_LOG_DIR to $ENV:TEMPLETON_LOG_DIR at machine scope"
     [Environment]::SetEnvironmentVariable( "TEMPLETON_LOG_DIR", "$ENV:TEMPLETON_LOG_DIR", [EnvironmentVariableTarget]::Machine )

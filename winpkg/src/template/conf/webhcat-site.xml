@@ -45,7 +45,7 @@ limitations under the License.
 
   <property>
     <name>templeton.hcat</name>
-    <value>${env.HCATALOG_HOME}/bin/hcat.py</value>
+    <value>${env.HCAT_HOME}/bin/hcat.py</value>
     <description>The path to the hcatalog executable.</description>
   </property>
 
