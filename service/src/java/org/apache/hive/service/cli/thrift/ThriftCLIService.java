@@ -234,10 +234,9 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
    */
   SessionHandle getSessionHandle(TOpenSessionReq req, TOpenSessionResp res)
       throws HiveSQLException, LoginException, IOException {
-
     String userName = getUserName(req);
-    TProtocolVersion protocol = getMinVersion(CLIService.SERVER_VERSION, req.getClient_protocol());
-
+    TProtocolVersion protocol = getMinVersion(CLIService.SERVER_VERSION,
+        req.getClient_protocol());
     SessionHandle sessionHandle;
     if (cliService.getHiveConf().getBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS) &&
         (userName != null)) {

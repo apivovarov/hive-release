@@ -43,7 +43,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
@@ -193,8 +192,8 @@ public interface HadoopShims {
    * @param groupNames group names associated with remote user name
    * @return UGI created for the remote user.
    */
-
   public UserGroupInformation createRemoteUser(String userName, List<String> groupNames);
+
   /**
    * Get the short name corresponding to the subject in the passed UGI
    *
@@ -240,7 +239,7 @@ public interface HadoopShims {
    * @throws IOException
    */
   public void setTokenStr(UserGroupInformation ugi, String tokenStr, String tokenService)
-    throws IOException;
+      throws IOException;
 
   /**
    * Add given service to the string format token
@@ -250,7 +249,7 @@ public interface HadoopShims {
    * @throws IOException
    */
   public String addServiceToToken(String tokenStr, String tokenService)
-    throws IOException;
+      throws IOException;
 
   enum JobTrackerState { INITIALIZING, RUNNING };
 
@@ -450,7 +449,7 @@ public interface HadoopShims {
    * @throws IOException
    */
   List<FileStatus> listLocatedStatus(FileSystem fs, Path path,
-                                     PathFilter filter) throws IOException;
+      PathFilter filter) throws IOException;
 
   /**
    * For file status returned by listLocatedStatus, convert them into a list
@@ -608,7 +607,7 @@ public interface HadoopShims {
   }
 
   public DirectDecompressorShim getDirectDecompressor(DirectCompressionType codec);
-  
+
   /**
    * Get configuration from JobContext
    */

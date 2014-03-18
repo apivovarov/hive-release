@@ -121,6 +121,8 @@ public class VectorGroupByOperator extends GroupByOperator {
   
   private transient SoftReference<Object> gcCanary = new SoftReference<Object>(new Object());
 
+  private transient long gcCanaryFlushes = 0L;
+
   /**
    * The global key-aggregation hash map.
    */
@@ -252,6 +254,7 @@ public class VectorGroupByOperator extends GroupByOperator {
       flush(false);
       
       if(gcCanary.get() == null) {
+        gcCanaryFlushes++;
         gcCanary = new SoftReference<Object>(new Object()); 
       }
       //Validate that some progress is being made
@@ -287,11 +290,11 @@ public class VectorGroupByOperator extends GroupByOperator {
     int entriesFlushed = 0;
 
     if (LOG.isDebugEnabled()) {
-      LOG.debug(String.format("Flush %d %s entries:%d fixed:%d variable:%d (used:%dMb max:%dMb)",
+      LOG.debug(String.format("Flush %d %s entries:%d fixed:%d variable:%d (used:%dMb max:%dMb gcCanary: %s)",
           entriesToFlush, all ? "(all)" : "",
           numEntriesHashTable, fixedHashEntrySize, avgVariableSize,
           numEntriesHashTable * (fixedHashEntrySize + avgVariableSize)/1024/1024,
-          maxHashTblMemory/1024/1024));
+          maxHashTblMemory/1024/1024, gcCanary.get() == null ? "dead" : "alive"));
     }
 
     Object[] forwardCache = new Object[keyExpressions.length + aggregators.length];
@@ -451,6 +454,9 @@ public class VectorGroupByOperator extends GroupByOperator {
 
   @Override
   public void closeOp(boolean aborted) throws HiveException {
+    if(LOG.isDebugEnabled()) {
+      LOG.debug(String.format("GC canary caused %d flushes", gcCanaryFlushes));
+    }
     if (!aborted) {
       flush(true);
     }

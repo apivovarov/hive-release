@@ -1,4 +1,4 @@
-/**
+	/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -68,7 +68,6 @@ public class CLIService extends CompositeService implements ICLIService {
   private IMetaStoreClient metastoreClient;
   private UserGroupInformation serviceUGI;
 
-
   public CLIService() {
     super("CLIService");
   }
@@ -76,7 +75,6 @@ public class CLIService extends CompositeService implements ICLIService {
   @Override
   public synchronized void init(HiveConf hiveConf) {
     this.hiveConf = hiveConf;
-
     sessionManager = new SessionManager();
     addService(sessionManager);
     /**
@@ -452,7 +450,7 @@ public class CLIService extends CompositeService implements ICLIService {
   public void cancelDelegationToken(SessionHandle sessionHandle, HiveAuthFactory authFactory,
       String tokenStr) throws HiveSQLException {
     sessionManager.getSession(sessionHandle).
-        cancelDelegationToken(authFactory, tokenStr);
+    cancelDelegationToken(authFactory, tokenStr);
     LOG.info(sessionHandle  + ": cancelDelegationToken()");
   }
 

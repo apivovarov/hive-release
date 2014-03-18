@@ -16,37 +16,42 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.exec.vector.expressions;
+package org.apache.hadoop.hive.ql.plan;
 
-import org.apache.hadoop.io.Text;
+import java.io.Serializable;
 
-import java.sql.Date;
+import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.tableSpec;
 
-public class VectorUDFDateString extends StringUnaryUDF {
+/**
+ * Client-side stats aggregator task.
+ */
+@Explain(displayName = "Stats-Aggr Operator")
+public class StatsNoJobWork implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  public VectorUDFDateString(int colNum, int outputColumn) {
-    super(colNum, outputColumn, new StringUnaryUDF.IUDFUnaryString() {
-      Text t = new Text();
+  private tableSpec tableSpecs;
+  private boolean statsReliable;
 
-      @Override
-      public Text evaluate(Text s) {
-        if (s == null) {
-          return null;
-        }
-        try {
-          Date date = Date.valueOf(s.toString());
-          t.set(date.toString());
-          return t;
-        } catch (IllegalArgumentException e) {
-          e.printStackTrace();
-          return null;
-        }
-      }
-    });
+  public StatsNoJobWork() {
   }
 
-  public VectorUDFDateString() {
-    super();
+  public StatsNoJobWork(tableSpec tableSpecs) {
+    this.tableSpecs = tableSpecs;
+  }
+
+  public StatsNoJobWork(boolean statsReliable) {
+    this.statsReliable = statsReliable;
+  }
+
+  public tableSpec getTableSpecs() {
+    return tableSpecs;
+  }
+
+  public boolean isStatsReliable() {
+    return statsReliable;
+  }
+
+  public void setStatsReliable(boolean statsReliable) {
+    this.statsReliable = statsReliable;
   }
 }

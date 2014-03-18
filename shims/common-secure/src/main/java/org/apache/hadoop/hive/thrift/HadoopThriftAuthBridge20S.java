@@ -368,123 +368,124 @@ public class HadoopThriftAuthBridge20S extends HadoopThriftAuthBridge {
       } catch (ClassNotFoundException e) {
         throw new IOException("Error initializing delegation token store: " + tokenStoreClassName,
             e);
-       }
-     }
+      }
+    }
 
-     @Override
-     public void startDelegationTokenSecretManager(Configuration conf, Object hms)
-     throws IOException{
-       long secretKeyInterval =
-         conf.getLong(DELEGATION_KEY_UPDATE_INTERVAL_KEY,
-                        DELEGATION_KEY_UPDATE_INTERVAL_DEFAULT);
-       long tokenMaxLifetime =
-           conf.getLong(DELEGATION_TOKEN_MAX_LIFETIME_KEY,
-                        DELEGATION_TOKEN_MAX_LIFETIME_DEFAULT);
-       long tokenRenewInterval =
-           conf.getLong(DELEGATION_TOKEN_RENEW_INTERVAL_KEY,
-                        DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT);
+    @Override
+    public void startDelegationTokenSecretManager(Configuration conf, Object hms)
+        throws IOException{
+      long secretKeyInterval =
+          conf.getLong(DELEGATION_KEY_UPDATE_INTERVAL_KEY,
+              DELEGATION_KEY_UPDATE_INTERVAL_DEFAULT);
+      long tokenMaxLifetime =
+          conf.getLong(DELEGATION_TOKEN_MAX_LIFETIME_KEY,
+              DELEGATION_TOKEN_MAX_LIFETIME_DEFAULT);
+      long tokenRenewInterval =
+          conf.getLong(DELEGATION_TOKEN_RENEW_INTERVAL_KEY,
+              DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT);
 
-       DelegationTokenStore dts = getTokenStore(conf);
-       dts.setStore(hms);
-       secretManager = new TokenStoreDelegationTokenSecretManager(secretKeyInterval,
-             tokenMaxLifetime,
-             tokenRenewInterval,
-             DELEGATION_TOKEN_GC_INTERVAL, dts);
-       secretManager.startThreads();
-     }
+      DelegationTokenStore dts = getTokenStore(conf);
+      dts.setStore(hms);
+      secretManager = new TokenStoreDelegationTokenSecretManager(secretKeyInterval,
+          tokenMaxLifetime,
+          tokenRenewInterval,
+          DELEGATION_TOKEN_GC_INTERVAL, dts);
+      secretManager.startThreads();
+    }
 
-     @Override
-     public String getDelegationToken(final String owner, final String renewer)
-     throws IOException, InterruptedException {
-       if (!authenticationMethod.get().equals(AuthenticationMethod.KERBEROS)) {
-         throw new AuthorizationException(
-         "Delegation Token can be issued only with kerberos authentication. " +
-         "Current AuthenticationMethod: " + authenticationMethod.get()
-             );
-       }
-       //if the user asking the token is same as the 'owner' then don't do
-       //any proxy authorization checks. For cases like oozie, where it gets
-       //a delegation token for another user, we need to make sure oozie is
-       //authorized to get a delegation token.
-       //Do all checks on short names
-       UserGroupInformation currUser = UserGroupInformation.getCurrentUser();
-       UserGroupInformation ownerUgi = UserGroupInformation.createRemoteUser(owner);
-       if (!ownerUgi.getShortUserName().equals(currUser.getShortUserName())) {
-         //in the case of proxy users, the getCurrentUser will return the
-         //real user (for e.g. oozie) due to the doAs that happened just before the
-         //server started executing the method getDelegationToken in the MetaStore
-         ownerUgi = UserGroupInformation.createProxyUser(owner,
-           UserGroupInformation.getCurrentUser());
-         InetAddress remoteAddr = getRemoteAddress();
-         ProxyUsers.authorize(ownerUgi,remoteAddr.getHostAddress(), null);
-       }
-       return ownerUgi.doAs(new PrivilegedExceptionAction<String>() {
-         public String run() throws IOException {
-           return secretManager.getDelegationToken(renewer);
-         }
-       });
-     }
+    @Override
+    public String getDelegationToken(final String owner, final String renewer)
+        throws IOException, InterruptedException {
+      if (!authenticationMethod.get().equals(AuthenticationMethod.KERBEROS)) {
+        throw new AuthorizationException(
+            "Delegation Token can be issued only with kerberos authentication. " +
+                "Current AuthenticationMethod: " + authenticationMethod.get()
+            );
+      }
+      //if the user asking the token is same as the 'owner' then don't do
+      //any proxy authorization checks. For cases like oozie, where it gets
+      //a delegation token for another user, we need to make sure oozie is
+      //authorized to get a delegation token.
+      //Do all checks on short names
+      UserGroupInformation currUser = UserGroupInformation.getCurrentUser();
+      UserGroupInformation ownerUgi = UserGroupInformation.createRemoteUser(owner);
+      if (!ownerUgi.getShortUserName().equals(currUser.getShortUserName())) {
+        //in the case of proxy users, the getCurrentUser will return the
+        //real user (for e.g. oozie) due to the doAs that happened just before the
+        //server started executing the method getDelegationToken in the MetaStore
+        ownerUgi = UserGroupInformation.createProxyUser(owner,
+            UserGroupInformation.getCurrentUser());
+        InetAddress remoteAddr = getRemoteAddress();
+        ProxyUsers.authorize(ownerUgi,remoteAddr.getHostAddress(), null);
+      }
+      return ownerUgi.doAs(new PrivilegedExceptionAction<String>() {
+        @Override
+        public String run() throws IOException {
+          return secretManager.getDelegationToken(renewer);
+        }
+      });
+    }
 
-     @Override
-     public String getDelegationTokenWithService(String owner, String renewer, String service)
-         throws IOException, InterruptedException {
-       String token = getDelegationToken(owner, renewer);
-       return ShimLoader.getHadoopShims().addServiceToToken(token, service);
-     }
+    @Override
+    public String getDelegationTokenWithService(String owner, String renewer, String service)
+        throws IOException, InterruptedException {
+      String token = getDelegationToken(owner, renewer);
+      return ShimLoader.getHadoopShims().addServiceToToken(token, service);
+    }
 
-     @Override
-     public long renewDelegationToken(String tokenStrForm) throws IOException {
-       if (!authenticationMethod.get().equals(AuthenticationMethod.KERBEROS)) {
-         throw new AuthorizationException(
-         "Delegation Token can be issued only with kerberos authentication. " +
-         "Current AuthenticationMethod: " + authenticationMethod.get()
-             );
-       }
-       return secretManager.renewDelegationToken(tokenStrForm);
-     }
+    @Override
+    public long renewDelegationToken(String tokenStrForm) throws IOException {
+      if (!authenticationMethod.get().equals(AuthenticationMethod.KERBEROS)) {
+        throw new AuthorizationException(
+            "Delegation Token can be issued only with kerberos authentication. " +
+                "Current AuthenticationMethod: " + authenticationMethod.get()
+            );
+      }
+      return secretManager.renewDelegationToken(tokenStrForm);
+    }
 
-     @Override
-     public String getUserFromToken(String tokenStr) throws IOException {
-       return secretManager.getUserFromToken(tokenStr);
-     }
+    @Override
+    public String getUserFromToken(String tokenStr) throws IOException {
+      return secretManager.getUserFromToken(tokenStr);
+    }
 
-     @Override
-     public void cancelDelegationToken(String tokenStrForm) throws IOException {
-       secretManager.cancelDelegationToken(tokenStrForm);
-     }
+    @Override
+    public void cancelDelegationToken(String tokenStrForm) throws IOException {
+      secretManager.cancelDelegationToken(tokenStrForm);
+    }
 
-     final static ThreadLocal<InetAddress> remoteAddress =
-       new ThreadLocal<InetAddress>() {
-       @Override
-       protected synchronized InetAddress initialValue() {
-         return null;
-       }
-     };
+    final static ThreadLocal<InetAddress> remoteAddress =
+        new ThreadLocal<InetAddress>() {
+      @Override
+      protected synchronized InetAddress initialValue() {
+        return null;
+      }
+    };
 
-     @Override
-     public InetAddress getRemoteAddress() {
-       return remoteAddress.get();
-     }
+    @Override
+    public InetAddress getRemoteAddress() {
+      return remoteAddress.get();
+    }
 
-     final static ThreadLocal<AuthenticationMethod> authenticationMethod =
-       new ThreadLocal<AuthenticationMethod>() {
-       @Override
-       protected synchronized AuthenticationMethod initialValue() {
-         return AuthenticationMethod.TOKEN;
-       }
-     };
+    final static ThreadLocal<AuthenticationMethod> authenticationMethod =
+        new ThreadLocal<AuthenticationMethod>() {
+      @Override
+      protected synchronized AuthenticationMethod initialValue() {
+        return AuthenticationMethod.TOKEN;
+      }
+    };
 
-     private static ThreadLocal<String> remoteUser = new ThreadLocal<String> () {
-       @Override
-       protected synchronized String initialValue() {
-         return null;
-       }
-     };
+    private static ThreadLocal<String> remoteUser = new ThreadLocal<String> () {
+      @Override
+      protected synchronized String initialValue() {
+        return null;
+      }
+    };
 
-     @Override
-     public String getRemoteUser() {
-       return remoteUser.get();
-     }
+    @Override
+    public String getRemoteUser() {
+      return remoteUser.get();
+    }
 
     /** CallbackHandler for SASL DIGEST-MD5 mechanism */
     // This code is pretty much completely based on Hadoop's

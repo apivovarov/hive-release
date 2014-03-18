@@ -16,37 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.ql.exec.vector.expressions;
+package org.apache.hadoop.hive.ql.io;
 
-import org.apache.hadoop.io.Text;
+import org.apache.hadoop.hive.serde2.SerDeStats;
 
-import java.sql.Date;
+/**
+ * If a file format internally gathers statistics (like ORC) then it can expose
+ * the statistics through this interface. Reader side statistics are useful for
+ * updating the metastore with table/partition level statistics using analyze
+ * command.
+ * StatsProvidingRecordReader.
+ */
+public interface StatsProvidingRecordReader {
 
-public class VectorUDFDateString extends StringUnaryUDF {
-  private static final long serialVersionUID = 1L;
-
-  public VectorUDFDateString(int colNum, int outputColumn) {
-    super(colNum, outputColumn, new StringUnaryUDF.IUDFUnaryString() {
-      Text t = new Text();
-
-      @Override
-      public Text evaluate(Text s) {
-        if (s == null) {
-          return null;
-        }
-        try {
-          Date date = Date.valueOf(s.toString());
-          t.set(date.toString());
-          return t;
-        } catch (IllegalArgumentException e) {
-          e.printStackTrace();
-          return null;
-        }
-      }
-    });
-  }
-
-  public VectorUDFDateString() {
-    super();
-  }
+  /**
+   * Returns the statistics information
+   * @return SerDeStats
+   */
+  SerDeStats getStats();
 }

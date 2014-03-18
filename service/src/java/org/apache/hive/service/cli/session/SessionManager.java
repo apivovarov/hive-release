@@ -101,7 +101,7 @@ public class SessionManager extends CompositeService {
 
   public SessionHandle openSession(TProtocolVersion protocol, String username, String password,
       Map<String, String> sessionConf, boolean withImpersonation, String delegationToken)
-      throws HiveSQLException {
+          throws HiveSQLException {
     HiveSession session;
     if (withImpersonation) {
       HiveSessionImplwithUGI hiveSessionUgi = new HiveSessionImplwithUGI(protocol, username, password,

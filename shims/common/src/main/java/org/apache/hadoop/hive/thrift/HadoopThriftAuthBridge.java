@@ -51,6 +51,7 @@ public class HadoopThriftAuthBridge {
         "The current version of Hadoop does not support Authentication");
   }
 
+
   public String getServerPrincipal(String principalConfig, String host)
       throws IOException {
     throw new UnsupportedOperationException(
@@ -97,21 +98,21 @@ public class HadoopThriftAuthBridge {
             throws IOException;
   }
 
-   public static abstract class Server {
-     public abstract TTransportFactory createTransportFactory(Map<String, String> saslProps) throws TTransportException;
-     public abstract TProcessor wrapProcessor(TProcessor processor);
-     public abstract TProcessor wrapNonAssumingProcessor(TProcessor processor);
-     public abstract InetAddress getRemoteAddress();
-     public abstract void startDelegationTokenSecretManager(Configuration conf,
-       Object hmsHandler) throws IOException;
-     public abstract String getDelegationToken(String owner, String renewer)
-       throws IOException, InterruptedException;
-     public abstract String getDelegationTokenWithService(String owner, String renewer, String service)
-       throws IOException, InterruptedException;
-     public abstract String getRemoteUser();
-     public abstract long renewDelegationToken(String tokenStrForm) throws IOException;
-     public abstract void cancelDelegationToken(String tokenStrForm) throws IOException;
-     public abstract String getUserFromToken(String tokenStr) throws IOException;
-   }
- }
+  public static abstract class Server {
+    public abstract TTransportFactory createTransportFactory(Map<String, String> saslProps) throws TTransportException;
+    public abstract TProcessor wrapProcessor(TProcessor processor);
+    public abstract TProcessor wrapNonAssumingProcessor(TProcessor processor);
+    public abstract InetAddress getRemoteAddress();
+    public abstract void startDelegationTokenSecretManager(Configuration conf,
+        Object hmsHandler) throws IOException;
+    public abstract String getDelegationToken(String owner, String renewer)
+        throws IOException, InterruptedException;
+    public abstract String getDelegationTokenWithService(String owner, String renewer, String service)
+        throws IOException, InterruptedException;
+    public abstract String getRemoteUser();
+    public abstract long renewDelegationToken(String tokenStrForm) throws IOException;
+    public abstract void cancelDelegationToken(String tokenStrForm) throws IOException;
+    public abstract String getUserFromToken(String tokenStr) throws IOException;
+  }
+}
 

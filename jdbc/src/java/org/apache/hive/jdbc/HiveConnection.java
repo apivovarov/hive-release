@@ -281,7 +281,6 @@ public class HiveConnection implements java.sql.Connection {
             HIVE_SSL_TRUST_STORE_PASSWORD);
         KeyStore sslTrustStore;
         SSLSocketFactory socketFactory;
-
         try {
           if (sslTrustStorePath == null || sslTrustStorePath.isEmpty()) {
             // Create a default socket factory based on standard JSSE trust material
@@ -348,19 +347,12 @@ public class HiveConnection implements java.sql.Connection {
           String tokenStr = getClientDelegationToken(sessConfMap);
           if (tokenStr != null) {
             transport = KerberosSaslHelper.getTokenTransport(tokenStr,
-                  host, HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps);
+                host, HiveAuthFactory.getSocketTransport(host, port, loginTimeout), saslProps);
           } else {
             // we are using PLAIN Sasl connection with user/password
-            String userName = sessConfMap.get(HIVE_AUTH_USER);
-            if ((userName == null) || userName.isEmpty()) {
-              userName = HIVE_ANONYMOUS_USER;
-            }
-            String passwd = sessConfMap.get(HIVE_AUTH_PASSWD);
-            if ((passwd == null) || passwd.isEmpty()) {
-              passwd = HIVE_ANONYMOUS_PASSWD;
-            }
-            String useSslStr = sessConfMap.get(HIVE_USE_SSL);
-            if ("true".equalsIgnoreCase(useSslStr)) {
+            String userName = getUserName();
+            String passwd = getPassword();
+            if (isSslConnection()) {
               // get SSL socket
               String sslTrustStore = sessConfMap.get(HIVE_SSL_TRUST_STORE);
               String sslTrustStorePassword = sessConfMap.get(HIVE_SSL_TRUST_STORE_PASSWORD);
@@ -368,14 +360,14 @@ public class HiveConnection implements java.sql.Connection {
                 transport = HiveAuthFactory.getSSLSocket(host, port, loginTimeout);
               } else {
                 transport = HiveAuthFactory.getSSLSocket(host, port, loginTimeout,
-                  sslTrustStore, sslTrustStorePassword);
+                    sslTrustStore, sslTrustStorePassword);
               }
             } else {
               // get non-SSL socket transport
               transport = HiveAuthFactory.getSocketTransport(host, port, loginTimeout);
             }
-          // Overlay the SASL transport on top of the base socket transport (SSL or non-SSL)
-          transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
+            // Overlay the SASL transport on top of the base socket transport (SSL or non-SSL)
+            transport = PlainSaslHelper.getPlainTransport(userName, passwd, transport);
           }
         }
       } else {
@@ -532,7 +524,7 @@ public class HiveConnection implements java.sql.Connection {
       return tokenResp.getDelegationToken();
     } catch (TException e) {
       throw new SQLException("Could not retrieve token: " +
-            e.getMessage(), " 08S01", e);
+          e.getMessage(), " 08S01", e);
     }
   }
 
@@ -540,12 +532,12 @@ public class HiveConnection implements java.sql.Connection {
     TCancelDelegationTokenReq cancelReq = new TCancelDelegationTokenReq(sessHandle, tokenStr);
     try {
       TCancelDelegationTokenResp cancelResp =
-              client.CancelDelegationToken(cancelReq);
+          client.CancelDelegationToken(cancelReq);
       Utils.verifySuccess(cancelResp.getStatus());
       return;
     } catch (TException e) {
       throw new SQLException("Could not cancel token: " +
-            e.getMessage(), " 08S01", e);
+          e.getMessage(), " 08S01", e);
     }
   }
 
@@ -553,12 +545,12 @@ public class HiveConnection implements java.sql.Connection {
     TRenewDelegationTokenReq cancelReq = new TRenewDelegationTokenReq(sessHandle, tokenStr);
     try {
       TRenewDelegationTokenResp renewResp =
-              client.RenewDelegationToken(cancelReq);
+          client.RenewDelegationToken(cancelReq);
       Utils.verifySuccess(renewResp.getStatus());
       return;
     } catch (TException e) {
       throw new SQLException("Could not renew token: " +
-            e.getMessage(), " 08S01", e);
+          e.getMessage(), " 08S01", e);
     }
   }
 
