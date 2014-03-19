@@ -101,6 +101,7 @@ public class DerivedTableInjector {
       curNode = curNode.getInput(0);
     }
 
+    //Assumption: tree could only be (limit)?(OB)?(ProjectRelBase)....
     List<RexNode> rootChildExps = rootProjRel.getChildExps();
     if (resultSchema.size() != rootChildExps.size()) {
       throw new RuntimeException("Result Schema didn't match Optiq Optimized Op Tree Schema");
