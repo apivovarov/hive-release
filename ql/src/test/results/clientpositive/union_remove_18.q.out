@@ -12,6 +12,7 @@ PREHOOK: query: -- This is to test the union->selectstar->filesink optimization
 
 create table inputTbl1(key string, ds string) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- This is to test the union->selectstar->filesink optimization
 -- Union of 2 map-reduce subqueries is performed followed by select star and a file sink
 -- There is no need to write the temporary results of the sub-queries, and then read them 
@@ -26,17 +27,22 @@ POSTHOOK: query: -- This is to test the union->selectstar->filesink optimization
 
 create table inputTbl1(key string, ds string) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@inputTbl1
 PREHOOK: query: create table outputTbl1(key string, values bigint) partitioned by (ds string) stored as textfile
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: create table outputTbl1(key string, values bigint) partitioned by (ds string) stored as textfile
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@outputTbl1
 PREHOOK: query: load data local inpath '../../data/files/T1.txt' into table inputTbl1
 PREHOOK: type: LOAD
+#### A masked pattern was here ####
 PREHOOK: Output: default@inputtbl1
 POSTHOOK: query: load data local inpath '../../data/files/T1.txt' into table inputTbl1
 POSTHOOK: type: LOAD
+#### A masked pattern was here ####
 POSTHOOK: Output: default@inputtbl1
 PREHOOK: query: explain
 insert overwrite table outputTbl1 partition (ds)
@@ -311,7 +317,7 @@ POSTHOOK: Lineage: outputtbl1 PARTITION(ds=28).key EXPRESSION [(inputtbl1)inputt
 POSTHOOK: Lineage: outputtbl1 PARTITION(ds=28).values EXPRESSION [(inputtbl1)inputtbl1.null, (inputtbl1)inputtbl1.null, ]
 8	1	18
 8	1	18
-PREHOOK: query: select * from outputTbl1 where ds is not null order by key, values
+PREHOOK: query: select * from outputTbl1 where ds is not null order by key, values, ds
 PREHOOK: type: QUERY
 PREHOOK: Input: default@outputtbl1
 PREHOOK: Input: default@outputtbl1@ds=11
@@ -321,7 +327,7 @@ PREHOOK: Input: default@outputtbl1@ds=17
 PREHOOK: Input: default@outputtbl1@ds=18
 PREHOOK: Input: default@outputtbl1@ds=28
 #### A masked pattern was here ####
-POSTHOOK: query: select * from outputTbl1 where ds is not null order by key, values
+POSTHOOK: query: select * from outputTbl1 where ds is not null order by key, values, ds
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@outputtbl1
 POSTHOOK: Input: default@outputtbl1@ds=11
@@ -352,6 +358,6 @@ POSTHOOK: Lineage: outputtbl1 PARTITION(ds=28).values EXPRESSION [(inputtbl1)inp
 7	1	17
 7	1	17
 8	1	18
-8	1	28
-8	1	28
 8	1	18
+8	1	28
+8	1	28
