@@ -154,14 +154,18 @@ public class MapRecordProcessor extends RecordProcessor {
     MRInputLegacy in = TezProcessor.getMRInput(inputs);
     KeyValueReader reader = in.getReader();
 
-    //process records until done
-    while(reader.next()){
-      //ignore the key for maps -  reader.getCurrentKey();
-      Object value = reader.getCurrentValue();
-      boolean needMore = processRow(value);
-      if(!needMore){
-        break;
+    try {
+      //process records until done
+      while(reader.next()){
+        //ignore the key for maps -  reader.getCurrentKey();
+        Object value = reader.getCurrentValue();
+        boolean needMore = processRow(value);
+        if(!needMore){
+          break;
+        }
       }
+    } finally {
+      closeInternal();
     }
   }
 
@@ -199,7 +203,13 @@ public class MapRecordProcessor extends RecordProcessor {
   }
 
   @Override
-  void close(){
+  void close(){ 
+    // we have to close in the processor, because tez closes inputs 
+    // before calling close (TEZ-955). We might need to read inputs
+    // when we flush the pipeline though.
+  }
+
+  void closeInternal(){
     // check if there are IOExceptions
     if (!abort) {
       abort = execContext.getIoCxt().getIOExceptions();
