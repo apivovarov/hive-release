@@ -92,8 +92,19 @@ function Main( $scriptDir )
     Install "hive" $nodeInstallRoot $serviceCredential $hiveRoles
     if ((Test-Path ENV:IS_TEZ) -and ($ENV:IS_TEZ -ieq "yes"))
     {
-      $ENV:TEZ_CLASSPATH = [System.Environment]::GetEnvironmentVariable("TEZ_CLASSPATH","Machine")
+      $locations = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
+                   'HKCU:\Environment'
 
+      $locations | ForEach-Object {
+        $k = Get-Item $_
+        $k.GetValueNames() | ForEach-Object {
+          $name  = $_
+          $value = $k.GetValue($_)
+          if ($name -ieq 'TEZ_CLASSPATH') {
+            Set-Item -Path Env:\$name -Value $value
+          }
+        }
+      }
       Write-Log "Setting HIVE_CLASSPATH to $ENV:TEZ_CLASSPATH at machine scope"
       [Environment]::SetEnvironmentVariable( "HIVE_CLASSPATH", "$ENV:TEZ_CLASSPATH", [EnvironmentVariableTarget]::Machine )
     }
