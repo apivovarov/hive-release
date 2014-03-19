@@ -254,7 +254,7 @@ public class OrcRecordUpdater implements RecordUpdater {
     }
     long len = writer.writeIntermediateFooter();
     flushLengths.writeLong(len);
-    flushLengths.flush();
+    OrcInputFormat.SHIMS.hflush(flushLengths);
   }
 
   @Override

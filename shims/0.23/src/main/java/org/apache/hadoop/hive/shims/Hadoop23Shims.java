@@ -36,6 +36,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -490,6 +491,11 @@ public class Hadoop23Shims extends HadoopShimsSecure {
     } else {
       return fs.getFileBlockLocations(status, 0, status.getLen());
     }
+  }
+
+  @Override
+  public void hflush(FSDataOutputStream stream) throws IOException {
+    stream.hflush();
   }
 
   class ProxyFileSystem23 extends ProxyFileSystem {

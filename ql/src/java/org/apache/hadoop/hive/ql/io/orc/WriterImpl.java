@@ -2071,7 +2071,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
       int footLength = writeFooter(rawWriter.getPos() - metaLength);
       rawWriter.writeByte(writePostScript(footLength, metaLength));
       stripesAtLastFlush = stripes.size();
-      rawWriter.flush();
+      OrcInputFormat.SHIMS.hflush(rawWriter);
     }
     return rawWriter.getPos();
   }
