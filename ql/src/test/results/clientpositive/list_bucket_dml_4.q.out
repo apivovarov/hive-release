@@ -22,6 +22,7 @@ create table list_bucketing_static_part (key String, value String)
     stored as DIRECTORIES
     STORED AS RCFILE
 PREHOOK: type: CREATETABLE
+PREHOOK: Output: database:default
 POSTHOOK: query: -- INCLUDE_HADOOP_MAJOR_VERSIONS(0.23)
 
 -- list bucketing DML: static partition. multiple skewed columns. merge.
@@ -46,6 +47,7 @@ create table list_bucketing_static_part (key String, value String)
     stored as DIRECTORIES
     STORED AS RCFILE
 POSTHOOK: type: CREATETABLE
+POSTHOOK: Output: database:default
 POSTHOOK: Output: default@list_bucketing_static_part
 PREHOOK: query: -- list bucketing DML without merge. use bucketize to generate a few small files.
 explain extended
@@ -919,13 +921,13 @@ POSTHOOK: Lineage: list_bucketing_static_part PARTITION(ds=2008-04-08,hr=11).key
 POSTHOOK: Lineage: list_bucketing_static_part PARTITION(ds=2008-04-08,hr=11).value SIMPLE [(srcpart)srcpart.FieldSchema(name:value, type:string, comment:default), ]
 484	val_484	2008-04-08	11
 484	val_484	2008-04-08	11
-PREHOOK: query: select * from srcpart where ds = '2008-04-08' and key = '484' and value = 'val_484' ORDER BY key, value
+PREHOOK: query: select * from srcpart where ds = '2008-04-08' and key = '484' and value = 'val_484' ORDER BY key, value, ds
 PREHOOK: type: QUERY
 PREHOOK: Input: default@srcpart
 PREHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
 PREHOOK: Input: default@srcpart@ds=2008-04-08/hr=12
 #### A masked pattern was here ####
-POSTHOOK: query: select * from srcpart where ds = '2008-04-08' and key = '484' and value = 'val_484' ORDER BY key, value
+POSTHOOK: query: select * from srcpart where ds = '2008-04-08' and key = '484' and value = 'val_484' ORDER BY key, value, ds
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@srcpart
 POSTHOOK: Input: default@srcpart@ds=2008-04-08/hr=11
