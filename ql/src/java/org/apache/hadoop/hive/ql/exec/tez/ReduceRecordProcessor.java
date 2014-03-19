@@ -219,18 +219,15 @@ public class ReduceRecordProcessor  extends RecordProcessor{
       throw new IOException(e);
     }
 
-    try {
-      while(kvsReader.next()){
-        Object key = kvsReader.getCurrentKey();
-        Iterable<Object> values = kvsReader.getCurrentValues();
-        boolean needMore = processKeyValues(key, values);
-        if(!needMore){
-          break;
-        }
+    while(kvsReader.next()){
+      Object key = kvsReader.getCurrentKey();
+      Iterable<Object> values = kvsReader.getCurrentValues();
+      boolean needMore = processKeyValues(key, values);
+      if(!needMore){
+        break;
       }
-    } finally {
-      closeInternal();
     }
+
   }
 
   /**
@@ -353,13 +350,7 @@ public class ReduceRecordProcessor  extends RecordProcessor{
   }
 
   @Override
-  void close(){ 
-    // we have to close in the processor, because tez closes inputs 
-    // before calling close (TEZ-955). We might need to read inputs
-    // when we flush the pipeline though.
-  }
-
-  void closeInternal() {
+  void close(){
     // check if there are IOExceptions
     if (!abort) {
       abort = execContext.getIoCxt().getIOExceptions();
