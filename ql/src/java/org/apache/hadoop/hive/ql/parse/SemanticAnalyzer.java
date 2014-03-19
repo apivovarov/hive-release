@@ -9518,13 +9518,21 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
   private List<FieldSchema> convertRowSchemaToViewSchema(RowResolver rr) {
     List<FieldSchema> fieldSchemas = new ArrayList<FieldSchema>();
+    String[] qualifiedColNames;
+    String colName;
+
     for (ColumnInfo colInfo : rr.getColumnInfos()) {
       if (colInfo.isHiddenVirtualCol()) {
         continue;
       }
-      String colName = rr.reverseLookup(colInfo.getInternalName())[1];
-      fieldSchemas.add(new FieldSchema(colName,
-          colInfo.getType().getTypeName(), null));
+
+      qualifiedColNames = rr.reverseLookup(colInfo.getInternalName());
+      if (qualifiedColNames[0] != null && !qualifiedColNames[0].isEmpty()) {
+        colName = qualifiedColNames[0] + "." + qualifiedColNames[1];
+      } else {
+        colName = qualifiedColNames[1];
+      }
+      fieldSchemas.add(new FieldSchema(colName, colInfo.getType().getTypeName(), null));
     }
     return fieldSchemas;
   }
