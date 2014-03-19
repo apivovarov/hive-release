@@ -68,8 +68,8 @@ public class TestStreaming {
 
   //public boolean local = false;
   //private final int port ;
-  final String metaStoreURI = "thrift://172.16.0.21:9083";
-//  final String metaStoreURI = null;
+//  final String metaStoreURI = "thrift://172.16.0.21:9083";
+  final String metaStoreURI = null;
 
   // partitioned table
   private final static String proxyUser = "flume";
@@ -643,8 +643,7 @@ public class TestStreaming {
   }
   @Test
   public void testConcurrentTransactionBatchCommits() throws Exception {
-    String uri = "thrift://172.16.0.21:9083";
-    final HiveEndPoint ep = new HiveEndPoint(uri, dbName, tblName, partitionVals);
+    final HiveEndPoint ep = new HiveEndPoint(metaStoreURI, dbName, tblName, partitionVals);
     WriterThd t1 = new WriterThd(ep, "1,Matrix");
     WriterThd t2 = new WriterThd(ep, "2,Gandhi");
     WriterThd t3 = new WriterThd(ep, "3,Silence");
