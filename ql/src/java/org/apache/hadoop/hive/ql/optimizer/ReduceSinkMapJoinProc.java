@@ -21,8 +21,10 @@ package org.apache.hadoop.hive.ql.optimizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Stack;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
@@ -43,8 +45,9 @@ import org.apache.hadoop.hive.ql.plan.HashTableDummyDesc;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
+import org.apache.hadoop.hive.ql.plan.TezEdgeProperty;
+import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
 import org.apache.hadoop.hive.ql.plan.TezWork;
-import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
 
 public class ReduceSinkMapJoinProc implements NodeProcessor {
 
@@ -101,23 +104,40 @@ public class ReduceSinkMapJoinProc implements NodeProcessor {
         }
         LOG.debug("Mapjoin "+mapJoinOp+", pos: "+pos+" --> "+parentWork.getName());
         mapJoinOp.getConf().getParentToInput().put(pos, parentWork.getName());
+        int numBuckets = -1;
+        EdgeType edgeType = EdgeType.BROADCAST_EDGE;
+        if (mapJoinOp.getConf().isBucketMapJoin()) {
+          numBuckets = (Integer) mapJoinOp.getConf().getBigTableBucketNumMapping().values().toArray()[0];
+          if (mapJoinOp.getConf().getLegacyBucketMapJoin()) {
+            edgeType = EdgeType.CUSTOM_EDGE;
+          } else {
+            edgeType = EdgeType.SIMPLE_EDGE;
+          }
+        }
+        TezEdgeProperty edgeProp = new TezEdgeProperty(null, edgeType, numBuckets);
 
         if (myWork != null) {
           // link the work with the work associated with the reduce sink that triggered this rule
           TezWork tezWork = context.currentTask.getWork();
-          tezWork.connect(parentWork, myWork, EdgeType.BROADCAST_EDGE);
+          tezWork.connect(parentWork, myWork, edgeProp);
 
           // remember the output name of the reduce sink
           parentRS.getConf().setOutputName(myWork.getName());
           context.connectedReduceSinks.add(parentRS);
 
         } else {
-          List<BaseWork> linkWorkList = context.linkOpWithWorkMap.get(childOp);
+           List<BaseWork> linkWorkList = null;
+           if (context.linkOpWithWorkMap.get(childOp) != null) {
+             linkWorkList = context.linkOpWithWorkMap.get(childOp).getLeft();
+           }
+
           if (linkWorkList == null) {
             linkWorkList = new ArrayList<BaseWork>();
           }
           linkWorkList.add(parentWork);
-          context.linkOpWithWorkMap.put(childOp, linkWorkList);
+          ImmutablePair<List<BaseWork>, TezEdgeProperty> workListEdgeTypePair = 
+            new ImmutablePair<List<BaseWork>, TezEdgeProperty>(linkWorkList, edgeProp);
+          context.linkOpWithWorkMap.put(childOp, workListEdgeTypePair);
 
           List<ReduceSinkOperator> reduceSinks 
             = context.linkWorkWithReduceSinkMap.get(parentWork);

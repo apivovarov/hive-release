@@ -18,12 +18,32 @@
 
 package org.apache.hadoop.hive.ql.plan;
 
-import java.io.Serializable;
+import java.util.List;
 
-public interface OperatorDesc extends Serializable, Cloneable {
-  public Object clone() throws CloneNotSupportedException;
-  public Statistics getStatistics();
-  public void setStatistics(Statistics statistics);
-  public OpTraits getOpTraits();
-  public void setOpTraits(OpTraits metaInfo);
+import org.apache.hadoop.hive.ql.metadata.Table;
+import org.apache.hadoop.hive.ql.parse.PrunedPartitionList;
+
+public class OpTraits {
+  
+  List<ExprNodeDesc> keyCols;
+  Table table;
+  PrunedPartitionList prunedPartList;
+  
+  public OpTraits(List<ExprNodeDesc> keyCols, Table table, PrunedPartitionList prunedPartList) {
+    this.keyCols = keyCols;
+    this.table = table;
+    this.prunedPartList = prunedPartList;
+  }
+
+  public List<ExprNodeDesc> getKeyCols() {
+    return keyCols;
+  }
+
+  public Table getTable() {
+    return table;
+  }
+
+  public PrunedPartitionList getPrunedPartList() {
+    return prunedPartList;
+  }
 }
