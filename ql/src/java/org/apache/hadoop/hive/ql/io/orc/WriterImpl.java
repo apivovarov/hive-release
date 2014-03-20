@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -1744,7 +1745,8 @@ class WriterImpl implements Writer, MemoryManager.Callback {
     }
   }
 
-  private void ensureWriter() throws IOException {
+  @VisibleForTesting
+  FSDataOutputStream getStream() throws IOException {
     if (rawWriter == null) {
       rawWriter = fs.create(path, false, HDFS_BUFFER_SIZE,
                             fs.getDefaultReplication(), blockSize);
@@ -1754,6 +1756,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
                              new DirectStream(rawWriter));
       protobufWriter = CodedOutputStream.newInstance(writer);
     }
+    return rawWriter;
   }
 
   private void createRowIndexEntry() throws IOException {
@@ -1762,7 +1765,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
   }
 
   private void flushStripe() throws IOException {
-    ensureWriter();
+    getStream();
     if (buildIndex && rowsInIndex != 0) {
       createRowIndexEntry();
     }
@@ -1929,7 +1932,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
   }
 
   private int writeMetadata(long bodyLength) throws IOException {
-    ensureWriter();
+    getStream();
     OrcProto.Metadata.Builder builder = OrcProto.Metadata.newBuilder();
     for(OrcProto.StripeStatistics.Builder ssb : treeWriter.stripeStatsBuilders) {
       builder.addStripeStats(ssb.build());
@@ -1944,7 +1947,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
   }
 
   private int writeFooter(long bodyLength) throws IOException {
-    ensureWriter();
+    getStream();
     OrcProto.Footer.Builder builder = OrcProto.Footer.newBuilder();
     builder.setContentLength(bodyLength);
     builder.setHeaderLength(headerLength);

@@ -17,6 +17,9 @@
  */
 package org.apache.hadoop.hive.ql.io.orc;
 
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -45,9 +48,12 @@ import java.util.List;
  * A RecordUpdater where the files are stored as ORC.
  */
 public class OrcRecordUpdater implements RecordUpdater {
-  final static String ACID_KEY_INDEX_NAME = "hive.acid.key.index";
-  final static String ACID_FORMAT = "_orc_acid_version";
-  final static int ORC_ACID_VERSION = 0;
+
+  private static final Log LOG = LogFactory.getLog(OrcRecordUpdater.class);
+
+  public static final String ACID_KEY_INDEX_NAME = "hive.acid.key.index";
+  public static final String ACID_FORMAT = "_orc_acid_version";
+  public static final int ORC_ACID_VERSION = 0;
 
   final static int INSERT_OPERATION = 0;
   final static int UPDATE_OPERATION = 1;
@@ -166,9 +172,10 @@ public class OrcRecordUpdater implements RecordUpdater {
     }
     this.fs = fs;
     try {
-      FSDataOutputStream strm = fs.create(new Path(path, ACID_FORMAT));
+      FSDataOutputStream strm = fs.create(new Path(path, ACID_FORMAT), false);
       strm.writeInt(ORC_ACID_VERSION);
       strm.close();
+      LOG.info("Created " + path + "/" + ACID_FORMAT);
     } catch (IOException ioe) {
       // we just need one task to write this file
     }
@@ -276,6 +283,11 @@ public class OrcRecordUpdater implements RecordUpdater {
   @Override
   public SerDeStats getStats() {
     return null;
+  }
+
+  @VisibleForTesting
+  Writer getWriter() {
+    return writer;
   }
 
   private static final Charset utf8 = Charset.forName("UTF-8");

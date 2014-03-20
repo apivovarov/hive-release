@@ -978,11 +978,6 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
   public org.apache.hadoop.mapred.RecordReader<NullWritable, OrcStruct>
   getRecordReader(InputSplit inputSplit, JobConf conf,
                   Reporter reporter) throws IOException {
-    // TODO vectorized reader doesn't work with the new format yet
-    if (Utilities.isVectorMode(conf)) {
-      return createVectorizedReader(inputSplit, conf, reporter);
-    }
-    reporter.setStatus(inputSplit.toString());
 
     // if HiveCombineInputFormat gives us FileSplits instead of OrcSplits,
     // assume it is an old file.
@@ -993,6 +988,15 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
     }
 
     OrcSplit split = (OrcSplit) inputSplit;
+    // TODO vectorized reader doesn't work with the new format yet
+    if (Utilities.isVectorMode(conf)) {
+      if (!split.getDeltas().isEmpty() || !split.isOriginal()) {
+        throw new IOException("Vectorization and ACID tables are incompatible."
+                              );
+      }
+      return createVectorizedReader(inputSplit, conf, reporter);
+    }
+    reporter.setStatus(inputSplit.toString());
 
     // if we are strictly old-school, just use the old code
     if (split.isOriginal() && split.getDeltas().isEmpty()) {

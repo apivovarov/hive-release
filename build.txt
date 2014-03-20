@@ -22,7 +22,7 @@ Add the following config entry to your ~/.m2/settings.xml (merging appropriately
   <mirrors>
     <mirror>
       <id>public</id>
-      <mirrorOf>*</mirrorOf>
+      <mirrorOf>central</mirrorOf>
       <url>http://54.235.92.15/nexus/content/groups/public/</url>
     </mirror>
   </mirrors>

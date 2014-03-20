@@ -47,7 +47,7 @@ import org.apache.hadoop.mapred.Reporter;
 public class VectorizedOrcInputFormat extends FileInputFormat<NullWritable, VectorizedRowBatch>
     implements InputFormatChecker, VectorizedInputFormatInterface {
 
-  private static class VectorizedOrcRecordReader
+  static class VectorizedOrcRecordReader
       implements RecordReader<NullWritable, VectorizedRowBatch> {
     private final org.apache.hadoop.hive.ql.io.orc.RecordReader reader;
     private final long offset;
