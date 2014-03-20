@@ -377,6 +377,9 @@ final class SearchArgumentImpl implements SearchArgument {
         return new ExpressionTree(TruthValue.YES_NO_NULL);
       }
       PredicateLeaf.Type type = getType(expression.getChildren().get(variable));
+      if (type == null) {
+        return new ExpressionTree(TruthValue.YES_NO_NULL);
+      }
       Object literal = null;
       List<Object> literalList = null;
       switch (operator) {

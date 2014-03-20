@@ -49,9 +49,6 @@ import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.io.InputFormatChecker;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
 import org.apache.hadoop.hive.ql.io.StatsProvidingRecordReader;
-import org.apache.hadoop.hive.ql.io.orc.Metadata;
-import org.apache.hadoop.hive.ql.io.orc.ReaderImpl.FileMetaInfo;
-import org.apache.hadoop.hive.ql.io.orc.RecordReader;
 import org.apache.hadoop.hive.ql.io.sarg.PredicateLeaf;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
 import org.apache.hadoop.hive.ql.log.PerfLogger;
@@ -104,10 +101,11 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
     AcidInputFormat<OrcStruct> {
 
   private static final Log LOG = LogFactory.getLog(OrcInputFormat.class);
+  static final HadoopShims SHIMS = ShimLoader.getHadoopShims();
   static final String MIN_SPLIT_SIZE =
-      ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMINSPLITSIZE");
+      SHIMS.getHadoopConfNames().get("MAPREDMINSPLITSIZE");
   static final String MAX_SPLIT_SIZE =
-      ShimLoader.getHadoopShims().getHadoopConfNames().get("MAPREDMAXSPLITSIZE");
+      SHIMS.getHadoopConfNames().get("MAPREDMAXSPLITSIZE");
 
   private static final long DEFAULT_MIN_SPLIT_SIZE = 16 * 1024 * 1024;
   private static final long DEFAULT_MAX_SPLIT_SIZE = 256 * 1024 * 1024;
@@ -350,7 +348,6 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
         new ArrayList<OrcSplit>(10000);
     private final int numBuckets;
     private final List<Throwable> errors = new ArrayList<Throwable>();
-    private final HadoopShims shims = ShimLoader.getHadoopShims();
     private final long maxSize;
     private final long minSize;
     private final boolean footerInSplits;
@@ -520,7 +517,7 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
           // find the base files (original or new style)
           List<FileStatus> children = original;
           if (base != null) {
-            children = context.shims.listLocatedStatus(fs, base,
+            children = SHIMS.listLocatedStatus(fs, base,
                AcidUtils.hiddenFileFilter);
           }
 
@@ -624,7 +621,7 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
       this.file = file;
       this.blockSize = file.getBlockSize();
       this.fileInfo = fileInfo;
-      locations = context.shims.getLocations(fs, file);
+      locations = SHIMS.getLocations(fs, file);
       this.isOriginal = isOriginal;
       this.deltas = deltas;
       this.hasBase = hasBase;

@@ -33,6 +33,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -373,6 +374,11 @@ public class Hadoop20SShims extends HadoopShimsSecure {
   public BlockLocation[] getLocations(FileSystem fs,
                                       FileStatus status) throws IOException {
     return fs.getFileBlockLocations(status, 0, status.getLen());
+  }
+
+  @Override
+  public void hflush(FSDataOutputStream stream) throws IOException {
+    stream.sync();
   }
 
   @Override
