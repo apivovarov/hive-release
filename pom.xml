@@ -1034,7 +1034,7 @@
                        </replacement>
                        <replacement>
                             <token>@hadoop.version@</token>
-                            <value>${hadoop.version}</value>
+                            <value>${hadoop-23.version}</value>
                        </replacement>
                        <replacement>
                             <token>@zookeeper.version@</token>
