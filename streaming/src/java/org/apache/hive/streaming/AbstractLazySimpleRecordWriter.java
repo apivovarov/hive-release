@@ -18,6 +18,8 @@
 
 package org.apache.hive.streaming;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
@@ -64,6 +66,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
 
   private char serdeSeparator;
 
+  static final private Log LOG = LogFactory.getLog(AbstractLazySimpleRecordWriter.class.getName());
 
   /** Base type for handling Delimited text input. Uses LazySimpleSerde
    * to convert input byte[] to underlying Object representation
@@ -89,7 +92,6 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
 
       Table tbl = hive.getTable(endPoint.database, endPoint.table);
       Properties tableProps = MetaStoreUtils.getTableMetadata(tbl.getTTable());
-
       this.serde = createSerde(tableProps, conf);
       this.inspector = this.serde.getObjectInspector();
       this.tableColumns = getPartitionCols(tbl);
@@ -154,8 +156,10 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
   public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingIOFailure {
     try {
       this.currentBucketId = rand.nextInt(totalBuckets);
+      LOG.debug("Creating Record updater");
       updater = createRecordUpdater(currentBucketId, minTxnId, maxTxnID);
     } catch (IOException e) {
+      LOG.error("Failed creating record updater", e);
       throw new StreamingIOFailure("Unable to get new record Updater", e);
     }
   }

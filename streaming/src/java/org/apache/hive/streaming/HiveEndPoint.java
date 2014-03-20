@@ -26,6 +26,7 @@ import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.LockComponentBuilder;
 import org.apache.hadoop.hive.metastore.LockRequestBuilder;
 import org.apache.hadoop.hive.metastore.Warehouse;
+import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
@@ -33,6 +34,8 @@ import org.apache.hadoop.hive.metastore.api.LockState;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
@@ -42,12 +45,14 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.thrift.TException;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -326,6 +331,64 @@ public class HiveEndPoint {
       }
     }
 
+
+    private static boolean createPartitionIfNotExists2(HiveEndPoint ep, IMetaStoreClient msClient)
+            throws InvalidTable, PartitionCreationFailed  {
+
+      StringBuilder partName = new StringBuilder();
+      for (String p : ep.partitionVals) {
+        partName.append(p);
+        partName.append(':');
+      }
+      if(LOG.isDebugEnabled()) {
+        LOG.debug("Attempting to create partition : " + ep);
+      }
+
+      Partition part = new Partition();
+
+      try {
+        Table table1 = msClient.getTable(ep.database, ep.table);
+        part.setDbName(ep.database);
+        part.setTableName(ep.table);
+        part.setValues(ep.partitionVals);
+        part.setParameters(new HashMap<String, String>());
+        String tableLoc = table1.getSd().getLocation();
+        StorageDescriptor partSd = new StorageDescriptor(table1.getSd());
+
+        partSd.setLocation( tableLoc + "/" +
+                Warehouse.makePartName(table1.getPartitionKeys(), ep.partitionVals) );
+        part.setSd(partSd);
+
+      } catch (NoSuchObjectException e) {
+        LOG.error("Table " + ep.database + "." + ep.table + " does not exist");
+        throw new InvalidTable(ep.database, ep.table);
+      } catch (MetaException e) { // thrown by  Warehouse.makePartName if keys!=vals
+        LOG.error("Partition creation failed as the partition values in ep: " + ep
+                + ", do not match table's partition keys", e);
+        throw new PartitionCreationFailed("Partition values in ep: " + ep +
+                ", do not match table's partition keys", e);
+      } catch (TException e) {
+        LOG.error("Partition creation failed due to failure in connecting to table : "
+                + ep + " : " + e.getMessage(), e);
+        throw new PartitionCreationFailed("Cannot connect to table DB:"
+                + ep.database + ", Table: " + ep.table, e);
+      }
+
+      try {
+        msClient.add_partition(part);
+        LOG.info("Partition created : " + ep);
+        return true;
+      } catch (AlreadyExistsException e) {
+        LOG.debug("Partition already exists : " + ep);
+        return false;
+      } catch (TException e) {
+        LOG.error("Partition creation failed: " + ep + ".  "
+                + StringUtils.stringifyException(e));
+        throw new PartitionCreationFailed(ep, e);
+      }
+
+    }
+
     private static boolean runDDL(Driver driver, String sql) throws QueryFailedException {
       int retryCount = 1; // # of times to retry if first attempt fails
       for(int attempt=0; attempt<=retryCount; ++attempt) {
@@ -346,6 +409,9 @@ public class HiveEndPoint {
     }
 
     private static String partSpecStr(List<FieldSchema> partKeys, ArrayList<String> partVals) {
+      if(partKeys.size()!=partVals.size()) {
+        throw new IllegalArgumentException("Partition values:" + partVals + ", does not match the partition Keys in table :" + partKeys );
+      }
       StringBuffer buff = new StringBuffer(partKeys.size()*20);
       buff.append(" ( ");
       int i=0;
@@ -736,6 +802,7 @@ public class HiveEndPoint {
     conf.setVar(HiveConf.ConfVars.HIVE_TXN_MANAGER,
             "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
     conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
+    conf.setBoolVar(HiveConf.ConfVars.METASTORE_EXECUTE_SET_UGI, true);
     if(metaStoreUri!= null) {
       conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
     }

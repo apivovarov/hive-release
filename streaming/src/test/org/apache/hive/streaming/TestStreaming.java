@@ -110,7 +110,8 @@ public class TestStreaming {
     conf = new HiveConf(this.getClass());
     TxnDbUtil.setConfValues(conf);
     //conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreURI);
-
+    conf.setBoolVar(HiveConf.ConfVars.METASTORE_EXECUTE_SET_UGI, true);
+    conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
         /*
     if(local) {
       //1) Start from a clean slate (metastore)
