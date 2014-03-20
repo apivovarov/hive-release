@@ -64,6 +64,9 @@ public class MapJoinDesc extends JoinDesc implements Serializable {
   // flag for bucket map join. One usage is to set BucketizedHiveInputFormat
   private boolean isBucketMapJoin;
 
+  // Hash table memory usage allowed; used in case of non-staged mapjoin.
+  private float hashtableMemoryUsage;
+
   public MapJoinDesc() {
     bigTableBucketNumMapping = new LinkedHashMap<String, Integer>();
   }
@@ -280,5 +283,13 @@ public class MapJoinDesc extends JoinDesc implements Serializable {
   
   public boolean getLegacyBucketMapJoin() {
     return this.isLegacyBucketMapJoin;
+  }
+  
+  public void setHashTableMemoryUsage(float hashtableMemoryUsage) {
+    this.hashtableMemoryUsage = hashtableMemoryUsage;
+  }
+
+  public float getHashTableMemoryUsage() {
+    return hashtableMemoryUsage;
   }
 }
