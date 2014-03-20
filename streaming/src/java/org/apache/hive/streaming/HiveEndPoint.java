@@ -26,7 +26,6 @@ import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.LockComponentBuilder;
 import org.apache.hadoop.hive.metastore.LockRequestBuilder;
 import org.apache.hadoop.hive.metastore.Warehouse;
-import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
@@ -34,8 +33,6 @@ import org.apache.hadoop.hive.metastore.api.LockState;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
-import org.apache.hadoop.hive.metastore.api.Partition;
-import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
@@ -45,14 +42,12 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.thrift.TException;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -86,6 +81,25 @@ public class HiveEndPoint {
 
   /**
    * Acquire a new connection to MetaStore for streaming
+   * @param createPartIfNotExists If true, the partition specified in the endpoint
+   *                              will be auto created if it does not exist
+   * @return
+   * @throws ConnectionError if problem connecting
+   * @throws InvalidPartition  if specified partition is not valid (createPartIfNotExists = false)
+   * @throws ImpersonationFailed  if not able to impersonate 'proxyUser'
+   * @throws IOException  if there was an I/O error when acquiring connection
+   * @throws PartitionCreationFailed if failed to create partition
+   * @throws InterruptedException
+   */
+  public StreamingConnection newConnection(final boolean createPartIfNotExists)
+          throws ConnectionError, InvalidPartition, InvalidTable, PartitionCreationFailed
+          , ImpersonationFailed , InterruptedException {
+    return newConnection(null, createPartIfNotExists);
+  }
+
+  //TODO: make this function public once proxyUser supported is fully supported
+  /**
+   * Acquire a new connection to MetaStore for streaming
    * @param proxyUser User on whose behalf all hdfs and hive operations will be
    *                  performed on this connection. Set it to null or empty string
    *                  to connect as user of current process without impersonation.
@@ -99,7 +113,7 @@ public class HiveEndPoint {
    * @throws PartitionCreationFailed if failed to create partition
    * @throws InterruptedException
    */
-  public StreamingConnection newConnection(final String proxyUser, final boolean createPartIfNotExists)
+  private StreamingConnection newConnection(final String proxyUser, final boolean createPartIfNotExists)
           throws ConnectionError, InvalidPartition, InvalidTable, PartitionCreationFailed
           , ImpersonationFailed , InterruptedException {
     if (proxyUser ==null || proxyUser.trim().isEmpty() ) {
@@ -112,7 +126,7 @@ public class HiveEndPoint {
                 @Override
                 public StreamingConnection run()
                         throws ConnectionError, InvalidPartition, InvalidTable
-                               , PartitionCreationFailed {
+                        , PartitionCreationFailed {
                   return newConnectionImpl(proxyUser, ugi, createPartIfNotExists);
                 }
               }
@@ -329,64 +343,6 @@ public class HiveEndPoint {
           LOG.warn("Error closing SessionState used to run Hive DDL.");
         }
       }
-    }
-
-
-    private static boolean createPartitionIfNotExists2(HiveEndPoint ep, IMetaStoreClient msClient)
-            throws InvalidTable, PartitionCreationFailed  {
-
-      StringBuilder partName = new StringBuilder();
-      for (String p : ep.partitionVals) {
-        partName.append(p);
-        partName.append(':');
-      }
-      if(LOG.isDebugEnabled()) {
-        LOG.debug("Attempting to create partition : " + ep);
-      }
-
-      Partition part = new Partition();
-
-      try {
-        Table table1 = msClient.getTable(ep.database, ep.table);
-        part.setDbName(ep.database);
-        part.setTableName(ep.table);
-        part.setValues(ep.partitionVals);
-        part.setParameters(new HashMap<String, String>());
-        String tableLoc = table1.getSd().getLocation();
-        StorageDescriptor partSd = new StorageDescriptor(table1.getSd());
-
-        partSd.setLocation( tableLoc + "/" +
-                Warehouse.makePartName(table1.getPartitionKeys(), ep.partitionVals) );
-        part.setSd(partSd);
-
-      } catch (NoSuchObjectException e) {
-        LOG.error("Table " + ep.database + "." + ep.table + " does not exist");
-        throw new InvalidTable(ep.database, ep.table);
-      } catch (MetaException e) { // thrown by  Warehouse.makePartName if keys!=vals
-        LOG.error("Partition creation failed as the partition values in ep: " + ep
-                + ", do not match table's partition keys", e);
-        throw new PartitionCreationFailed("Partition values in ep: " + ep +
-                ", do not match table's partition keys", e);
-      } catch (TException e) {
-        LOG.error("Partition creation failed due to failure in connecting to table : "
-                + ep + " : " + e.getMessage(), e);
-        throw new PartitionCreationFailed("Cannot connect to table DB:"
-                + ep.database + ", Table: " + ep.table, e);
-      }
-
-      try {
-        msClient.add_partition(part);
-        LOG.info("Partition created : " + ep);
-        return true;
-      } catch (AlreadyExistsException e) {
-        LOG.debug("Partition already exists : " + ep);
-        return false;
-      } catch (TException e) {
-        LOG.error("Partition creation failed: " + ep + ".  "
-                + StringUtils.stringifyException(e));
-        throw new PartitionCreationFailed(ep, e);
-      }
-
     }
 
     private static boolean runDDL(Driver driver, String sql) throws QueryFailedException {

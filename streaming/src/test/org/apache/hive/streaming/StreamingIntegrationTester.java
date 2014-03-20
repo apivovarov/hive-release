@@ -74,12 +74,12 @@ public class StreamingIntegrationTester {
       .isRequired()
       .create('d'));
 
-    options.addOption(OptionBuilder
-            .hasArg()
-            .withArgName("user")
-            .withDescription("User to impersonate")
-            .withLongOpt("user")
-            .create('u'));
+//    options.addOption(OptionBuilder
+//            .hasArg()
+//            .withArgName("user")
+//            .withDescription("User to impersonate")
+//            .withLongOpt("user")
+//            .create('u'));
 
     options.addOption(OptionBuilder
       .hasArg()
@@ -169,7 +169,7 @@ public class StreamingIntegrationTester {
     }
 
     boolean pause = cmdline.hasOption('x');
-    String user = cmdline.getOptionValue('u');
+//    String user = cmdline.getOptionValue('u');
     String db = cmdline.getOptionValue('d');
     String table = cmdline.getOptionValue('t');
     String uri = cmdline.getOptionValue('m');
@@ -184,7 +184,7 @@ public class StreamingIntegrationTester {
     String[] cols = cmdline.getOptionValues('c');
     String[] types = cmdline.getOptionValues('s');
 
-    StreamingIntegrationTester sit = new StreamingIntegrationTester(db, table, uri, user,
+    StreamingIntegrationTester sit = new StreamingIntegrationTester(db, table, uri,
         txnsPerBatch, writers, batches, recordsPerTxn, frequency, abortPct, partVals, cols, types, pause);
     sit.go();
   }
@@ -211,11 +211,10 @@ public class StreamingIntegrationTester {
   private boolean pause;
 
 
-  private StreamingIntegrationTester(String db, String table, String uri, String user,
-                                     int txnsPerBatch, int writers, int batches,
-                                     int recordsPerTxn, int frequency, float abortPct,
-                                     String[] partVals, String[] cols, String[] types, boolean pause) {
-    this.user = user;
+  private StreamingIntegrationTester(String db, String table, String uri, int txnsPerBatch,
+                                     int writers, int batches,  int recordsPerTxn,
+                                     int frequency, float abortPct, String[] partVals,
+                                     String[] cols, String[] types, boolean pause) {
     this.db = db;
     this.table = table;
     this.uri = uri;
@@ -285,7 +284,7 @@ public class StreamingIntegrationTester {
     public void run() {
       StreamingConnection conn = null;
       try {
-        conn = endPoint.newConnection(user, true);
+        conn = endPoint.newConnection(true);
         RecordWriter writer = new DelimitedInputWriter(cols, ",", endPoint);
 
         long start = System.currentTimeMillis();

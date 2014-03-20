@@ -72,7 +72,6 @@ public class TestStreaming {
   final String metaStoreURI = null;
 
   // partitioned table
-  private final static String proxyUser = "flume";
   private final static String dbName = "testing";
   private final static String tblName = "alerts";
   private final static String[] fieldNames = new String[]{COL1,COL2};
@@ -94,24 +93,16 @@ public class TestStreaming {
     partitionVals.add(PART1_CONTINENT);
     partitionVals.add(PART1_COUNTRY);
 
-        /*
-    if(local) {
-      port = MetaStoreUtils.findFreePort();
-      metaStoreURI = "thrift://localhost:" + port;
-    } else {
-      port = 9083;
-      metaStoreURI = "thrift://172.16.0.21:" + port;
-    }
-    */
     //port = MetaStoreUtils.findFreePort();
-    //metaStoreURI = "thrift://localhost:" + port;
-//    metaStoreURI = null;
 
     conf = new HiveConf(this.getClass());
     TxnDbUtil.setConfValues(conf);
-    //conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreURI);
+    if(metaStoreURI!=null) {
+      conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreURI);
+    }
     conf.setBoolVar(HiveConf.ConfVars.METASTORE_EXECUTE_SET_UGI, true);
     conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
+
         /*
     if(local) {
       //1) Start from a clean slate (metastore)
@@ -211,12 +202,12 @@ public class TestStreaming {
     // 1) Basic
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName
             , partitionVals);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false); //shouldn't throw
+    StreamingConnection connection = endPt.newConnection(false); //shouldn't throw
     connection.close();
 
     // 2) Leave partition unspecified
     endPt = new HiveEndPoint(metaStoreURI, dbName, tblName, null);
-    endPt.newConnection(proxyUser, false).close(); // should not throw
+    endPt.newConnection(false).close(); // should not throw
   }
 
   @Test
@@ -237,7 +228,7 @@ public class TestStreaming {
     }
 
     // Create partition
-    Assert.assertNotNull(endPt.newConnection(proxyUser, true));
+    Assert.assertNotNull(endPt.newConnection(true));
 
     // Ensure partition is present
     Partition p = msClient.getPartition(endPt.database, endPt.table, endPt.partitionVals);
@@ -250,7 +241,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
+    StreamingConnection connection = endPt.newConnection(false);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -263,7 +254,7 @@ public class TestStreaming {
     // 2) To unpartitioned table
     endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
     writer = new DelimitedInputWriter(fieldNames2,",", endPt);
-    connection = endPt.newConnection(null, false);
+    connection = endPt.newConnection(false);
 
     txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -280,7 +271,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, true);
+    StreamingConnection connection = endPt.newConnection(true);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -293,7 +284,7 @@ public class TestStreaming {
     // 2) to unpartitioned table
     endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
     writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    connection = endPt.newConnection(null, true);
+    connection = endPt.newConnection(true);
 
     txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -309,7 +300,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, true);
+    StreamingConnection connection = endPt.newConnection(true);
 
     // 1st Txn
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -349,7 +340,7 @@ public class TestStreaming {
     // To Unpartitioned table
     endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
     writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    connection = endPt.newConnection(null, true);
+    connection = endPt.newConnection(true);
 
     // 1st Txn
     txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -369,7 +360,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, true);
+    StreamingConnection connection = endPt.newConnection(true);
 
     // 1) test with txn.Commit()
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -426,7 +417,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
+    StreamingConnection connection = endPt.newConnection(false);
 
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
@@ -454,7 +445,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
+    StreamingConnection connection = endPt.newConnection(false);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -484,7 +475,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
+    StreamingConnection connection = endPt.newConnection(true);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();
@@ -533,7 +524,7 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames, ",", endPt);
-    StreamingConnection connection = endPt.newConnection(proxyUser, false);
+    StreamingConnection connection = endPt.newConnection(false);
 
     // Acquire 1st Txn Batch
     TransactionBatch txnBatch1 =  connection.fetchTransactionBatch(10, writer);
@@ -601,7 +592,7 @@ public class TestStreaming {
       String uri = "thrift://172.16.0.21:9083";
       this.ep = ep;
       writer = new DelimitedInputWriter(fieldNames, ",", ep);
-      conn = ep.newConnection(null, false);
+      conn = ep.newConnection(false);
       this.data = data;
     }
 
@@ -642,6 +633,7 @@ public class TestStreaming {
       }
     }
   }
+
   @Test
   public void testConcurrentTransactionBatchCommits() throws Exception {
     final HiveEndPoint ep = new HiveEndPoint(metaStoreURI, dbName, tblName, partitionVals);
@@ -709,7 +701,6 @@ public class TestStreaming {
     }
     Partition createdPartition = client.getPartition(databaseName, tableName, partVals);
     partLocation = createdPartition.getSd().getLocation();
-    System.out.println("Partition location is " + partLocation);
   }
 
   /*
