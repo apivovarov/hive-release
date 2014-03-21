@@ -1161,14 +1161,17 @@ public class TestInputOutputFormat {
     InputSplit[] splits = inputFormat.getSplits(conf, 10);
     assertEquals(1, splits.length);
 
-    try {
-      org.apache.hadoop.mapred.RecordReader<NullWritable, VectorizedRowBatch>
+    org.apache.hadoop.mapred.RecordReader<NullWritable, VectorizedRowBatch>
           reader = inputFormat.getRecordReader(splits[0], conf, Reporter.NULL);
-      assertTrue("should throw here", false);
-    } catch (IOException ioe) {
-      assertEquals("java.io.IOException: Vectorization and ACID tables are incompatible.",
-          ioe.getMessage());
+    NullWritable key = reader.createKey();
+    VectorizedRowBatch value = reader.createValue();
+    assertEquals(true, reader.next(key, value));
+    assertEquals(10, value.count());
+    LongColumnVector col0 = (LongColumnVector) value.cols[0];
+    for(int i=0; i < 10; i++) {
+      assertEquals("checking " + i, i, col0.vector[i]);
     }
+    assertEquals(false, reader.next(key, value));
   }
 
   // test non-vectorized, non-acid, combine
