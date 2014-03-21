@@ -47,7 +47,6 @@ where src.key in (select key from src s1 where s1.key > '9')
 select * 
 from src 
 where src.key in (select key from src s1 where s1.key > '9')
-order by key
 ;
 
 -- non agg, corr
@@ -68,7 +67,6 @@ where b.key in
          from src a 
          where b.value = a.value and a.key > '9'
         )
-order by b.key
 ;
 
 -- agg, non corr
@@ -88,7 +86,6 @@ part where part.p_size in
 	 from (select p_size, rank() over(partition by p_mfgr order by p_size) as r from part) a 
 	 where r <= 2
 	)
-order by p_name
 ;
 
 -- agg, corr
@@ -107,7 +104,6 @@ from part b where b.p_size in
 	 from (select p_mfgr, p_size, rank() over(partition by p_mfgr order by p_size) as r from part) a 
 	 where r <= 2 and b.p_mfgr = a.p_mfgr
 	)
-order by p_mfgr, p_name, p_size 
 ;
 
 -- distinct, corr
@@ -128,7 +124,6 @@ where b.key in
          from src a 
          where b.value = a.value and a.key > '9'
         )
-order by b.key
 ;
 
 -- non agg, non corr, windowing
@@ -136,7 +131,6 @@ select p_mfgr, p_name, p_size
 from part 
 where part.p_size in 
   (select first_value(p_size) over(partition by p_mfgr order by p_size) from part)
-order by p_mfgr, p_name, p_size 
 ;
 
 -- non agg, non corr, with join in Parent Query
@@ -151,7 +145,6 @@ select p.p_partkey, li.l_suppkey
 from (select distinct l_partkey as p_partkey from lineitem) p join lineitem li on p.p_partkey = li.l_partkey 
 where li.l_linenumber = 1 and
  li.l_orderkey in (select l_orderkey from lineitem where l_shipmode = 'AIR')
-order by p.p_partkey, li.l_suppkey 
 ;
 
 -- non agg, corr, with join in Parent Query
@@ -159,5 +152,4 @@ select p.p_partkey, li.l_suppkey
 from (select distinct l_partkey as p_partkey from lineitem) p join lineitem li on p.p_partkey = li.l_partkey 
 where li.l_linenumber = 1 and
  li.l_orderkey in (select l_orderkey from lineitem where l_shipmode = 'AIR' and l_linenumber = li.l_linenumber)
-order by p.p_partkey, li.l_suppkey 
 ;
