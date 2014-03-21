@@ -75,7 +75,7 @@
               in Pig which requires it This is fixed in Pig's pom file in ASF trunk (pig 13)-->
           <groupId>joda-time</groupId>
           <artifactId>joda-time</artifactId>
-          <version>2.2</version>
+          <version>${joda-time.version}</version>
         </dependency>
       </dependencies>
     </profile>
@@ -103,7 +103,7 @@
               in Pig which requires it This is fixed in Pig's pom file in ASF trunk (pig 13)-->
           <groupId>joda-time</groupId>
           <artifactId>joda-time</artifactId>
-          <version>2.2</version>
+          <version>${joda-time.version}</version>
         </dependency>
         <!-- Test dependencies -->
         <dependency>
