@@ -978,10 +978,13 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
   public org.apache.hadoop.mapred.RecordReader<NullWritable, OrcStruct>
   getRecordReader(InputSplit inputSplit, JobConf conf,
                   Reporter reporter) throws IOException {
-
+    boolean vectorMode = Utilities.isVectorMode(conf);
     // if HiveCombineInputFormat gives us FileSplits instead of OrcSplits,
     // assume it is an old file.
     if (inputSplit.getClass() == FileSplit.class) {
+      if (vectorMode) {
+        return createVectorizedReader(inputSplit, conf, reporter);
+      }
       return new OrcRecordReader(OrcFile.createReader(
           ((FileSplit) inputSplit).getPath(),
           OrcFile.readerOptions(conf)), conf, (FileSplit) inputSplit);
@@ -989,7 +992,7 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
 
     OrcSplit split = (OrcSplit) inputSplit;
     // TODO vectorized reader doesn't work with the new format yet
-    if (Utilities.isVectorMode(conf)) {
+    if (vectorMode) {
       if (!split.getDeltas().isEmpty() || !split.isOriginal()) {
         throw new IOException("Vectorization and ACID tables are incompatible."
                               );
