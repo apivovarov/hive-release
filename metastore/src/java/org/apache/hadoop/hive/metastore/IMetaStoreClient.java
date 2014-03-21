@@ -1230,6 +1230,22 @@ public interface IMetaStoreClient {
       TException;
 
   /**
+   * Send heartbeats for a range of transactions.  This is for the streaming ingest client that
+   * will have many transactions open at once.  Everyone else should use
+   * {@link #heartbeat(long, long)}.
+   * @param min minimum transaction id to heartbeat, inclusive
+   * @param max maximum transaction id to heartbeat, inclusive
+   * @throws NoSuchTxnException if the requested transaction does not exist.
+   * This can result fro the transaction having timed out and been deleted by
+   * the compactor.
+   * @throws TxnAbortedException if the requested transaction has been
+   * aborted.  This can result from the transaction timing out.
+   * @throws TException
+   */
+  public void heartbeatTxnRange(long min, long max)
+    throws NoSuchTxnException, TxnAbortedException, TException;
+
+  /**
    * Send a request to compact a table or partition.  This will not block until the compaction is
    * complete.  It will instead put a request on the queue for that table or partition to be
    * compacted.  No checking is done on the dbname, tableName, or partitionName to make sure they

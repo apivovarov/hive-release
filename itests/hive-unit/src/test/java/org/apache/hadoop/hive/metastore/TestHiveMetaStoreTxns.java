@@ -81,6 +81,8 @@ public class TestHiveMetaStoreTxns {
         validTxns.isTxnRangeCommitted(1L, 3L));
     List<Long> tids = client.openTxns("me", 5).getTxn_ids();
 
+    client.heartbeatTxnRange(1, 5);
+
     client.rollbackTxn(1L);
     client.commitTxn(2L);
     client.commitTxn(3L);

@@ -869,6 +869,13 @@ class Iface(fb303.FacebookService.Iface):
     """
     pass
 
+  def heartbeat_txn_range(self, txns):
+    """
+    Parameters:
+     - txns
+    """
+    pass
+
   def compact(self, rqst):
     """
     Parameters:
@@ -4631,6 +4638,34 @@ class Client(fb303.FacebookService.Client, Iface):
       raise result.o3
     return
 
+  def heartbeat_txn_range(self, txns):
+    """
+    Parameters:
+     - txns
+    """
+    self.send_heartbeat_txn_range(txns)
+    self.recv_heartbeat_txn_range()
+
+  def send_heartbeat_txn_range(self, txns):
+    self._oprot.writeMessageBegin('heartbeat_txn_range', TMessageType.CALL, self._seqid)
+    args = heartbeat_txn_range_args()
+    args.txns = txns
+    args.write(self._oprot)
+    self._oprot.writeMessageEnd()
+    self._oprot.trans.flush()
+
+  def recv_heartbeat_txn_range(self, ):
+    (fname, mtype, rseqid) = self._iprot.readMessageBegin()
+    if mtype == TMessageType.EXCEPTION:
+      x = TApplicationException()
+      x.read(self._iprot)
+      self._iprot.readMessageEnd()
+      raise x
+    result = heartbeat_txn_range_result()
+    result.read(self._iprot)
+    self._iprot.readMessageEnd()
+    return
+
   def compact(self, rqst):
     """
     Parameters:
@@ -4796,6 +4831,7 @@ class Processor(fb303.FacebookService.Processor, Iface, TProcessor):
     self._processMap["unlock"] = Processor.process_unlock
     self._processMap["show_locks"] = Processor.process_show_locks
     self._processMap["heartbeat"] = Processor.process_heartbeat
+    self._processMap["heartbeat_txn_range"] = Processor.process_heartbeat_txn_range
     self._processMap["compact"] = Processor.process_compact
     self._processMap["show_compact"] = Processor.process_show_compact
 
@@ -6474,6 +6510,17 @@ class Processor(fb303.FacebookService.Processor, Iface, TProcessor):
     except TxnAbortedException as o3:
       result.o3 = o3
     oprot.writeMessageBegin("heartbeat", TMessageType.REPLY, seqid)
+    result.write(oprot)
+    oprot.writeMessageEnd()
+    oprot.trans.flush()
+
+  def process_heartbeat_txn_range(self, seqid, iprot, oprot):
+    args = heartbeat_txn_range_args()
+    args.read(iprot)
+    iprot.readMessageEnd()
+    result = heartbeat_txn_range_result()
+    self._handler.heartbeat_txn_range(args.txns)
+    oprot.writeMessageBegin("heartbeat_txn_range", TMessageType.REPLY, seqid)
     result.write(oprot)
     oprot.writeMessageEnd()
     oprot.trans.flush()
@@ -23424,6 +23471,109 @@ class heartbeat_result:
       oprot.writeFieldBegin('o3', TType.STRUCT, 3)
       self.o3.write(oprot)
       oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class heartbeat_txn_range_args:
+  """
+  Attributes:
+   - txns
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRUCT, 'txns', (HeartbeatTxnRangeRequest, HeartbeatTxnRangeRequest.thrift_spec), None, ), # 1
+  )
+
+  def __init__(self, txns=None,):
+    self.txns = txns
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRUCT:
+          self.txns = HeartbeatTxnRangeRequest()
+          self.txns.read(iprot)
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('heartbeat_txn_range_args')
+    if self.txns is not None:
+      oprot.writeFieldBegin('txns', TType.STRUCT, 1)
+      self.txns.write(oprot)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class heartbeat_txn_range_result:
+
+  thrift_spec = (
+  )
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('heartbeat_txn_range_result')
     oprot.writeFieldStop()
     oprot.writeStructEnd()
 

@@ -119,6 +119,7 @@ interface ThriftHiveMetastoreIf extends \FacebookServiceIf {
   public function unlock(\metastore\UnlockRequest $rqst);
   public function show_locks(\metastore\ShowLocksRequest $rqst);
   public function heartbeat(\metastore\HeartbeatRequest $ids);
+  public function heartbeat_txn_range(\metastore\HeartbeatTxnRangeRequest $txns);
   public function compact(\metastore\CompactionRequest $rqst);
   public function show_compact(\metastore\ShowCompactRequest $rqst);
 }
@@ -6094,6 +6095,54 @@ class ThriftHiveMetastoreClient extends \FacebookServiceClient implements \metas
     }
     if ($result->o3 !== null) {
       throw $result->o3;
+    }
+    return;
+  }
+
+  public function heartbeat_txn_range(\metastore\HeartbeatTxnRangeRequest $txns)
+  {
+    $this->send_heartbeat_txn_range($txns);
+    $this->recv_heartbeat_txn_range();
+  }
+
+  public function send_heartbeat_txn_range(\metastore\HeartbeatTxnRangeRequest $txns)
+  {
+    $args = new \metastore\ThriftHiveMetastore_heartbeat_txn_range_args();
+    $args->txns = $txns;
+    $bin_accel = ($this->output_ instanceof TProtocol::$TBINARYPROTOCOLACCELERATED) && function_exists('thrift_protocol_write_binary');
+    if ($bin_accel)
+    {
+      thrift_protocol_write_binary($this->output_, 'heartbeat_txn_range', TMessageType::CALL, $args, $this->seqid_, $this->output_->isStrictWrite());
+    }
+    else
+    {
+      $this->output_->writeMessageBegin('heartbeat_txn_range', TMessageType::CALL, $this->seqid_);
+      $args->write($this->output_);
+      $this->output_->writeMessageEnd();
+      $this->output_->getTransport()->flush();
+    }
+  }
+
+  public function recv_heartbeat_txn_range()
+  {
+    $bin_accel = ($this->input_ instanceof TProtocol::$TBINARYPROTOCOLACCELERATED) && function_exists('thrift_protocol_read_binary');
+    if ($bin_accel) $result = thrift_protocol_read_binary($this->input_, '\metastore\ThriftHiveMetastore_heartbeat_txn_range_result', $this->input_->isStrictRead());
+    else
+    {
+      $rseqid = 0;
+      $fname = null;
+      $mtype = 0;
+
+      $this->input_->readMessageBegin($fname, $mtype, $rseqid);
+      if ($mtype == TMessageType::EXCEPTION) {
+        $x = new TApplicationException();
+        $x->read($this->input_);
+        $this->input_->readMessageEnd();
+        throw $x;
+      }
+      $result = new \metastore\ThriftHiveMetastore_heartbeat_txn_range_result();
+      $result->read($this->input_);
+      $this->input_->readMessageEnd();
     }
     return;
   }
@@ -29804,6 +29853,133 @@ class ThriftHiveMetastore_heartbeat_result {
       $xfer += $this->o3->write($output);
       $xfer += $output->writeFieldEnd();
     }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class ThriftHiveMetastore_heartbeat_txn_range_args {
+  static $_TSPEC;
+
+  public $txns = null;
+
+  public function __construct($vals=null) {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        1 => array(
+          'var' => 'txns',
+          'type' => TType::STRUCT,
+          'class' => '\metastore\HeartbeatTxnRangeRequest',
+          ),
+        );
+    }
+    if (is_array($vals)) {
+      if (isset($vals['txns'])) {
+        $this->txns = $vals['txns'];
+      }
+    }
+  }
+
+  public function getName() {
+    return 'ThriftHiveMetastore_heartbeat_txn_range_args';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        case 1:
+          if ($ftype == TType::STRUCT) {
+            $this->txns = new \metastore\HeartbeatTxnRangeRequest();
+            $xfer += $this->txns->read($input);
+          } else {
+            $xfer += $input->skip($ftype);
+          }
+          break;
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('ThriftHiveMetastore_heartbeat_txn_range_args');
+    if ($this->txns !== null) {
+      if (!is_object($this->txns)) {
+        throw new TProtocolException('Bad type in structure.', TProtocolException::INVALID_DATA);
+      }
+      $xfer += $output->writeFieldBegin('txns', TType::STRUCT, 1);
+      $xfer += $this->txns->write($output);
+      $xfer += $output->writeFieldEnd();
+    }
+    $xfer += $output->writeFieldStop();
+    $xfer += $output->writeStructEnd();
+    return $xfer;
+  }
+
+}
+
+class ThriftHiveMetastore_heartbeat_txn_range_result {
+  static $_TSPEC;
+
+
+  public function __construct() {
+    if (!isset(self::$_TSPEC)) {
+      self::$_TSPEC = array(
+        );
+    }
+  }
+
+  public function getName() {
+    return 'ThriftHiveMetastore_heartbeat_txn_range_result';
+  }
+
+  public function read($input)
+  {
+    $xfer = 0;
+    $fname = null;
+    $ftype = 0;
+    $fid = 0;
+    $xfer += $input->readStructBegin($fname);
+    while (true)
+    {
+      $xfer += $input->readFieldBegin($fname, $ftype, $fid);
+      if ($ftype == TType::STOP) {
+        break;
+      }
+      switch ($fid)
+      {
+        default:
+          $xfer += $input->skip($ftype);
+          break;
+      }
+      $xfer += $input->readFieldEnd();
+    }
+    $xfer += $input->readStructEnd();
+    return $xfer;
+  }
+
+  public function write($output) {
+    $xfer = 0;
+    $xfer += $output->writeStructBegin('ThriftHiveMetastore_heartbeat_txn_range_result');
     $xfer += $output->writeFieldStop();
     $xfer += $output->writeStructEnd();
     return $xfer;
