@@ -29,6 +29,7 @@ import org.apache.hive.service.cli.thrift.TCLIService.Iface;
 import org.apache.hive.service.cli.thrift.ThriftCLIService;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
+import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TTransport;
 
 public class KerberosSaslHelper {
@@ -56,7 +57,7 @@ public class KerberosSaslHelper {
   }
 
   public static TTransport getKerberosTransport(String principal, String host,
-      final TTransport underlyingTransport) throws SaslException {
+      final TTransport underlyingTransport, boolean assumeSubject) throws SaslException {
     try {
       final String names[] = principal.split("[/@]");
       if (names.length != 3) {
@@ -64,12 +65,30 @@ public class KerberosSaslHelper {
             + principal);
       }
 
-      HadoopThriftAuthBridge.Client authBridge =
-        ShimLoader.getHadoopThriftAuthBridge().createClientWithConf("kerberos");
-      return authBridge.createClientTransport(principal, host,
-          "KERBEROS", null, underlyingTransport);
+      if (assumeSubject) {
+        return createSubjectAssumedTransport(principal, underlyingTransport);
+      }
+      else {
+        HadoopThriftAuthBridge.Client authBridge =
+            ShimLoader.getHadoopThriftAuthBridge().createClientWithConf("kerberos");
+          return authBridge.createClientTransport(principal, host,
+              "KERBEROS", null, underlyingTransport);
+      }
     } catch (IOException e) {
       throw new SaslException("Failed to open client transport", e);
+    }
+  }
+
+  public static TTransport createSubjectAssumedTransport(String principal,
+      TTransport underlyingTransport) throws IOException {
+    TTransport saslTransport = null;
+    final String names[] = principal.split("[/@]");
+    try {
+      saslTransport = new TSaslClientTransport("GSSAPI", null, names[0],
+          names[1], null, null, underlyingTransport);
+      return new TSubjectAssumingTransport(saslTransport);
+    } catch (SaslException se) {
+      throw new IOException("Could not instantiate SASL transport", se);
     }
   }
 

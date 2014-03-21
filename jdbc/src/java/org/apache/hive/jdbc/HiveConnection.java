@@ -68,6 +68,8 @@ public class HiveConnection implements java.sql.Connection {
   private static final String HIVE_AUTH_USER = "user";
   private static final String HIVE_AUTH_PRINCIPAL = "principal";
   private static final String HIVE_AUTH_PASSWD = "password";
+  private static final String HIVE_AUTH_KERBEROS_AUTH_TYPE = "kerberosAuthType";
+  private static final String HIVE_AUTH_KERBEROS_AUTH_TYPE_FROM_SUBJECT = "fromSubject";
   private static final String HIVE_ANONYMOUS_USER = "anonymous";
   private static final String HIVE_ANONYMOUS_PASSWD = "anonymous";
 
@@ -131,8 +133,10 @@ public class HiveConnection implements java.sql.Connection {
         || !sessConf.get(HIVE_AUTH_TYPE).equals(HIVE_AUTH_SIMPLE)){
       try {
         if (sessConf.containsKey(HIVE_AUTH_PRINCIPAL)) {
+          boolean assumeSubject = HIVE_AUTH_KERBEROS_AUTH_TYPE_FROM_SUBJECT.equals(
+              sessConf.get(HIVE_AUTH_KERBEROS_AUTH_TYPE));
           transport = KerberosSaslHelper.getKerberosTransport(
-                  sessConf.get(HIVE_AUTH_PRINCIPAL), host, transport);
+                  sessConf.get(HIVE_AUTH_PRINCIPAL), host, transport, assumeSubject);
         } else {
           String userName = sessConf.get(HIVE_AUTH_USER);
           if ((userName == null) || userName.isEmpty()) {
