@@ -19,6 +19,8 @@
 package org.apache.hive.streaming;
 
 
+import com.google.common.annotations.VisibleForTesting;
+
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -91,17 +93,20 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
     return true;
   }
 
-  private int[] getFieldReordering(String[] colNamesForFields, List<String> tableColNames)
+  @VisibleForTesting
+  static int[] getFieldReordering(String[] colNamesForFields, List<String> tableColNames)
           throws InvalidColumn {
     int[] result = new int[ colNamesForFields.length ];
     for(int i=0; i<colNamesForFields.length; ++i) {
       result[i] = -1;
     }
-    int i=0;
+    int i=-1, fieldLabelCount=0;
     for( String col : colNamesForFields ) {
+      ++i;
       if(col == null) {
         continue;
       }
+      ++fieldLabelCount;
       if( col.trim().isEmpty() ) {
         continue;
       }
@@ -110,7 +115,9 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
         throw new InvalidColumn("Column '" + col + "' not found in table for input field " + i+1);
       }
       result[i] = loc;
-      ++i;
+    }
+    if(fieldLabelCount>tableColNames.size()) {
+      throw new InvalidColumn("Number of field names exceeds the number of columns in table");
     }
     return result;
   }
@@ -134,7 +141,7 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
 
   // handles nulls in items[]
   // TODO: perhaps can be made more efficient by creating a byte[] directly
-  private byte[] join(String[] items, char separator) {
+  private static byte[] join(String[] items, char separator) {
     StringBuffer buff = new StringBuffer(100);
     if(items.length == 0)
       return "".getBytes();
