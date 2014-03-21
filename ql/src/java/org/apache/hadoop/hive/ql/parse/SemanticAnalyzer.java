@@ -9269,7 +9269,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     // up with later.
     Operator sinkOp = genPlan(qb);
 
-    resultSchema = convertRowSchemaToViewSchema(opParseCtx.get(sinkOp).getRowResolver());
+    if (createVwDesc != null)
+      resultSchema = convertRowSchemaToViewSchema(opParseCtx.get(sinkOp).getRowResolver());
+    else
+      resultSchema = convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp).getRowResolver(),
+          true);
 
     if (runCBO && CostBasedOptimizer.canHandleOpTree(sinkOp, conf, queryProperties)) {
       /*
@@ -9321,7 +9325,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           disableJoinMerge = false;
         }
 
-        resultSchema = convertRowSchemaToViewSchema(opParseCtx.get(sinkOp).getRowResolver());
+        resultSchema = convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp).getRowResolver(), true);
       } catch (Exception e) {
         LOG.warn("CBO failed, skipping CBO", e);
         init();
@@ -9516,9 +9520,16 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     createVwDesc.setViewExpandedText(expandedText);
   }
 
-  private List<FieldSchema> convertRowSchemaToViewSchema(RowResolver rr) {
+  private List<FieldSchema> convertRowSchemaToViewSchema(RowResolver rr) throws SemanticException {
+    List<FieldSchema> fieldSchema = convertRowSchemaToResultSetSchema(rr, false);
+    ParseUtils.validateColumnNameUniqueness(fieldSchema);
+    return fieldSchema;
+  }
+
+  private List<FieldSchema> convertRowSchemaToResultSetSchema(RowResolver rr,
+      boolean useTabAliasIfAvailable) {
     List<FieldSchema> fieldSchemas = new ArrayList<FieldSchema>();
-    String[] qualifiedColNames;
+    String[] qualifiedColName;
     String colName;
 
     for (ColumnInfo colInfo : rr.getColumnInfos()) {
@@ -9526,11 +9537,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         continue;
       }
 
-      qualifiedColNames = rr.reverseLookup(colInfo.getInternalName());
-      if (qualifiedColNames[0] != null && !qualifiedColNames[0].isEmpty()) {
-        colName = qualifiedColNames[0] + "." + qualifiedColNames[1];
+      qualifiedColName = rr.reverseLookup(colInfo.getInternalName());
+      if (useTabAliasIfAvailable && qualifiedColName[0] != null && !qualifiedColName[0].isEmpty()) {
+        colName = qualifiedColName[0] + "." + qualifiedColName[1];
       } else {
-        colName = qualifiedColNames[1];
+        colName = qualifiedColName[1];
       }
       fieldSchemas.add(new FieldSchema(colName, colInfo.getType().getTypeName(), null));
     }
