@@ -427,7 +427,7 @@ public class HiveEndPoint {
      *
      * @param proxyUser
      * @param ugi
-     *@param endPt
+     * @param endPt
      * @param numTxns
      * @param msClient
      * @param recordWriter

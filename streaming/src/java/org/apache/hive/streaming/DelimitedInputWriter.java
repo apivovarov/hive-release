@@ -106,10 +106,10 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
       if(col == null) {
         continue;
       }
-      ++fieldLabelCount;
       if( col.trim().isEmpty() ) {
         continue;
       }
+      ++fieldLabelCount;
       int loc = tableColNames.indexOf(col);
       if(loc == -1) {
         throw new InvalidColumn("Column '" + col + "' not found in table for input field " + i+1);

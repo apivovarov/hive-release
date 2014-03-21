@@ -185,7 +185,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
   }
 
   /**
-   * Creates Serde
+   * Creates LazySimpleSerde
    * @param tableProps   used to create serde
    * @param conf         used to create serde
    * @return
@@ -217,7 +217,6 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
         location = msClient.getPartition(endPoint.database, endPoint.table,
                 endPoint.partitionVals).getSd().getLocation();
       }
-      msClient.close();
       return new Path(location);
     } catch (TException e) {
       throw new StreamingException(e.getMessage()
