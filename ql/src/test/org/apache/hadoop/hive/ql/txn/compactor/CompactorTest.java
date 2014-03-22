@@ -442,7 +442,8 @@ public abstract class CompactorTest {
 
     MockRecordWriter(Path basedir, AcidOutputFormat.Options options) throws IOException {
       FileSystem fs = FileSystem.get(options.getConfiguration());
-      os = fs.create(basedir);
+      Path p = AcidUtils.createFilename(basedir, options);
+      os = fs.create(p);
     }
 
     @Override

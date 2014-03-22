@@ -478,8 +478,7 @@ public class CompactorMR {
         AcidOutputFormat<V> aof =
             instantiate(AcidOutputFormat.class, jobConf.get(OUTPUT_FORMAT_CLASS_NAME));
 
-        Path location = AcidUtils.createFilename(new Path(jobConf.get(LOCATION)), options);
-        writer = aof.getRawRecordWriter(location, options);
+        writer = aof.getRawRecordWriter(new Path(jobConf.get(LOCATION)), options);
       }
     }
 
