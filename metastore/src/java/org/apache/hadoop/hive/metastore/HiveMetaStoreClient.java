@@ -73,6 +73,7 @@ import org.apache.hadoop.hive.metastore.api.GetPrincipalsInRoleRequest;
 import org.apache.hadoop.hive.metastore.api.GetPrincipalsInRoleResponse;
 import org.apache.hadoop.hive.metastore.api.HeartbeatRequest;
 import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeRequest;
+import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
 import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.Index;
@@ -1605,10 +1606,10 @@ public class HiveMetaStoreClient implements IMetaStoreClient {
   }
 
   @Override
-  public void heartbeatTxnRange(long min, long max)
+  public HeartbeatTxnRangeResponse heartbeatTxnRange(long min, long max)
     throws NoSuchTxnException, TxnAbortedException, TException {
     HeartbeatTxnRangeRequest rqst = new HeartbeatTxnRangeRequest(min, max);
-    client.heartbeat_txn_range(rqst);
+    return client.heartbeat_txn_range(rqst);
   }
 
   @Override

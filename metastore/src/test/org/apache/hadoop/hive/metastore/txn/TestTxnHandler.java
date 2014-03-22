@@ -894,7 +894,10 @@ public class TestTxnHandler {
     assertEquals(1, txnid);
     txnid = openTxn();
     txnid = openTxn();
-    txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
+    HeartbeatTxnRangeResponse rsp =
+        txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
+    assertNull(rsp.getAborted());
+    assertNull(rsp.getNosuch());
   }
 
   @Test
@@ -904,13 +907,12 @@ public class TestTxnHandler {
     txnHandler.commitTxn(new CommitTxnRequest(1));
     txnid = openTxn();
     txnid = openTxn();
-    boolean sawException = false;
-    try {
+    HeartbeatTxnRangeResponse rsp =
       txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
-    } catch (NoSuchTxnException e) {
-      sawException = true;
-    }
-    assertTrue(sawException);
+    assertEquals(1, rsp.getNosuchSize());
+    Long txn = rsp.getNosuch().iterator().next();
+    assertEquals(1L, (long)txn);
+    assertNull(rsp.getAborted());
   }
 
   @Test
@@ -920,13 +922,12 @@ public class TestTxnHandler {
     txnid = openTxn();
     txnid = openTxn();
     txnHandler.abortTxn(new AbortTxnRequest(3));
-    boolean sawException = false;
-    try {
+    HeartbeatTxnRangeResponse rsp =
       txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
-    } catch (TxnAbortedException e) {
-      sawException = true;
-    }
-    assertTrue(sawException);
+    assertEquals(1, rsp.getAbortedSize());
+    Long txn = rsp.getAborted().iterator().next();
+    assertEquals(3L, (long)txn);
+    assertNull(rsp.getNosuch());
   }
 
   @Test

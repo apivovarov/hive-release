@@ -583,14 +583,22 @@ public class TxnHandler {
     }
   }
 
-  public void heartbeatTxnRange(HeartbeatTxnRangeRequest rqst)
-      throws NoSuchTxnException, TxnAbortedException, MetaException {
+  public HeartbeatTxnRangeResponse heartbeatTxnRange(HeartbeatTxnRangeRequest rqst)
+      throws MetaException {
     try {
       Connection dbConn = getDbConn();
+      HeartbeatTxnRangeResponse rsp = new HeartbeatTxnRangeResponse();
       try {
         for (long txn = rqst.getMin(); txn <= rqst.getMax(); txn++) {
-          heartbeatTxn(dbConn, txn);
+          try {
+            heartbeatTxn(dbConn, txn);
+          } catch (NoSuchTxnException e) {
+            rsp.addToNosuch(txn);
+          } catch (TxnAbortedException e) {
+            rsp.addToAborted(txn);
+          }
         }
+        return rsp;
       } catch (SQLException e) {
         try {
           LOG.debug("Going to rollback");
@@ -604,7 +612,7 @@ public class TxnHandler {
         closeDbConn(dbConn);
       }
     } catch (DeadlockException e) {
-      // Don't try again on deadlock.
+      return heartbeatTxnRange(rqst);
     }
   }
 

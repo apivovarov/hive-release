@@ -1567,6 +1567,26 @@ class HeartbeatTxnRangeRequest
   ::Thrift::Struct.generate_accessors self
 end
 
+class HeartbeatTxnRangeResponse
+  include ::Thrift::Struct, ::Thrift::Struct_Union
+  ABORTED = 1
+  NOSUCH = 2
+
+  FIELDS = {
+    ABORTED => {:type => ::Thrift::Types::SET, :name => 'aborted', :element => {:type => ::Thrift::Types::I64}},
+    NOSUCH => {:type => ::Thrift::Types::SET, :name => 'nosuch', :element => {:type => ::Thrift::Types::I64}}
+  }
+
+  def struct_fields; FIELDS; end
+
+  def validate
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field aborted is unset!') unless @aborted
+    raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field nosuch is unset!') unless @nosuch
+  end
+
+  ::Thrift::Struct.generate_accessors self
+end
+
 class CompactionRequest
   include ::Thrift::Struct, ::Thrift::Struct_Union
   DBNAME = 1

@@ -119,7 +119,7 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual void unlock(const UnlockRequest& rqst) = 0;
   virtual void show_locks(ShowLocksResponse& _return, const ShowLocksRequest& rqst) = 0;
   virtual void heartbeat(const HeartbeatRequest& ids) = 0;
-  virtual void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns) = 0;
+  virtual void heartbeat_txn_range(HeartbeatTxnRangeResponse& _return, const HeartbeatTxnRangeRequest& txns) = 0;
   virtual void compact(const CompactionRequest& rqst) = 0;
   virtual void show_compact(ShowCompactResponse& _return, const ShowCompactRequest& rqst) = 0;
 };
@@ -481,7 +481,7 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
   void heartbeat(const HeartbeatRequest& /* ids */) {
     return;
   }
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& /* txns */) {
+  void heartbeat_txn_range(HeartbeatTxnRangeResponse& /* _return */, const HeartbeatTxnRangeRequest& /* txns */) {
     return;
   }
   void compact(const CompactionRequest& /* rqst */) {
@@ -14819,6 +14819,10 @@ class ThriftHiveMetastore_heartbeat_txn_range_pargs {
 
 };
 
+typedef struct _ThriftHiveMetastore_heartbeat_txn_range_result__isset {
+  _ThriftHiveMetastore_heartbeat_txn_range_result__isset() : success(false) {}
+  bool success;
+} _ThriftHiveMetastore_heartbeat_txn_range_result__isset;
 
 class ThriftHiveMetastore_heartbeat_txn_range_result {
  public:
@@ -14828,9 +14832,18 @@ class ThriftHiveMetastore_heartbeat_txn_range_result {
 
   virtual ~ThriftHiveMetastore_heartbeat_txn_range_result() throw() {}
 
+  HeartbeatTxnRangeResponse success;
 
-  bool operator == (const ThriftHiveMetastore_heartbeat_txn_range_result & /* rhs */) const
+  _ThriftHiveMetastore_heartbeat_txn_range_result__isset __isset;
+
+  void __set_success(const HeartbeatTxnRangeResponse& val) {
+    success = val;
+  }
+
+  bool operator == (const ThriftHiveMetastore_heartbeat_txn_range_result & rhs) const
   {
+    if (!(success == rhs.success))
+      return false;
     return true;
   }
   bool operator != (const ThriftHiveMetastore_heartbeat_txn_range_result &rhs) const {
@@ -14844,6 +14857,10 @@ class ThriftHiveMetastore_heartbeat_txn_range_result {
 
 };
 
+typedef struct _ThriftHiveMetastore_heartbeat_txn_range_presult__isset {
+  _ThriftHiveMetastore_heartbeat_txn_range_presult__isset() : success(false) {}
+  bool success;
+} _ThriftHiveMetastore_heartbeat_txn_range_presult__isset;
 
 class ThriftHiveMetastore_heartbeat_txn_range_presult {
  public:
@@ -14851,6 +14868,9 @@ class ThriftHiveMetastore_heartbeat_txn_range_presult {
 
   virtual ~ThriftHiveMetastore_heartbeat_txn_range_presult() throw() {}
 
+  HeartbeatTxnRangeResponse* success;
+
+  _ThriftHiveMetastore_heartbeat_txn_range_presult__isset __isset;
 
   uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
 
@@ -15373,9 +15393,9 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void heartbeat(const HeartbeatRequest& ids);
   void send_heartbeat(const HeartbeatRequest& ids);
   void recv_heartbeat();
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns);
+  void heartbeat_txn_range(HeartbeatTxnRangeResponse& _return, const HeartbeatTxnRangeRequest& txns);
   void send_heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns);
-  void recv_heartbeat_txn_range();
+  void recv_heartbeat_txn_range(HeartbeatTxnRangeResponse& _return);
   void compact(const CompactionRequest& rqst);
   void send_compact(const CompactionRequest& rqst);
   void recv_compact();
@@ -16627,13 +16647,14 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
     ifaces_[i]->heartbeat(ids);
   }
 
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns) {
+  void heartbeat_txn_range(HeartbeatTxnRangeResponse& _return, const HeartbeatTxnRangeRequest& txns) {
     size_t sz = ifaces_.size();
     size_t i = 0;
     for (; i < (sz - 1); ++i) {
-      ifaces_[i]->heartbeat_txn_range(txns);
+      ifaces_[i]->heartbeat_txn_range(_return, txns);
     }
-    ifaces_[i]->heartbeat_txn_range(txns);
+    ifaces_[i]->heartbeat_txn_range(_return, txns);
+    return;
   }
 
   void compact(const CompactionRequest& rqst) {
