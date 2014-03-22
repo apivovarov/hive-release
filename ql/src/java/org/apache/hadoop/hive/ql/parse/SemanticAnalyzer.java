@@ -345,8 +345,6 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     viewsExpanded = null;
     viewSelect = null;
     ctesExpanded = null;
-    noscan = false;
-    partialscan = false;
     globalLimitCtx.disableOpt();
     viewAliasToInput.clear();
     reduceSinkOperatorsAddedByEnforceBucketingSorting.clear();
