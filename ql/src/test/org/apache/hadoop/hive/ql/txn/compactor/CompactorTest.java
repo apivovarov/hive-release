@@ -294,14 +294,18 @@ public abstract class CompactorTest {
       List<Path> filesToRead = new ArrayList<Path>();
       if (baseDirectory != null) {
         if (baseDirectory.getName().startsWith(AcidUtils.BASE_PREFIX)) {
-          filesToRead.add(AcidUtils.createBucketFile(baseDirectory, bucket));
+          Path p = AcidUtils.createBucketFile(baseDirectory, bucket);
+          FileSystem fs = p.getFileSystem(conf);
+          if (fs.exists(p)) filesToRead.add(p);
         } else {
           filesToRead.add(new Path(baseDirectory, "00000_0"));
 
         }
       }
       for (int i = 0; i < deltaDirectory.length; i++) {
-        filesToRead.add(AcidUtils.createBucketFile(deltaDirectory[i], bucket));
+        Path p = AcidUtils.createBucketFile(deltaDirectory[i], bucket);
+        FileSystem fs = p.getFileSystem(conf);
+        if (fs.exists(p)) filesToRead.add(p);
       }
       return new MockRawReader(conf, filesToRead);
     }

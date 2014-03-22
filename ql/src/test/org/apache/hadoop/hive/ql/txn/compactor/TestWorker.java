@@ -272,6 +272,11 @@ public class TestWorker extends CompactorTest {
 
     startWorker(conf);
 
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
+
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(t.getSd().getLocation()));
@@ -313,6 +318,11 @@ public class TestWorker extends CompactorTest {
 
     startWorker(new HiveConf());
 
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
+
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(p.getSd().getLocation()));
@@ -352,6 +362,11 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
+
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -393,6 +408,11 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
+
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -436,6 +456,11 @@ public class TestWorker extends CompactorTest {
 
     startWorker(new HiveConf());
 
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
+
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(p.getSd().getLocation()));
@@ -475,6 +500,11 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
+
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
 
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
@@ -517,6 +547,11 @@ public class TestWorker extends CompactorTest {
 
     startWorker(new HiveConf());
 
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
+
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(t.getSd().getLocation()));
@@ -558,6 +593,11 @@ public class TestWorker extends CompactorTest {
 
     startWorker(new HiveConf());
 
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
+
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(t.getSd().getLocation()));
@@ -597,6 +637,11 @@ public class TestWorker extends CompactorTest {
     txnHandler.compact(rqst);
 
     startWorker(new HiveConf());
+
+    ShowCompactResponse rsp = txnHandler.showCompact(new ShowCompactRequest());
+    List<ShowCompactResponseElement> compacts = rsp.getCompacts();
+    Assert.assertEquals(1, compacts.size());
+    Assert.assertEquals("ready for cleaning", compacts.get(0).getState());
 
     // There should still be four directories in the location.
     FileSystem fs = FileSystem.get(conf);
