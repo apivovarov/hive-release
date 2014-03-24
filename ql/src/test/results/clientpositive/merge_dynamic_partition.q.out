@@ -67,23 +67,14 @@ STAGE PLANS:
               expressions: key (type: string), value (type: string), hr (type: string)
               outputColumnNames: _col0, _col1, _col2
               Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-              Reduce Output Operator
-                key expressions: _col2 (type: string)
-                sort order: +
-                Map-reduce partition columns: _col2 (type: string)
+              File Output Operator
+                compressed: false
                 Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-                value expressions: _col0 (type: string), _col1 (type: string), _col2 (type: string)
-      Reduce Operator Tree:
-        Extract
-          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-          File Output Operator
-            compressed: false
-            Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-            table:
-                input format: org.apache.hadoop.mapred.TextInputFormat
-                output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-                serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
-                name: default.merge_dynamic_part
+                table:
+                    input format: org.apache.hadoop.mapred.TextInputFormat
+                    output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                    serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+                    name: default.merge_dynamic_part
 
   Stage: Stage-0
     Move Operator
@@ -638,10 +629,10 @@ outputformat:org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
 columns:struct columns { string key, string value}
 partitioned:true
 partitionColumns:struct partition_columns { string ds, string hr}
-totalNumberFiles:1
+totalNumberFiles:4
 totalFileSize:5812
-maxFileSize:5812
-minFileSize:5812
+maxFileSize:1612
+minFileSize:1358
 #### A masked pattern was here ####
 
 PREHOOK: query: explain
@@ -1317,23 +1308,14 @@ STAGE PLANS:
               expressions: key (type: string), value (type: string), ds (type: string), hr (type: string)
               outputColumnNames: _col0, _col1, _col2, _col3
               Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-              Reduce Output Operator
-                key expressions: _col2 (type: string), _col3 (type: string)
-                sort order: ++
-                Map-reduce partition columns: _col2 (type: string), _col3 (type: string)
+              File Output Operator
+                compressed: false
                 Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-                value expressions: _col0 (type: string), _col1 (type: string), _col2 (type: string), _col3 (type: string)
-      Reduce Operator Tree:
-        Extract
-          Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-          File Output Operator
-            compressed: false
-            Statistics: Num rows: 29 Data size: 5812 Basic stats: COMPLETE Column stats: NONE
-            table:
-                input format: org.apache.hadoop.mapred.TextInputFormat
-                output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
-                serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
-                name: default.merge_dynamic_part
+                table:
+                    input format: org.apache.hadoop.mapred.TextInputFormat
+                    output format: org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat
+                    serde: org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe
+                    name: default.merge_dynamic_part
 
   Stage: Stage-7
     Conditional Operator

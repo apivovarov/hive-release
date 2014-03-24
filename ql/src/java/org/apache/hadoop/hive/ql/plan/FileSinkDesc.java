@@ -30,12 +30,6 @@ import org.apache.hadoop.fs.Path;
 @Explain(displayName = "File Output Operator")
 public class FileSinkDesc extends AbstractOperatorDesc {
   private static final long serialVersionUID = 1L;
-
-  public enum DPSortState {
-    NONE, PARTITION_SORTED, PARTITION_BUCKET_SORTED
-  }
-
-  private DPSortState dpSortState;
   private Path dirName;
   // normally statsKeyPref will be the same as dirName, but the latter
   // could be changed in local execution optimization
@@ -51,7 +45,6 @@ public class FileSinkDesc extends AbstractOperatorDesc {
   private boolean canBeMerged;
   private int     totalFiles;
   private ArrayList<ExprNodeDesc> partitionCols;
-  private ArrayList<ExprNodeDesc> bucketCols;
   private int     numFiles;
   private DynamicPartitionCtx dpCtx;
   private String staticSpec; // static partition spec ends with a '/'
@@ -103,8 +96,6 @@ public class FileSinkDesc extends AbstractOperatorDesc {
     this.totalFiles = totalFiles;
     this.partitionCols = partitionCols;
     this.dpCtx = dpCtx;
-    this.bucketCols = null;
-    this.dpSortState = DPSortState.NONE;
   }
 
   public FileSinkDesc(final Path dirName, final TableDesc tableInfo,
@@ -119,8 +110,6 @@ public class FileSinkDesc extends AbstractOperatorDesc {
     this.numFiles = 1;
     this.totalFiles = 1;
     this.partitionCols = null;
-    this.bucketCols = null;
-    this.dpSortState = DPSortState.NONE;
   }
 
   @Override
@@ -139,8 +128,6 @@ public class FileSinkDesc extends AbstractOperatorDesc {
     ret.setStatsReliable(statsReliable);
     ret.setMaxStatsKeyPrefixLength(maxStatsKeyPrefixLength);
     ret.setStatsCollectRawDataSize(statsCollectRawDataSize);
-    ret.setBucketCols(bucketCols);
-    ret.setDpSortState(dpSortState);
     return (Object) ret;
   }
 
@@ -393,21 +380,5 @@ public class FileSinkDesc extends AbstractOperatorDesc {
 
   public void setRemovedReduceSinkBucketSort(boolean removedReduceSinkBucketSort) {
     this.removedReduceSinkBucketSort = removedReduceSinkBucketSort;
-  }
-
-  public ArrayList<ExprNodeDesc> getBucketCols() {
-    return bucketCols;
-  }
-
-  public void setBucketCols(ArrayList<ExprNodeDesc> bucketCols) {
-    this.bucketCols = bucketCols;
-  }
-
-  public DPSortState getDpSortState() {
-    return dpSortState;
-  }
-
-  public void setDpSortState(DPSortState dpSortState) {
-    this.dpSortState = dpSortState;
   }
 }

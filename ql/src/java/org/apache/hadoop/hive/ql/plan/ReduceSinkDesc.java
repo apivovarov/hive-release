@@ -74,12 +74,6 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
 
   private int numReducers;
 
-  /**
-   * Bucket information
-   */
-  private int numBuckets;
-  private List<ExprNodeDesc> bucketCols;
-
   private int topN = -1;
   private float topNMemoryUsage = -1;
   private boolean mapGroupBy;  // for group-by, values with same key on top-K should be forwarded
@@ -106,8 +100,6 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
     this.keySerializeInfo = keySerializeInfo;
     this.valueSerializeInfo = valueSerializeInfo;
     this.distinctColumnIndices = distinctColumnIndices;
-    this.setNumBuckets(-1);
-    this.setBucketCols(null);
   }
 
   @Override
@@ -130,8 +122,6 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
     desc.setPartitionCols((ArrayList<ExprNodeDesc>) getPartitionCols().clone());
     desc.setKeySerializeInfo((TableDesc) getKeySerializeInfo().clone());
     desc.setValueSerializeInfo((TableDesc) getValueSerializeInfo().clone());
-    desc.setNumBuckets(numBuckets);
-    desc.setBucketCols(bucketCols);
     return desc;
   }
 
@@ -308,21 +298,5 @@ public class ReduceSinkDesc extends AbstractOperatorDesc {
 
   public void setOutputName(String outputName) {
     this.outputName = outputName;
-  }
-
-  public int getNumBuckets() {
-    return numBuckets;
-  }
-
-  public void setNumBuckets(int numBuckets) {
-    this.numBuckets = numBuckets;
-  }
-
-  public List<ExprNodeDesc> getBucketCols() {
-    return bucketCols;
-  }
-
-  public void setBucketCols(List<ExprNodeDesc> bucketCols) {
-    this.bucketCols = bucketCols;
   }
 }

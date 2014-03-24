@@ -53,11 +53,6 @@
                                #### A masked pattern was here #### 
                               </object> 
                              </void> 
-                             <void property="dpSortState"> 
-                              <object id="FileSinkDesc$DPSortState0" class="org.apache.hadoop.hive.ql.plan.FileSinkDesc$DPSortState" method="valueOf"> 
-                               <string>NONE</string> 
-                              </object> 
-                             </void> 
                              <void property="numFiles"> 
                               <int>1</int> 
                              </void> 
@@ -233,7 +228,7 @@
                          </object> 
                         </void> 
                         <void property="tableDesc"> 
-                         <object id="TableDesc0" class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
+                         <object class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
                           <void property="inputFileFormatClass"> 
                            <class>org.apache.hadoop.mapred.TextInputFormat</class> 
                           </void> 
@@ -443,7 +438,7 @@
          </object> 
         </void> 
         <void property="tableDesc"> 
-         <object id="TableDesc1" class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
+         <object id="TableDesc0" class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
           <void property="inputFileFormatClass"> 
            <class>org.apache.hadoop.mapred.TextInputFormat</class> 
           </void> 
@@ -579,7 +574,7 @@
          </object> 
         </void> 
         <void property="tableDesc"> 
-         <object idref="TableDesc1"/> 
+         <object idref="TableDesc0"/> 
         </void> 
        </object> 
       </void> 
@@ -613,9 +608,6 @@
                            #### A masked pattern was here #### 
                           </object> 
                          </void> 
-                         <void property="dpSortState"> 
-                          <object idref="FileSinkDesc$DPSortState0"/> 
-                         </void> 
                          <void property="numFiles"> 
                           <int>1</int> 
                          </void> 
@@ -626,7 +618,34 @@
                           <boolean>true</boolean> 
                          </void> 
                          <void property="tableInfo"> 
-                          <object idref="TableDesc0"/> 
+                          <object class="org.apache.hadoop.hive.ql.plan.TableDesc"> 
+                           <void property="inputFileFormatClass"> 
+                            <class>org.apache.hadoop.mapred.TextInputFormat</class> 
+                           </void> 
+                           <void property="outputFileFormatClass"> 
+                            <class>org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat</class> 
+                           </void> 
+                           <void property="properties"> 
+                            <object class="java.util.Properties"> 
+                             <void method="put"> 
+                              <string>columns</string> 
+                              <string>_col0,_col1</string> 
+                             </void> 
+                             <void method="put"> 
+                              <string>serialization.lib</string> 
+                              <string>org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe</string> 
+                             </void> 
+                             <void method="put"> 
+                              <string>serialization.format</string> 
+                              <string>1</string> 
+                             </void> 
+                             <void method="put"> 
+                              <string>columns.types</string> 
+                              <string>string:string</string> 
+                             </void> 
+                            </object> 
+                           </void> 
+                          </object> 
                          </void> 
                          <void property="totalFiles"> 
                           <int>1</int> 
@@ -1520,7 +1539,7 @@
          </object> 
         </void> 
         <void property="tableDesc"> 
-         <object idref="TableDesc1"/> 
+         <object idref="TableDesc0"/> 
         </void> 
        </object> 
       </void> 
