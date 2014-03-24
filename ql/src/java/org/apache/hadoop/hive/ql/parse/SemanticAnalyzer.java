@@ -9271,7 +9271,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       resultSchema = convertRowSchemaToViewSchema(opParseCtx.get(sinkOp).getRowResolver());
     else
       resultSchema = convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp).getRowResolver(),
-          true);
+          HiveConf.getBoolVar(conf, HiveConf.ConfVars.HIVE_RESULTSET_USE_UNIQUE_COLUMN_NAMES));
 
     if (runCBO && CostBasedOptimizer.canHandleOpTree(sinkOp, conf, queryProperties)) {
       /*
