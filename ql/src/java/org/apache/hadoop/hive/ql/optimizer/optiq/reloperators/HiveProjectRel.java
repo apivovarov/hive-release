@@ -72,11 +72,10 @@ public class HiveProjectRel extends ProjectRelBase implements HiveRel {
     return new HiveProjectRel(cluster, traitSet, child, exps, rowType, Flags.BOXED);
   }
 
-  @Override
-  public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  public ProjectRelBase copy(RelTraitSet traitSet, RelNode input, List<RexNode> exps,
+      RelDataType rowType) {
     assert traitSet.containsIfApplicable(HiveRel.CONVENTION);
-    return new HiveProjectRel(getCluster(), traitSet, sole(inputs), getProjects(), rowType,
-        getFlags());
+    return new HiveProjectRel(getCluster(), traitSet, input, exps, rowType, getFlags());
   }
 
   @Override

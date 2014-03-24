@@ -152,9 +152,9 @@
 
   <repositories>
      <repository>
-       <id>nexus</id>
-       <name>nexus</name>
-       <url>http://54.235.92.15/nexus/content/repositories/optiq/</url>
+       <id>conjars</id>
+       <name>Optiq Conjars repository</name>
+       <url>http://conjars.org/net.hydromatic/optiq-core/</url>
        <layout>default</layout>
        <releases>
           <enabled>true</enabled>

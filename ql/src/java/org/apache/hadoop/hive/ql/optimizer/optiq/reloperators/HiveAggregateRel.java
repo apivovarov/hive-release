@@ -31,10 +31,10 @@ public class HiveAggregateRel extends AggregateRelBase implements HiveRel {
     }
   }
 
-  @Override
-  public HiveAggregateRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+  public AggregateRelBase copy(RelTraitSet traitSet, RelNode input, BitSet groupSet,
+      List<AggregateCall> aggCalls) {
     try {
-      return new HiveAggregateRel(getCluster(), traitSet, sole(inputs), groupSet, aggCalls);
+      return new HiveAggregateRel(getCluster(), traitSet, input, groupSet, aggCalls);
     } catch (InvalidRelException e) {
       // Semantic error not possible. Must be a bug. Convert to
       // internal error.

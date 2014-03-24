@@ -128,7 +128,7 @@ public class ASTConverter {
            * ASTNode on unqualified name.
            */
           ASTNode astCol = ASTBuilder.unqualifiedName(cI.column);
-          ASTNode astNode = c.getDirection() == RelFieldCollation.Direction.Ascending
+          ASTNode astNode = c.getDirection() == RelFieldCollation.Direction.ASCENDING
               ? ASTBuilder.createAST(HiveParser.TOK_TABSORTCOLNAMEASC, "TOK_TABSORTCOLNAMEASC")
               : ASTBuilder.createAST(HiveParser.TOK_TABSORTCOLNAMEDESC, "TOK_TABSORTCOLNAMEDESC");
           astNode.addChild(astCol);

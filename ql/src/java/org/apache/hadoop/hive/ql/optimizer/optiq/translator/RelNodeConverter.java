@@ -593,9 +593,9 @@ public class RelNodeConverter {
     private RelFieldCollation.Direction getDirection(char c) {
       switch (c) {
       case '+':
-        return RelFieldCollation.Direction.Ascending;
+        return RelFieldCollation.Direction.ASCENDING;
       case '-':
-        return RelFieldCollation.Direction.Descending;
+        return RelFieldCollation.Direction.DESCENDING;
       default:
         throw new AssertionError("unexpected direction " + c);
       }
