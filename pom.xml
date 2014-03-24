@@ -154,7 +154,7 @@
      <repository>
        <id>conjars</id>
        <name>Optiq Conjars repository</name>
-       <url>http://conjars.org/net.hydromatic/optiq-core/</url>
+       <url>http://conjars.org/repo</url>
        <layout>default</layout>
        <releases>
           <enabled>true</enabled>
