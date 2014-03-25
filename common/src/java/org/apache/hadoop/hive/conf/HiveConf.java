@@ -583,6 +583,7 @@ public class HiveConf extends Configuration {
 
     HIVETEZCONTAINERSIZE("hive.tez.container.size", -1),
     HIVETEZJAVAOPTS("hive.tez.java.opts", null),
+    HIVETEZLOGLEVEL("hive.tez.log.level", "INFO"),
 
     HIVEENFORCEBUCKETING("hive.enforce.bucketing", false),
     HIVEENFORCESORTING("hive.enforce.sorting", false),
