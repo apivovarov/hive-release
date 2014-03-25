@@ -896,8 +896,8 @@ public class TestTxnHandler {
     txnid = openTxn();
     HeartbeatTxnRangeResponse rsp =
         txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
-    assertNull(rsp.getAborted());
-    assertNull(rsp.getNosuch());
+    assertEquals(0, rsp.getAborted().size());
+    assertEquals(0, rsp.getNosuch().size());
   }
 
   @Test
@@ -912,7 +912,7 @@ public class TestTxnHandler {
     assertEquals(1, rsp.getNosuchSize());
     Long txn = rsp.getNosuch().iterator().next();
     assertEquals(1L, (long)txn);
-    assertNull(rsp.getAborted());
+    assertEquals(0, rsp.getAborted().size());
   }
 
   @Test
@@ -927,7 +927,7 @@ public class TestTxnHandler {
     assertEquals(1, rsp.getAbortedSize());
     Long txn = rsp.getAborted().iterator().next();
     assertEquals(3L, (long)txn);
-    assertNull(rsp.getNosuch());
+    assertEquals(0, rsp.getNosuch().size());
   }
 
   @Test

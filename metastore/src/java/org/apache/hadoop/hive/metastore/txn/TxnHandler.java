@@ -588,14 +588,18 @@ public class TxnHandler {
     try {
       Connection dbConn = getDbConn();
       HeartbeatTxnRangeResponse rsp = new HeartbeatTxnRangeResponse();
+      Set<Long> nosuch = new HashSet<Long>();
+      Set<Long> aborted = new HashSet<Long>();
+      rsp.setNosuch(nosuch);
+      rsp.setAborted(aborted);
       try {
         for (long txn = rqst.getMin(); txn <= rqst.getMax(); txn++) {
           try {
             heartbeatTxn(dbConn, txn);
           } catch (NoSuchTxnException e) {
-            rsp.addToNosuch(txn);
+            nosuch.add(txn);
           } catch (TxnAbortedException e) {
-            rsp.addToAborted(txn);
+            aborted.add(txn);
           }
         }
         return rsp;
