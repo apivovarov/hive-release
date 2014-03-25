@@ -289,8 +289,8 @@ public class TestWorker extends CompactorTest {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(208L, buckets[0].getLen());
         Assert.assertEquals(208L, buckets[1].getLen());
       } else {
@@ -335,8 +335,8 @@ public class TestWorker extends CompactorTest {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(208L, buckets[0].getLen());
         Assert.assertEquals(208L, buckets[1].getLen());
       } else {
@@ -380,8 +380,8 @@ public class TestWorker extends CompactorTest {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(208L, buckets[0].getLen());
         Assert.assertEquals(208L, buckets[1].getLen());
       } else {
@@ -426,8 +426,8 @@ public class TestWorker extends CompactorTest {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(1248L, buckets[0].getLen());
         Assert.assertEquals(1248L, buckets[1].getLen());
       } else {
@@ -473,8 +473,8 @@ public class TestWorker extends CompactorTest {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(1248L, buckets[0].getLen());
         Assert.assertEquals(1248L, buckets[1].getLen());
       } else {
@@ -518,8 +518,8 @@ public class TestWorker extends CompactorTest {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(208L, buckets[0].getLen());
         Assert.assertEquals(208L, buckets[1].getLen());
       } else {
@@ -564,8 +564,8 @@ public class TestWorker extends CompactorTest {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
         Assert.assertEquals(1248L, buckets[0].getLen());
         Assert.assertEquals(1248L, buckets[1].getLen());
       } else {
@@ -609,10 +609,8 @@ public class TestWorker extends CompactorTest {
         sawNewDelta = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
-        Assert.assertEquals(208L, buckets[0].getLen());
-        Assert.assertEquals(208L, buckets[1].getLen());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
@@ -655,10 +653,16 @@ public class TestWorker extends CompactorTest {
         sawNewBase = true;
         FileStatus[] buckets = fs.listStatus(stat[i].getPath());
         Assert.assertEquals(2, buckets.length);
-        Assert.assertEquals("bucket_00000", buckets[0].getPath().getName());
-        Assert.assertEquals("bucket_00001", buckets[1].getPath().getName());
-        Assert.assertEquals(104L, buckets[0].getLen());
-        Assert.assertEquals(1248L, buckets[1].getLen());
+        Assert.assertTrue(buckets[0].getPath().getName().matches("bucket_0000[01]"));
+        Assert.assertTrue(buckets[1].getPath().getName().matches("bucket_0000[01]"));
+        // Bucket 0 should be small and bucket 1 should be large, make sure that's the case
+        Assert.assertTrue(
+            ("bucket_00000".equals(buckets[0].getPath().getName()) && 104L == buckets[0].getLen()
+            && "bucket_00001".equals(buckets[1].getPath().getName()) && 1248L == buckets[1] .getLen())
+            ||
+            ("bucket_00000".equals(buckets[1].getPath().getName()) && 104L == buckets[1].getLen()
+            && "bucket_00001".equals(buckets[0].getPath().getName()) && 1248L == buckets[0] .getLen())
+        );
       } else {
         LOG.debug("This is not the file you are looking for " + stat[i].getPath().getName());
       }
