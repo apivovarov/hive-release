@@ -92,6 +92,7 @@ public interface TransactionBatch  {
    * @throws StreamingException
    */
   public void write(byte[] record) throws StreamingException, InterruptedException;
+
   /**
    *  Write records using RecordWriter
    * @param records collection of rows to be written
@@ -100,6 +101,15 @@ public interface TransactionBatch  {
    * @throws StreamingException
    */
   public void write(Collection<byte[]> records) throws StreamingException, InterruptedException;
+
+
+  /**
+   * Issues a heartbeat to hive metastore on the current and remaining txn ids
+   * to keep them from expiring
+   * @throws StreamingException
+   * @throws HeartBeatFailure
+   */
+  public void heartbeat() throws StreamingException, HeartBeatFailure;
 
   /**
    * Close the TransactionBatch

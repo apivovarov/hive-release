@@ -27,6 +27,7 @@ import org.apache.hadoop.hive.metastore.LockComponentBuilder;
 import org.apache.hadoop.hive.metastore.LockRequestBuilder;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.LockState;
@@ -394,6 +395,7 @@ public class HiveEndPoint {
 
       try {
         return Hive.get(conf).getMSC();
+//        return new HiveMetaStoreClient(conf);
       } catch (MetaException e) {
         throw new ConnectionError("Error connecting to Hive Metastore URI: "
                 + endPoint.metaStoreUri, e);
@@ -457,6 +459,14 @@ public class HiveEndPoint {
       } catch (TException e) {
         throw new TransactionBatchUnAvailable(endPt, e);
       }
+    }
+
+    @Override
+    public String toString() {
+      if(txnIds==null || txnIds.isEmpty()) {
+        return "{}";
+      }
+      return "TxnIds=[" + txnIds.get(0) + ".." + txnIds.get(txnIds.size()-1)  + "] on endPoint= " + endPt;
     }
 
     /**
@@ -705,6 +715,21 @@ public class HiveEndPoint {
       }
     }
 
+    @Override
+    public void heartbeat() throws StreamingException, HeartBeatFailure {
+      Long first = txnIds.get(currentTxnIndex);
+      Long last = txnIds.get(txnIds.size()-1);
+      try {
+        HeartbeatTxnRangeResponse resp = msClient.heartbeatTxnRange(first, last);
+        if(!resp.getAborted().isEmpty() || !resp.getNosuch().isEmpty()) {
+          throw new HeartBeatFailure(resp.getAborted(), resp.getNosuch());
+        }
+      } catch (TException e) {
+        throw new StreamingException("Failure to heartbeat on ids (" + first + ".."
+                + last + ") on end point : " + endPt );
+      }
+    }
+
     /**
      * Close the TransactionBatch
      * @throws StreamingIOFailure I/O failure when closing transaction batch
@@ -732,7 +757,6 @@ public class HiveEndPoint {
                 "' when closing Txn Batch on  endPoint :" + endPt, e);
       }
     }
-
 
     private static LockRequest createLockRequest(final HiveEndPoint hiveEndPoint,
             String partNameForLock, String user, long txnId)  {

@@ -20,6 +20,8 @@ package org.apache.hive.streaming;
 
 
 import com.google.common.annotations.VisibleForTesting;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -34,6 +36,8 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
   private final boolean reorderingNeeded;
   private String delimiter;
   private int[] fieldToColMapping;
+
+  static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
  /**
   * @param colNamesForFields Column name assignment for input fields. nulls or empty
@@ -76,6 +80,7 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
     this.delimiter = delimiter;
     this.fieldToColMapping = getFieldReordering(colNamesForFields, getTableColumns());
     this.reorderingNeeded = isReorderingNeeded(delimiter, getTableColumns());
+    LOG.debug("Field reordering needed = " + this.reorderingNeeded + ", for endpoint " + endPoint);
   }
 
   private boolean isReorderingNeeded(String delimiter, ArrayList<String> tableColumns) {
