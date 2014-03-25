@@ -102,6 +102,7 @@ import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
 import org.apache.hadoop.hive.ql.optimizer.CostBasedOptimizer;
 import org.apache.hadoop.hive.ql.optimizer.Optimizer;
 import org.apache.hadoop.hive.ql.optimizer.PreCBOOptimizer;
+import org.apache.hadoop.hive.ql.optimizer.optiq.stats.CBOTableStatsValidator;
 import org.apache.hadoop.hive.ql.optimizer.unionproc.UnionProcContext;
 import org.apache.hadoop.hive.ql.parse.BaseSemanticAnalyzer.tableSpec.SpecType;
 import org.apache.hadoop.hive.ql.parse.PTFInvocationSpec.OrderExpression;
@@ -9277,14 +9278,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       /*
        * For CBO: 1. Run PreCBOOptimizer on Plan. This applies: Partition
        * Pruning, Predicate Pushdown, Column Pruning and Stats Annotation
-       * transformations on the generated plan. 2. Hand the Plan to CBO, which
-       * searches the Plan space and returns the best Plan as an AST 3. We then
-       * run the Analysis Pipeline on the new AST: Phase 1, Get Metadata, Gen
-       * Plan. a. During Plan Generation, we disable Join Merging, because we
-       * don't want the Join order to be changed. Error Handling: - On Failure
-       * during CBO optimization: - We log the error and proceed with the Plan
-       * generated. - On Failure during Analysis of the new AST: - we restart
-       * the Analysis from the beginning on the original AST, with runCBO set to
+       * transformations on the generated plan. 2. Validate that all TS has
+       * valid stats 3. Hand the Plan to CBO, which searches the Plan space and
+       * returns the best Plan as an AST 4. We then run the Analysis Pipeline on
+       * the new AST: Phase 1, Get Metadata, Gen Plan. a. During Plan
+       * Generation, we disable Join Merging, because we don't want the Join
+       * order to be changed. Error Handling: On Failure - we restart the
+       * Analysis from the beginning on the original AST, with runCBO set to
        * false.
        */
       ASTNode newAST = null;
@@ -9292,43 +9292,63 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       runCBO = false;
 
       try {
+        // 1. Set up parse ctx for CBO
         ParseContext pCtx = new ParseContext(conf, qb, child, opToPartPruner, opToPartList, topOps,
             topSelOps, opParseCtx, joinContext, smbMapJoinContext, topToTable, topToTableProps,
             fsopToTable, loadTableWork, loadFileWork, ctx, idToTableNameMap, destTableId, uCtx,
             listMapJoinOpsNoReducer, groupOpToInputTables, prunedPartitions, opToSamplePruner,
             globalLimitCtx, nameToSplitSample, inputs, rootTasks, opToPartToSkewedPruner,
             viewAliasToInput, reduceSinkOperatorsAddedByEnforceBucketingSorting, queryProperties);
+
+        // 2. Run Pre CBO optimizer
         PreCBOOptimizer preCBOOptm = new PreCBOOptimizer();
         preCBOOptm.setPctx(pCtx);
         preCBOOptm.initialize(conf);
         pCtx = preCBOOptm.optimize();
 
-        newAST = CostBasedOptimizer.optimize(sinkOp, this, pCtx, resultSchema);
-        if (LOG.isDebugEnabled()) {
-          String newAstExpanded = newAST.dump();
-          LOG.debug("CBO rewritten query: \n" + newAstExpanded);
-        }
+        // 3. Validate Table Stats
+        CBOTableStatsValidator tableStatsValidator = new CBOTableStatsValidator();
+        if (tableStatsValidator.validStats(sinkOp, pCtx)) {
 
-        init();
-        ctx_1 = initPhase1Ctx();
-        if (!doPhase1(newAST, qb, ctx_1)) {
-          throw new RuntimeException("Couldn't do phase1 on CBO optimized query plan");
-        }
-        getMetaData(qb);
+          // 4. Optimize the plan with CBO & generate optimized AST
+          newAST = CostBasedOptimizer.optimize(sinkOp, this, pCtx, resultSchema);
+          if (LOG.isDebugEnabled()) {
+            String newAstExpanded = newAST.dump();
+            LOG.debug("CBO rewritten query: \n" + newAstExpanded);
+          }
 
-        try {
-          disableJoinMerge = true;
-          sinkOp = genPlan(qb);
-        } finally {
-          disableJoinMerge = false;
-        }
+          // 5. Regen OP plan from optimized AST
+          init();
+          ctx_1 = initPhase1Ctx();
+          if (!doPhase1(newAST, qb, ctx_1)) {
+            throw new RuntimeException("Couldn't do phase1 on CBO optimized query plan");
+          }
+          getMetaData(qb);
 
-        resultSchema = convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp).getRowResolver(), true);
+          try {
+            disableJoinMerge = true;
+            sinkOp = genPlan(qb);
+          } finally {
+            disableJoinMerge = false;
+          }
+
+          // 6. Reset result set schema
+          resultSchema = convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp).getRowResolver(),
+              true);
+        } else {
+          skipCBOPlan = true;
+          LOG.warn("Skipping CBO. Incomplete column stats for Tables: "
+              + tableStatsValidator.getIncompleteStatsTabNames());
+        }
       } catch (Exception e) {
-        LOG.warn("CBO failed, skipping CBO", e);
-        init();
-        analyzeInternal(ast);
-        return;
+        skipCBOPlan = true;
+        LOG.warn("CBO failed, skipping CBO. ", e);
+      } finally {
+        if (skipCBOPlan) {
+          init();
+          analyzeInternal(ast);
+          return;
+        }
       }
     }
 
