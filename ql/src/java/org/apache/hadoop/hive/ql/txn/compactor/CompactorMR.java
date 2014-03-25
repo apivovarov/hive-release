@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.common.ValidTxnListImpl;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.io.AcidInputFormat;
@@ -34,6 +35,7 @@ import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.io.FSRecordWriter;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -115,6 +117,7 @@ public class CompactorMR {
     job.set(TABLE_PROPS, new StringableMap(t.getParameters()).toString());
     job.setInt(NUM_BUCKETS, sd.getBucketColsSize());
     job.set(ValidTxnList.VALID_TXNS_KEY, txns.toString());
+    setColumnTypes(job, sd.getCols());
 
     // Figure out and encode what files we need to read.  We do this here (rather than in
     // getSplits below) because as part of this we discover our minimum and maximum transactions,
@@ -174,6 +177,30 @@ public class CompactorMR {
     LOG.debug("Setting maximume transaction to " + maxTxn);
 
     JobClient.runJob(job);
+  }
+
+  /**
+   * Set the column names and types into the job conf for the input format
+   * to use.
+   * @param job the job to update
+   * @param cols the columns of the table
+   */
+  private void setColumnTypes(JobConf job, List<FieldSchema> cols) {
+    StringBuilder colNames = new StringBuilder();
+    StringBuilder colTypes = new StringBuilder();
+    boolean isFirst = true;
+    for(FieldSchema col: cols) {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        colNames.append(',');
+        colTypes.append(',');
+      }
+      colNames.append(col.getName());
+      colTypes.append(col.getType());
+    }
+    job.set(serdeConstants.LIST_COLUMNS, colNames.toString());
+    job.set(serdeConstants.LIST_COLUMN_TYPES, colTypes.toString());
   }
 
   static class CompactorInputSplit implements InputSplit {
@@ -306,6 +333,25 @@ public class CompactorMR {
 
     Path[] getDeltaDirs() {
       return deltas;
+    }
+
+    public String toString() {
+      StringBuilder builder = new StringBuilder();
+      builder.append("CompactorInputSplit{base: ");
+      builder.append(base);
+      builder.append(", bucket: ");
+      builder.append(bucketNum);
+      builder.append(", length: ");
+      builder.append(length);
+      builder.append(", deltas: [");
+      for(int i=0; i < deltas.length; ++i) {
+        if (i != 0) {
+          builder.append(", ");
+        }
+        builder.append(deltas[i].getName());
+      }
+      builder.append("]}");
+      return builder.toString();
     }
   }
 
@@ -440,12 +486,10 @@ public class CompactorMR {
       AcidInputFormat.RawReader<V> reader =
           aif.getRawReader(jobConf, jobConf.getBoolean(IS_MAJOR, false), split.getBucket(),
               txnList, split.getBaseDir(), split.getDeltaDirs());
-      while (true) {
-        RecordIdentifier identifier = reader.createKey();
-        V value = reader.createValue();
-        if (!reader.next(identifier, value)) break;
-        // Make sure we've opened the writer
-        getWriter(reporter, reader.getObjectInspector(), identifier.getBucketId());
+      RecordIdentifier identifier = reader.createKey();
+      V value = reader.createValue();
+      getWriter(reporter, reader.getObjectInspector(), split.getBucket());
+      while (reader.next(identifier, value)) {
         writer.write(value);
         reporter.progress();
       }
@@ -458,7 +502,9 @@ public class CompactorMR {
 
     @Override
     public void close() throws IOException {
-      if (writer != null) writer.close(false);
+      if (writer != null) {
+        writer.close(false);
+      }
     }
 
     private void getWriter(Reporter reporter, ObjectInspector inspector,

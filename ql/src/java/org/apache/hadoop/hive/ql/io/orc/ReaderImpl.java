@@ -462,6 +462,7 @@ final class ReaderImpl implements Reader {
 
   @Override
   public RecordReader rowsOptions(Options options) throws IOException {
+    LOG.info("Reading ORC rows from " + path + " with " + options);
     boolean[] include = options.getInclude();
     // if included columns is null, then include all columns
     if (include == null) {

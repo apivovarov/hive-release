@@ -28,6 +28,7 @@ import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.ql.io.AcidInputFormat;
 import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
@@ -367,10 +368,12 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
     // slide the columns down by 6 for the include array
     if (options.getInclude() != null) {
       boolean[] orig = options.getInclude();
+      // we always need the base row
+      orig[0] = true;
       boolean[] include = new boolean[orig.length + OrcRecordUpdater.FIELDS];
       Arrays.fill(include, 0, OrcRecordUpdater.FIELDS, true);
       for(int i= 0; i < orig.length; ++i) {
-        include[i + OrcRecordUpdater.FIELDS - 1] = orig[i];
+        include[i + OrcRecordUpdater.FIELDS] = orig[i];
       }
       result.include(include);
     }
@@ -618,9 +621,9 @@ public class OrcRawRecordMerger implements AcidInputFormat.RawReader<OrcStruct>{
   @Override
   public ObjectInspector getObjectInspector() {
     // Read the configuration parameters
-    String columnNameProperty = conf.get("columns");
+    String columnNameProperty = conf.get(serdeConstants.LIST_COLUMNS);
     // NOTE: if "columns.types" is missing, all columns will be of String type
-    String columnTypeProperty = conf.get("columns.types");
+    String columnTypeProperty = conf.get(serdeConstants.LIST_COLUMN_TYPES);
 
     // Parse the configuration parameters
     ArrayList<String> columnNames = new ArrayList<String>();

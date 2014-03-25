@@ -244,8 +244,6 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
                                  Configuration conf,
                                  boolean isOriginal) {
     int rootColumn = getRootColumn(isOriginal);
-    LOG.info("included column ids = " +
-        conf.get(ColumnProjectionUtils.READ_COLUMN_IDS_CONF_STR));
     if (!ColumnProjectionUtils.isReadAllColumns(conf)) {
       int numColumns = types.size() - rootColumn;
       boolean[] result = new boolean[numColumns];

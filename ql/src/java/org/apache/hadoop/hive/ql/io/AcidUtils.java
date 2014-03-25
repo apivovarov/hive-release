@@ -356,7 +356,7 @@ public class AcidUtils {
     // transaction.
     if (bestBase == null && ignoredBase != null) {
       throw new IllegalArgumentException("All base directories were ignored," +
-          " such as " + ignoredBase);
+          " such as " + ignoredBase + " by " + txnList);
     }
 
     // if we have a base, the original files are obsolete.
