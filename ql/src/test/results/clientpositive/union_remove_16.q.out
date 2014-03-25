@@ -225,13 +225,13 @@ POSTHOOK: Lineage: outputtbl1 PARTITION(ds=2).key EXPRESSION [(inputtbl1)inputtb
 POSTHOOK: Lineage: outputtbl1 PARTITION(ds=2).values EXPRESSION [(inputtbl1)inputtbl1.null, (inputtbl1)inputtbl1.null, ]
 # col_name            	data_type           	comment             
 	 	 
-key                 	string              	None                
-values              	bigint              	None                
+key                 	string              	                    
+values              	bigint              	                    
 	 	 
 # Partition Information	 	 
 # col_name            	data_type           	comment             
 	 	 
-ds                  	string              	None                
+ds                  	string              	                    
 	 	 
 # Detailed Table Information	 	 
 Database:           	default             	 

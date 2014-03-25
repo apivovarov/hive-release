@@ -188,7 +188,7 @@ POSTHOOK: type: DESCTABLE
 POSTHOOK: Lineage: outputtbl1.key EXPRESSION [(inputtbl1)inputtbl1.FieldSchema(name:key, type:string, comment:null), (inputtbl1)inputtbl1.FieldSchema(name:key, type:string, comment:null), ]
 # col_name            	data_type           	comment             
 	 	 
-key                 	string              	None                
+key                 	string              	                    
 	 	 
 # Detailed Table Information	 	 
 Database:           	default             	 
@@ -202,7 +202,11 @@ Table Parameters:
 	numFiles            	2                   
 	numRows             	-1                  
 	rawDataSize         	-1                  
+<<<<<<< HEAD
 	totalSize           	8192                
+=======
+	totalSize           	272                 
+>>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 

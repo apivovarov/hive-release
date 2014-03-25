@@ -503,6 +503,14 @@
 </property>
 
 <property>
+  <name>hive.optimize.sort.dynamic.partition</name>
+  <value>true</value>
+  <description>When enabled dynamic partitioning column will be globally sorted.
+  This way we can keep only one record writer open for each partition value
+  in the reducer thereby reducing the memory pressure on reducers.</description>
+</property>
+
+<property>
   <name>hive.optimize.skewjoin.compiletime</name>
   <value>false</value>
   <description>Whether to create a separate plan for skewed keys for the tables in the join.
@@ -1872,6 +1880,17 @@
   <description>
     The data format to use for DDL output.  One of "text" (for human
     readable text) or "json" (for a json object).
+  </description>
+</property>
+
+<property>
+  <name>hive.display.partition.cols.separately</name>
+  <value>true</value>
+  <description>
+    In older Hive version (0.10 and earlier) no distinction was made between
+    partition columns or non-partition columns while displaying columns in describe
+    table. From 0.12 onwards, they are displayed separately. This flag will let you
+    get old behavior, if desired. See, test-case in patch for HIVE-6689.
   </description>
 </property>
 

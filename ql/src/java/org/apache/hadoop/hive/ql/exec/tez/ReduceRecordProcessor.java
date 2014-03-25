@@ -66,6 +66,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
 
+import com.google.common.collect.Lists;
+
 /**
  * Process input from tez LogicalInput and write output - for a map plan
  * Just pump the records through the query plan.

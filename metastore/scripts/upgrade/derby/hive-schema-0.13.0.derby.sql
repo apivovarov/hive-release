@@ -314,8 +314,6 @@ ALTER TABLE "APP"."IDXS" ADD CONSTRAINT "SQL110318025504980" CHECK (DEFERRED_REB
 
 ALTER TABLE "APP"."SDS" ADD CONSTRAINT "SQL110318025505550" CHECK (IS_COMPRESSED IN ('Y','N'));
 
-INSERT INTO "APP"."VERSION" (VER_ID, SCHEMA_VERSION, VERSION_COMMENT) VALUES (1, '0.13.0', 'Hive release version 0.13.0');
-
 -- -----------------------------------------------------------------------------------------------------------------------------------------------
 -- Transaction and Lock Tables
 -- These are not part of package jdo, so if you are going to regenerate this file you need to manually add the following section back to the file.
@@ -388,3 +386,9 @@ CREATE TABLE NEXT_COMPACTION_QUEUE_ID (
   NCQ_NEXT bigint NOT NULL
 );
 INSERT INTO NEXT_COMPACTION_QUEUE_ID VALUES(1);
+
+-- -----------------------------------------------------------------
+-- Record schema version. Should be the last step in the init script
+-- -----------------------------------------------------------------
+INSERT INTO "APP"."VERSION" (VER_ID, SCHEMA_VERSION, VERSION_COMMENT) VALUES (1, '0.13.0', 'Hive release version 0.13.0');
+
