@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -109,15 +108,9 @@ public class HiveAuthFactory {
     SaslQOP saslQOP =
         SaslQOP.fromString(conf.getVar(ConfVars.HIVE_SERVER2_THRIFT_SASL_QOP));
     // hadoop.rpc.protection being set to a higher level than hive.server2.thrift.rpc.protection
-    // does not make sense in most situations. Log warning message in such cases.
-    Map<String, String> hadoopSaslProps =  ShimLoader.getHadoopThriftAuthBridge().
-        getHadoopSaslProperties(conf);
-    SaslQOP hadoopSaslQOP = SaslQOP.fromString(hadoopSaslProps.get(Sasl.QOP));
-    if(hadoopSaslQOP.ordinal() > saslQOP.ordinal()) {
-      LOG.warn(MessageFormat.format("\"hadoop.rpc.protection\" is set to higher security level " +
-          "{0} then {1} which is set to {2}", hadoopSaslQOP.toString(),
-          ConfVars.HIVE_SERVER2_THRIFT_SASL_QOP.varname, saslQOP.toString()));
-    }
+    // does not make sense in most situations.
+    // Log an info message to let the user know that this is possible.
+    LOG.info("HiveServer2 ignores hadoop.rpc.protection in favor of hive.server2.thrift.sasl.qop.");
     saslProps.put(Sasl.QOP, saslQOP.toString());
     saslProps.put(Sasl.SERVER_AUTH, "true");
     return saslProps;
