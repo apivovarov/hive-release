@@ -8864,7 +8864,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       tsDesc.setStatsAggPrefix(tab.getDbName()+"."+k);
 
       // set up WritenEntity for replication
-      outputs.add(new WriteEntity(tab, WriteEntity.WriteType.DDL_METADATA_ONLY));
+      outputs.add(new WriteEntity(tab, WriteEntity.WriteType.DDL_NO_LOCK));
 
       // add WriteEntity for each matching partition
       if (tab.isPartitioned()) {
@@ -8875,7 +8875,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         if (partitions != null) {
           for (Partition partn : partitions) {
             // inputs.add(new ReadEntity(partn)); // is this needed at all?
-            outputs.add(new WriteEntity(partn, WriteEntity.WriteType.DDL_METADATA_ONLY));
+            outputs.add(new WriteEntity(partn, WriteEntity.WriteType.DDL_NO_LOCK));
           }
         }
       }
@@ -10011,7 +10011,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     String[] qualified = Hive.getQualifiedNames(tableName);
     String dbName = qualified.length == 1 ? SessionState.get().getCurrentDatabase() : qualified[0];
     Database database  = getDatabase(dbName);
-    outputs.add(new WriteEntity(database, WriteEntity.WriteType.DDL_METADATA_ONLY));
+    outputs.add(new WriteEntity(database, WriteEntity.WriteType.DDL_SHARED));
     // Handle different types of CREATE TABLE command
     CreateTableDesc crtTblDesc = null;
     switch (command_type) {

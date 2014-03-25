@@ -126,7 +126,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
   print '  void unlock(UnlockRequest rqst)'
   print '  ShowLocksResponse show_locks(ShowLocksRequest rqst)'
   print '  void heartbeat(HeartbeatRequest ids)'
-  print '  void heartbeat_txn_range(HeartbeatTxnRangeRequest txns)'
+  print '  HeartbeatTxnRangeResponse heartbeat_txn_range(HeartbeatTxnRangeRequest txns)'
   print '  void compact(CompactionRequest rqst)'
   print '  ShowCompactResponse show_compact(ShowCompactRequest rqst)'
   print ''
