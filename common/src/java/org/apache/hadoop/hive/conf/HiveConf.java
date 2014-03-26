@@ -1003,8 +1003,7 @@ public class HiveConf extends Configuration {
     // Setting to 0.12:
     //   Maintains division behavior: int / int => double
     // Setting to 0.13:
-    HIVE_COMPAT("hive.compat", HiveCompat.DEFAULT_COMPAT_LEVEL),
-    HIVE_CONVERT_JOIN_BUCKET_MAPJOIN_TEZ("hive.convert.join.bucket.mapjoin.tez", false)
+    HIVE_COMPAT("hive.compat", HiveCompat.DEFAULT_COMPAT_LEVEL)
     ;
 
     public final String varname;

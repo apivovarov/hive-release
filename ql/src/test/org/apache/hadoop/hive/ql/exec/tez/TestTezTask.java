@@ -47,9 +47,8 @@ import org.apache.hadoop.hive.ql.plan.BaseWork;
 import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceWork;
-import org.apache.hadoop.hive.ql.plan.TezEdgeProperty;
-import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
 import org.apache.hadoop.hive.ql.plan.TezWork;
+import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
 import org.apache.hadoop.hive.ql.session.SessionState.LogHelper;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.yarn.api.records.LocalResource;
@@ -93,7 +92,7 @@ public class TestTezTask {
     when(path.getFileSystem(any(Configuration.class))).thenReturn(fs);
     when(utils.getTezDir(any(Path.class))).thenReturn(path);
     when(utils.createVertex(any(JobConf.class), any(BaseWork.class), any(Path.class), any(LocalResource.class),
-        any(List.class), any(FileSystem.class), any(Context.class), anyBoolean(), any(TezWork.class))).thenAnswer(new Answer<Vertex>() {
+        any(List.class), any(FileSystem.class), any(Context.class), anyBoolean())).thenAnswer(new Answer<Vertex>() {
 
           @Override
           public Vertex answer(InvocationOnMock invocation) throws Throwable {
@@ -104,7 +103,7 @@ public class TestTezTask {
         });
 
     when(utils.createEdge(any(JobConf.class), any(Vertex.class), any(JobConf.class),
-        any(Vertex.class), any(TezEdgeProperty.class))).thenAnswer(new Answer<Edge>() {
+        any(Vertex.class), any(EdgeType.class))).thenAnswer(new Answer<Edge>() {
 
           @Override
           public Edge answer(InvocationOnMock invocation) throws Throwable {
@@ -146,10 +145,9 @@ public class TestTezTask {
     rws[0].setReducer(op);
     rws[1].setReducer(op);
 
-    TezEdgeProperty edgeProp = new TezEdgeProperty(EdgeType.SIMPLE_EDGE);
-    work.connect(mws[0], rws[0], edgeProp);
-    work.connect(mws[1], rws[0], edgeProp);
-    work.connect(rws[0], rws[1], edgeProp);
+    work.connect(mws[0], rws[0], EdgeType.SIMPLE_EDGE);
+    work.connect(mws[1], rws[0], EdgeType.SIMPLE_EDGE);
+    work.connect(rws[0], rws[1], EdgeType.SIMPLE_EDGE);
 
     task = new TezTask(utils);
     task.setWork(work);

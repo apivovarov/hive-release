@@ -22,7 +22,6 @@ public class AbstractOperatorDesc implements OperatorDesc {
 
   protected boolean vectorMode = false;
   protected transient Statistics statistics;
-  protected transient OpTraits metaInfo;
 
   @Override
   @Explain(skipHeader = true, displayName = "Statistics")
@@ -42,13 +41,5 @@ public class AbstractOperatorDesc implements OperatorDesc {
 
   public void setVectorMode(boolean vm) {
     this.vectorMode = vm;
-  }
-  
-  public OpTraits getOpTraits() {
-    return metaInfo;
-  }
-  
-  public void setOpTraits(OpTraits metaInfo) {
-    this.metaInfo = metaInfo;
   }
 }

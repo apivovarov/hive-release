@@ -39,7 +39,6 @@ import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.Explain;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
-import org.apache.hadoop.hive.ql.plan.OpTraits;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.Statistics;
 import org.apache.hadoop.hive.ql.plan.api.OperatorType;
@@ -1246,25 +1245,6 @@ public abstract class Operator<T extends OperatorDesc> implements Serializable,C
       return conf.getStatistics();
     }
     return null;
-  }
-  
-  public OpTraits getOpTraits() {
-    if (conf != null) {
-      return conf.getOpTraits();
-    }
-    
-    return null;
-  }
-  
-  public void setOpTraits(OpTraits metaInfo) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Setting stats ("+metaInfo+") on "+this);
-    }
-    if (conf != null) {
-      conf.setOpTraits(metaInfo);
-    } else {
-      LOG.warn("Cannot set meta info when there's no descriptor: "+this);
-    }
   }
 
   public void setStatistics(Statistics stats) {

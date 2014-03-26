@@ -45,10 +45,9 @@ import org.apache.hadoop.hive.ql.plan.MapWork;
 import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceWork;
-import org.apache.hadoop.hive.ql.plan.TezEdgeProperty;
 import org.apache.hadoop.hive.ql.plan.TezWork;
 import org.apache.hadoop.hive.ql.plan.UnionWork;
-import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
+import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
 
 /**
  * GenTezWork separates the operator tree into tez tasks.
@@ -225,8 +224,7 @@ public class GenTezWork implements NodeProcessor {
 
       // finally hook everything up
       LOG.debug("Connecting union work ("+unionWork+") with work ("+work+")");
-      TezEdgeProperty edgeProp = new TezEdgeProperty(EdgeType.CONTAINS);
-      tezWork.connect(unionWork, work, edgeProp);
+      tezWork.connect(unionWork, work, EdgeType.CONTAINS);
       unionWork.addUnionOperators(context.currentUnionOperators);
       context.currentUnionOperators.clear();
       context.workWithUnionOperators.add(work);
@@ -266,8 +264,7 @@ public class GenTezWork implements NodeProcessor {
 
       if (!context.connectedReduceSinks.contains(rs)) {
         // add dependency between the two work items
-        TezEdgeProperty edgeProp = new TezEdgeProperty(EdgeType.SIMPLE_EDGE);
-        tezWork.connect(work, rWork, edgeProp);
+        tezWork.connect(work, rWork, EdgeType.SIMPLE_EDGE);
         context.connectedReduceSinks.add(rs);
       }
     } else {
