@@ -99,11 +99,14 @@ public class GenTezProcContext implements NodeProcessorCtx{
   // map join work
   public final Map<BaseWork, List<ReduceSinkOperator>> linkWorkWithReduceSinkMap;
 
-  // a map that maintains operator (file-sink or reduce-sink) to work mapping
-  public final Map<Operator<?>, BaseWork> operatorWorkMap;
+  // map that says which mapjoin belongs to which work item
+  public final Map<MapJoinOperator, List<BaseWork>> mapJoinWorkMap;
 
   // a map to keep track of which root generated which work
   public final Map<Operator<?>, BaseWork> rootToWorkMap;
+
+  // a map to keep track of which child generated with work
+  public final Map<Operator<?>, List<BaseWork>> childToWorkMap;
 
   // we need to keep the original list of operators in the map join to know
   // what position in the mapjoin the different parent work items will have.
@@ -115,10 +118,14 @@ public class GenTezProcContext implements NodeProcessorCtx{
   // used to group dependent tasks for multi table inserts
   public final DependencyCollectionTask dependencyTask;
 
+  // remember map joins as we encounter them.
+  public final Set<MapJoinOperator> currentMapJoinOperators;
+
   // used to hook up unions
   public final Map<Operator<?>, BaseWork> unionWorkMap;
   public final List<UnionOperator> currentUnionOperators;
   public final Set<BaseWork> workWithUnionOperators;
+  public final Set<ReduceSinkOperator> clonedReduceSinks;
 
   // we link filesink that will write to the same final location
   public final Map<Path, List<FileSinkDesc>> linkedFileSinks;
@@ -143,15 +150,18 @@ public class GenTezProcContext implements NodeProcessorCtx{
     this.leafOperatorToFollowingWork = new HashMap<Operator<?>, BaseWork>();
     this.linkOpWithWorkMap = new HashMap<Operator<?>, Pair<List<BaseWork>, TezEdgeProperty>>();
     this.linkWorkWithReduceSinkMap = new HashMap<BaseWork, List<ReduceSinkOperator>>();
-    this.operatorWorkMap = new HashMap<Operator<?>, BaseWork>();
+    this.mapJoinWorkMap = new HashMap<MapJoinOperator, List<BaseWork>>();
     this.rootToWorkMap = new HashMap<Operator<?>, BaseWork>();
+    this.childToWorkMap = new HashMap<Operator<?>, List<BaseWork>>();
     this.mapJoinParentMap = new HashMap<MapJoinOperator, List<Operator<?>>>();
+    this.currentMapJoinOperators = new HashSet<MapJoinOperator>();
     this.linkChildOpWithDummyOp = new HashMap<Operator<?>, List<Operator<?>>>();
     this.dependencyTask = (DependencyCollectionTask)
         TaskFactory.get(new DependencyCollectionWork(), conf);
     this.unionWorkMap = new HashMap<Operator<?>, BaseWork>();
     this.currentUnionOperators = new LinkedList<UnionOperator>();
     this.workWithUnionOperators = new HashSet<BaseWork>();
+    this.clonedReduceSinks = new HashSet<ReduceSinkOperator>();
     this.linkedFileSinks = new HashMap<Path, List<FileSinkDesc>>();
     this.fileSinkSet = new HashSet<FileSinkOperator>();
     this.connectedReduceSinks = new HashSet<ReduceSinkOperator>();
