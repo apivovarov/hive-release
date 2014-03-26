@@ -19,6 +19,7 @@
 package org.apache.hadoop.hive.ql.optimizer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
@@ -44,8 +45,9 @@ import org.apache.hadoop.hive.ql.plan.OperatorDesc;
 import org.apache.hadoop.hive.ql.plan.PlanUtils;
 import org.apache.hadoop.hive.ql.plan.ReduceSinkDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
+import org.apache.hadoop.hive.ql.plan.TezEdgeProperty;
+import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
 import org.apache.hadoop.hive.ql.plan.TezWork;
-import org.apache.hadoop.hive.ql.plan.TezWork.EdgeType;
 
 public class ReduceSinkMapJoinProc implements NodeProcessor {
 
@@ -114,10 +116,10 @@ public class ReduceSinkMapJoinProc implements NodeProcessor {
     EdgeType edgeType = EdgeType.BROADCAST_EDGE;
     if (mapJoinOp.getConf().isBucketMapJoin()) {
       numBuckets = (Integer) mapJoinOp.getConf().getBigTableBucketNumMapping().values().toArray()[0];
-      if (mapJoinOp.getConf().getLegacyBucketMapJoin()) {
+      if (mapJoinOp.getConf().getCustomBucketMapJoin()) {
         edgeType = EdgeType.CUSTOM_EDGE;
       } else {
-        edgeType = EdgeType.SIMPLE_EDGE;
+        edgeType = EdgeType.CUSTOM_SIMPLE_EDGE;
       }
     }
     TezEdgeProperty edgeProp = new TezEdgeProperty(null, edgeType, numBuckets);
@@ -146,16 +148,14 @@ public class ReduceSinkMapJoinProc implements NodeProcessor {
     }
 
     // remember in case we need to connect additional work later
-    List<BaseWork> linkWorkList;
+    Map<BaseWork, TezEdgeProperty> linkWorkMap = null;
     if (context.linkOpWithWorkMap.containsKey(mapJoinOp)) {
-      linkWorkList = context.linkOpWithWorkMap.get(mapJoinOp).getLeft();
+      linkWorkMap = context.linkOpWithWorkMap.get(mapJoinOp);
     } else {
-      linkWorkList = new ArrayList<BaseWork>();
+      linkWorkMap = new HashMap<BaseWork, TezEdgeProperty>();
     }
-    linkWorkList.add(parentWork);
-    ImmutablePair<List<BaseWork>, TezEdgeProperty> workListEdgeTypePair = 
-      new ImmutablePair<List<BaseWork>, TezEdgeProperty>(linkWorkList, edgeProp);
-    context.linkOpWithWorkMap.put(mapJoinOp, workListEdgeTypePair);
+    linkWorkMap.put(parentWork, edgeProp);
+    context.linkOpWithWorkMap.put(mapJoinOp, linkWorkMap);
     
     List<ReduceSinkOperator> reduceSinks 
       = context.linkWorkWithReduceSinkMap.get(parentWork);
