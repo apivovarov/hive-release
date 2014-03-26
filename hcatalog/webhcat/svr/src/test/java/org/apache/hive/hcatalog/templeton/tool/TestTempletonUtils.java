@@ -95,7 +95,7 @@ public class TestTempletonUtils {
 
     // Hive job run
     String hundred = "2013-06-02 20:52:57,331 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 13.31 sec";
-    Assert.assertEquals("map = 100%,  reduce = 100%", TempletonUtils.extractPercentComplete(hundred));
+    Assert.assertEquals("map 100% reduce 100%", TempletonUtils.extractPercentComplete(hundred));
   }
 
   @Test
