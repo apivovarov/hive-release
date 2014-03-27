@@ -25,7 +25,6 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.txn.TxnDbUtil;
 import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
 import org.apache.hadoop.hive.ql.io.RecordUpdater;
 import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
@@ -92,6 +91,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
 
       Table tbl = hive.getTable(endPoint.database, endPoint.table);
       Properties tableProps = MetaStoreUtils.getTableMetadata(tbl.getTTable());
+      tableProps.setProperty("field.delim", String.valueOf(serdeSeparator));
       this.serde = createSerde(tableProps, conf);
       this.inspector = this.serde.getObjectInspector();
       this.tableColumns = getPartitionCols(tbl);
