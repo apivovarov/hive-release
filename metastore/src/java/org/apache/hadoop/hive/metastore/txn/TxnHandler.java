@@ -180,6 +180,7 @@ public class TxnHandler {
     // subsequently shows up in the open list that's ok.
     Connection dbConn = getDbConn();
     try {
+      timeOutTxns(dbConn);
       Statement stmt = dbConn.createStatement();
       LOG.debug("Going to execute query <select ntxn_next - 1 from " +
           "NEXT_TXN_ID>");
@@ -1380,7 +1381,22 @@ public class TxnHandler {
     return;
   }
 
- private static synchronized void setupJdbcConnectionPool(HiveConf conf) throws SQLException {
+  // Clean timed out transactions from the database.  This does a commit,
+  // and thus should be done before any calls to heartbeat that will leave
+  // open transactions on the underlying database.
+  private void timeOutTxns(Connection dbConn) throws SQLException {
+    long now = System.currentTimeMillis();
+    Statement stmt = dbConn.createStatement();
+    // Remove any timed out locks from the table.
+    String s = "delete from TXNS where txn_last_heartbeat < " + (now - timeout);
+    LOG.debug("Going to execute update <" + s + ">");
+    stmt.executeUpdate(s);
+    LOG.debug("Going to commit");
+    dbConn.commit();
+    return;
+  }
+
+  private static synchronized void setupJdbcConnectionPool(HiveConf conf) throws SQLException {
     if (connPool != null) return;
 
     String driverUrl = HiveConf.getVar(conf, HiveConf.ConfVars.METASTORECONNECTURLKEY);
