@@ -169,7 +169,8 @@ public class Initiator extends CompactorThread {
   private CompactionType checkForCompaction(final CompactionInfo ci,
                                             final ValidTxnList txns,
                                             final StorageDescriptor sd,
-                                            String runAs) throws IOException, InterruptedException {
+                                            final String runAs)
+      throws IOException, InterruptedException {
     // If it's marked as too many aborted, we already know we need to compact
     if (ci.tooManyAborts) {
       LOG.debug("Found too many aborted transactions for " + ci.getFullPartitionName() + ", " +
@@ -179,7 +180,8 @@ public class Initiator extends CompactorThread {
     if (runJobAsSelf(runAs)) {
       return determineCompactionType(ci, txns, sd);
     } else {
-      UserGroupInformation ugi = UserGroupInformation.createProxyUser(ci.runAs,
+      LOG.info("Going to initiate cleaner as user " + runAs);
+      UserGroupInformation ugi = UserGroupInformation.createProxyUser(runAs,
         UserGroupInformation.getLoginUser());
       return ugi.doAs(new PrivilegedExceptionAction<CompactionType>() {
         @Override

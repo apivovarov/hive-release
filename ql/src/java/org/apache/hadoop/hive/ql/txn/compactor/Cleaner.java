@@ -93,39 +93,26 @@ public class Cleaner extends CompactorThread {
   }
 
   private void clean(CompactionInfo ci) throws MetaException {
-    String s = "Starting cleaning for " + ci.getFullPartitionName();
-    LOG.info(s);
+    LOG.info("Starting cleaning for " + ci.getFullPartitionName());
     try {
       StorageDescriptor sd = resolveStorageDescriptor(resolveTable(ci), resolvePartition(ci));
-      String location = sd.getLocation();
+      final String location = sd.getLocation();
 
       // Create a bogus validTxnList with a high water mark set to MAX_LONG and no open
       // transactions.  This assures that all deltas are treated as valid and all we return are
       // obsolete files.
-      ValidTxnList txnList = new ValidTxnListImpl();
-
-      AcidUtils.Directory dir = AcidUtils.getAcidState(new Path(location), conf, txnList);
-      List<FileStatus> obsoleteDirs = dir.getObsolete();
-      final List<Path> filesToDelete = new ArrayList<Path>(obsoleteDirs.size());
-      for (FileStatus stat : obsoleteDirs) {
-        filesToDelete.add(stat.getPath());
-      }
-      if (filesToDelete.size() < 1) {
-        LOG.warn("Hmm, nothing to delete in the cleaner for directory " + location +
-            ", that hardly seems right.");
-        return;
-      }
-      final FileSystem fs = filesToDelete.get(0).getFileSystem(conf);
+      final ValidTxnList txnList = new ValidTxnListImpl();
 
       if (runJobAsSelf(ci.runAs)) {
-        removeFiles(fs, filesToDelete);
+        removeFiles(location, txnList);
       } else {
+        LOG.info("Cleaning as user " + ci.runAs);
         UserGroupInformation ugi = UserGroupInformation.createProxyUser(ci.runAs,
-          UserGroupInformation.getLoginUser());
+            UserGroupInformation.getLoginUser());
         ugi.doAs(new PrivilegedExceptionAction<Object>() {
           @Override
           public Object run() throws Exception {
-            removeFiles(fs, filesToDelete);
+            removeFiles(location, txnList);
             return null;
           }
         });
@@ -138,15 +125,26 @@ public class Cleaner extends CompactorThread {
       // We need to clean this out one way or another.
       txnHandler.markCleaned(ci);
     }
-
   }
 
-  private void removeFiles(FileSystem fs, List<Path> deadFilesWalking) throws IOException {
-    for (Path dead : deadFilesWalking) {
+  private void removeFiles(String location, ValidTxnList txnList) throws IOException {
+    AcidUtils.Directory dir = AcidUtils.getAcidState(new Path(location), conf, txnList);
+    List<FileStatus> obsoleteDirs = dir.getObsolete();
+    List<Path> filesToDelete = new ArrayList<Path>(obsoleteDirs.size());
+    for (FileStatus stat : obsoleteDirs) {
+      filesToDelete.add(stat.getPath());
+    }
+    if (filesToDelete.size() < 1) {
+      LOG.warn("Hmm, nothing to delete in the cleaner for directory " + location +
+          ", that hardly seems right.");
+      return;
+    }
+    FileSystem fs = filesToDelete.get(0).getFileSystem(conf);
+
+    for (Path dead : filesToDelete) {
       LOG.debug("Doing to delete path " + dead.toString());
       fs.delete(dead, true);
     }
-
   }
 
 }
