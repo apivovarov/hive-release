@@ -678,7 +678,8 @@ public class HiveEndPoint {
      * @throws TransactionError
      */
     @Override
-    public void abort() throws TransactionError, ImpersonationFailed, InterruptedException {
+    public void abort() throws TransactionError, StreamingIOFailure
+                      , ImpersonationFailed, InterruptedException {
       if(ugi==null) {
         abortImpl();
         return;
@@ -687,7 +688,7 @@ public class HiveEndPoint {
         ugi.doAs (
                 new PrivilegedExceptionAction<Void>() {
                   @Override
-                  public Void run() throws TransactionError {
+                  public Void run() throws TransactionError, StreamingIOFailure {
                     abortImpl();
                     return null;
                   }
@@ -700,8 +701,9 @@ public class HiveEndPoint {
       }
     }
 
-    private void abortImpl() throws TransactionError {
+    private void abortImpl() throws TransactionError, StreamingIOFailure {
       try {
+        recordWriter.clear();
         msClient.rollbackTxn(getCurrentTxnId());
         state = TxnState.ABORTED;
       } catch (NoSuchTxnException e) {

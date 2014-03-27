@@ -146,6 +146,11 @@ abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
     }
   }
 
+  @Override
+  public void clear() throws StreamingIOFailure {
+    return;
+  }
+
   /**
    * Creates a new record updater for the new batch
    * @param minTxnId

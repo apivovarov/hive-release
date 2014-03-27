@@ -33,6 +33,9 @@ public interface RecordWriter {
   /** Flush records from buffer. Invoked by TransactionBatch.commit() */
   public void flush() throws StreamingIOFailure;
 
+  /** Clear bufferred writes. Invoked by TransactionBatch.abort() */
+  public void clear() throws StreamingIOFailure;
+
   /** Acquire a new RecordUpdater. Invoked when
    * StreamingConnection.fetchTransactionBatch() is called */
   public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingIOFailure;
