@@ -18,7 +18,6 @@
 
 package org.apache.hive.streaming;
 
-import java.io.IOException;
 
 public interface RecordWriter {
 
@@ -31,12 +30,13 @@ public interface RecordWriter {
    */
   public void write(long transactionId, byte[] record) throws StreamingIOFailure, SerializationError;
 
-  /** flush records */
+  /** Flush records from buffer. Invoked by TransactionBatch.commit() */
   public void flush() throws StreamingIOFailure;
 
-  /** acquire a new RecordUpdater */
+  /** Acquire a new RecordUpdater. Invoked when
+   * StreamingConnection.fetchTransactionBatch() is called */
   public void newBatch(Long minTxnId, Long maxTxnID) throws StreamingIOFailure;
 
-  /** close the RecordUpdater */
+  /** Close the RecordUpdater. Invoked by TransactionBatch.close() */
   public void closeBatch() throws StreamingIOFailure;
 }

@@ -98,7 +98,7 @@ public class HiveEndPoint {
     return newConnection(null, createPartIfNotExists);
   }
 
-  //TODO: make this function public once proxyUser supported is fully supported
+  //TODO: make this function public once proxyUser is fully supported
   /**
    * Acquire a new connection to MetaStore for streaming
    * @param proxyUser User on whose behalf all hdfs and hive operations will be
@@ -407,8 +407,6 @@ public class HiveEndPoint {
 
 
   } // class ConnectionImpl
-
-
 
   private static class TransactionBatchImpl implements TransactionBatch {
     private final String proxyUser;
@@ -790,5 +788,3 @@ public class HiveEndPoint {
   }
 
 }  // class HiveEndPoint
-
-// Racing to create new partition

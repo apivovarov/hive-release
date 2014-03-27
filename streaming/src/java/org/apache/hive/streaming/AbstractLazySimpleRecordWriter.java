@@ -48,7 +48,7 @@ import java.util.Random;
 /**
  * Uses LazySimple serde to enode the record
  */
-public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
+abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
 
   private final Path partitionPath;
   private final int  totalBuckets;
@@ -120,7 +120,7 @@ public abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
   protected abstract byte[] reorderFields(byte[] record)
           throws UnsupportedEncodingException;
 
-  public ArrayList<String> getTableColumns() {
+  protected ArrayList<String> getTableColumns() {
     return tableColumns;
   }
 

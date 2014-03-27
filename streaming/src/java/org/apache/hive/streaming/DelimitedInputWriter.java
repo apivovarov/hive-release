@@ -39,7 +39,7 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
 
   static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
- /**
+ /** Constructor. Uses default separator of the LazySimpleSerde
   * @param colNamesForFields Column name assignment for input fields. nulls or empty
   *                          strings in the array indicates the fields to be skipped
   * @param delimiter input field delimiter
@@ -65,7 +65,9 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
    * @param colNamesForFields Column name assignment for input fields
    * @param delimiter input field delimiter
    * @param endPoint Hive endpoint
-   * @param outputSerdeSeparator separator used for the LazySimpleSerde
+   * @param serdeSeparator separator used when encoding data that is fed into the
+   *                             LazySimpleSerde. Ensure this separator does not occur
+   *                             in the field data
    * @throws ConnectionError Problem talking to Hive
    * @throws ClassNotFoundException Serde class not found
    * @throws SerializationError Serde initialization/interaction failed
@@ -73,10 +75,10 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
    * @throws InvalidColumn any element in colNamesForFields refers to a non existing column
    */
   public DelimitedInputWriter(String[] colNamesForFields, String delimiter,
-                              HiveEndPoint endPoint, char outputSerdeSeparator)
+                              HiveEndPoint endPoint, char serdeSeparator)
           throws ClassNotFoundException, ConnectionError, SerializationError,
                  InvalidColumn, StreamingException {
-    super(endPoint, outputSerdeSeparator);
+    super(endPoint, serdeSeparator);
     this.delimiter = delimiter;
     this.fieldToColMapping = getFieldReordering(colNamesForFields, getTableColumns());
     this.reorderingNeeded = isReorderingNeeded(delimiter, getTableColumns());
