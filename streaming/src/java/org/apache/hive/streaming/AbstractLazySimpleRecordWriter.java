@@ -73,7 +73,8 @@ abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
    * @throws ConnectionError Problem talking to Hive
    * @throws ClassNotFoundException Serde class not found
    * @throws SerializationError Serde initialization/interaction failed
-   * @throws StreamingException Problem acquiring file system path for partition
+   * @throws StreamingException Problem acquiring file system path for partition,
+   *                            or if table is not bucketed
    */
   protected AbstractLazySimpleRecordWriter(HiveEndPoint endPoint)
           throws ConnectionError, ClassNotFoundException, SerializationError
@@ -97,6 +98,9 @@ abstract class AbstractLazySimpleRecordWriter implements RecordWriter {
       this.tableColumns = getPartitionCols(tbl);
       this.partitionPath = getPathForEndPoint(hive, endPoint);
       this.totalBuckets = tbl.getNumBuckets();
+      if(totalBuckets <= 0) {
+        throw new StreamingException("Cannot stream to table that has not been bucketed : " + endPoint);
+      }
       this.serdeSeparator = serdeSeparator;
 
     } catch (HiveException e) {
