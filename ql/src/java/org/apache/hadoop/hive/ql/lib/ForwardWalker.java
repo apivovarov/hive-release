@@ -57,8 +57,8 @@ public class ForwardWalker extends DefaultGraphWalker {
     if (allParentsDispatched(nd)) {
       // all children are done or no need to walk the children
       if (!getDispatchedList().contains(nd)) {
-        dispatch(nd, opStack);
         getToWalk().addAll(nd.getChildren());
+        dispatch(nd, opStack);
       }
       opStack.pop();
       return;
