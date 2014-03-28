@@ -278,7 +278,7 @@ public class HiveEndPoint {
      */
     public TransactionBatch fetchTransactionBatch(final int numTransactions,
                                                       final RecordWriter recordWriter)
-            throws StreamingIOFailure, TransactionBatchUnAvailable, ImpersonationFailed, InterruptedException {
+            throws StreamingException, TransactionBatchUnAvailable, ImpersonationFailed, InterruptedException {
       if(ugi==null) {
         return fetchTransactionBatchImpl(numTransactions, recordWriter);
       }
@@ -286,7 +286,7 @@ public class HiveEndPoint {
         return ugi.doAs (
                 new PrivilegedExceptionAction<TransactionBatch>() {
                   @Override
-                  public TransactionBatch run() throws StreamingIOFailure, TransactionBatchUnAvailable {
+                  public TransactionBatch run() throws StreamingException {
                     return fetchTransactionBatchImpl(numTransactions, recordWriter);
                   }
                 }
@@ -299,7 +299,7 @@ public class HiveEndPoint {
 
     private TransactionBatch fetchTransactionBatchImpl(int numTransactions,
                                                   RecordWriter recordWriter)
-            throws StreamingIOFailure, TransactionBatchUnAvailable {
+            throws StreamingException, TransactionBatchUnAvailable {
       return new TransactionBatchImpl(proxyUser, ugi, endPt, numTransactions, msClient, recordWriter);
     }
 
@@ -431,12 +431,12 @@ public class HiveEndPoint {
      * @param numTxns
      * @param msClient
      * @param recordWriter
-     * @throws StreamingIOFailure if failed to create new RecordUpdater for batch
+     * @throws StreamingException if failed to create new RecordUpdater for batch
      * @throws TransactionBatchUnAvailable if failed to acquire a new Transaction batch
      */
     private TransactionBatchImpl(String proxyUser, UserGroupInformation ugi, HiveEndPoint endPt
               , int numTxns, IMetaStoreClient msClient, RecordWriter recordWriter)
-            throws StreamingIOFailure, TransactionBatchUnAvailable {
+            throws StreamingException, TransactionBatchUnAvailable {
       try {
         if( endPt.partitionVals!=null   &&   !endPt.partitionVals.isEmpty() ) {
           Table tableObj = msClient.getTable(endPt.database, endPt.table);
@@ -554,7 +554,7 @@ public class HiveEndPoint {
      */
     @Override
     public void write(final byte[] record)
-            throws StreamingIOFailure, SerializationError, InterruptedException,
+            throws StreamingException, InterruptedException,
             ImpersonationFailed {
       if(ugi==null) {
         writeImpl(record);
@@ -564,7 +564,7 @@ public class HiveEndPoint {
         ugi.doAs (
             new PrivilegedExceptionAction<Void>() {
               @Override
-              public Void run() throws StreamingIOFailure, SerializationError {
+              public Void run() throws StreamingException {
                 writeImpl(record);
                 return null;
               }
@@ -578,7 +578,7 @@ public class HiveEndPoint {
     }
 
     public void writeImpl(byte[] record)
-            throws StreamingIOFailure, SerializationError {
+            throws StreamingException {
       recordWriter.write(getCurrentTxnId(), record);
     }
 
@@ -586,14 +586,13 @@ public class HiveEndPoint {
     /**
      *  Write records using RecordWriter
      * @param records collection of rows to be written
-     * @throws StreamingIOFailure I/O failure
-     * @throws SerializationError  serialization error
+     * @throws StreamingException  serialization error
      * @throws ImpersonationFailed error writing on behalf of proxyUser
      * @throws InterruptedException
      */
     @Override
     public void write(final Collection<byte[]> records)
-            throws StreamingIOFailure, SerializationError, InterruptedException,
+            throws StreamingException, InterruptedException,
             ImpersonationFailed {
       if(ugi==null) {
         writeImpl(records);
@@ -603,7 +602,7 @@ public class HiveEndPoint {
         ugi.doAs (
                 new PrivilegedExceptionAction<Void>() {
                   @Override
-                  public Void run() throws StreamingIOFailure, SerializationError {
+                  public Void run() throws StreamingException {
                     writeImpl(records);
                     return null;
                   }
@@ -617,7 +616,7 @@ public class HiveEndPoint {
     }
 
     private void writeImpl(Collection<byte[]> records)
-            throws StreamingIOFailure, SerializationError {
+            throws StreamingException {
       for(byte[] record : records) {
         writeImpl(record);
       }
@@ -632,7 +631,7 @@ public class HiveEndPoint {
      * @throws InterruptedException
      */
     @Override
-    public void commit()  throws TransactionError, StreamingIOFailure,
+    public void commit()  throws TransactionError, StreamingException,
            ImpersonationFailed, InterruptedException {
       if(ugi==null) {
         commitImpl();
@@ -642,7 +641,7 @@ public class HiveEndPoint {
         ugi.doAs (
               new PrivilegedExceptionAction<Void>() {
                 @Override
-                public Void run() throws TransactionError, StreamingIOFailure {
+                public Void run() throws StreamingException {
                   commitImpl();
                   return null;
                 }
@@ -656,7 +655,7 @@ public class HiveEndPoint {
 
     }
 
-    private void commitImpl() throws TransactionError, StreamingIOFailure {
+    private void commitImpl() throws TransactionError, StreamingException {
       try {
         recordWriter.flush();
         msClient.commitTxn(txnIds.get(currentTxnIndex));
@@ -678,7 +677,7 @@ public class HiveEndPoint {
      * @throws TransactionError
      */
     @Override
-    public void abort() throws TransactionError, StreamingIOFailure
+    public void abort() throws TransactionError, StreamingException
                       , ImpersonationFailed, InterruptedException {
       if(ugi==null) {
         abortImpl();
@@ -688,7 +687,7 @@ public class HiveEndPoint {
         ugi.doAs (
                 new PrivilegedExceptionAction<Void>() {
                   @Override
-                  public Void run() throws TransactionError, StreamingIOFailure {
+                  public Void run() throws StreamingException {
                     abortImpl();
                     return null;
                   }
@@ -701,7 +700,7 @@ public class HiveEndPoint {
       }
     }
 
-    private void abortImpl() throws TransactionError, StreamingIOFailure {
+    private void abortImpl() throws TransactionError, StreamingException {
       try {
         recordWriter.clear();
         msClient.rollbackTxn(getCurrentTxnId());
@@ -735,7 +734,7 @@ public class HiveEndPoint {
      * @throws StreamingIOFailure I/O failure when closing transaction batch
      */
     @Override
-    public void close() throws StreamingIOFailure, ImpersonationFailed, InterruptedException {
+    public void close() throws StreamingException, ImpersonationFailed, InterruptedException {
       if(ugi==null) {
         state = TxnState.INACTIVE;
         recordWriter.closeBatch();
@@ -745,7 +744,7 @@ public class HiveEndPoint {
         ugi.doAs (
                 new PrivilegedExceptionAction<Void>() {
                   @Override
-                  public Void run() throws StreamingIOFailure {
+                  public Void run() throws StreamingException {
                     state = TxnState.INACTIVE;
                     recordWriter.closeBatch();
                     return null;

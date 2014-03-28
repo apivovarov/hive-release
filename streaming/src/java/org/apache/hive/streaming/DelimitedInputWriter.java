@@ -22,20 +22,34 @@ package org.apache.hive.streaming;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.MetaStoreUtils;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.serde2.AbstractSerDe;
+import org.apache.hadoop.hive.serde2.SerDe;
+import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
+import org.apache.hadoop.io.BytesWritable;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Streaming Writer handles delimited input (eg. CSV).
  * Delimited input is parsed & reordered to match column order in table
  *
  */
-public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
+public class DelimitedInputWriter extends AbstractRecordWriter {
   private final boolean reorderingNeeded;
   private String delimiter;
+  private char serdeSeparator;
   private int[] fieldToColMapping;
+  private final ArrayList<String> tableColumns;
+  private AbstractSerDe serde = null;
 
   static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
@@ -54,11 +68,9 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
                               HiveEndPoint endPoint)
           throws ClassNotFoundException, ConnectionError, SerializationError,
                  InvalidColumn, StreamingException {
-    super(endPoint);
-    this.delimiter = delimiter;
-    this.fieldToColMapping = getFieldReordering(colNamesForFields, getTableColumns());
-    this.reorderingNeeded = isReorderingNeeded(delimiter, getTableColumns());
-  }
+     this(colNamesForFields, delimiter, endPoint,
+             (char) LazySimpleSerDe.DefaultSeparators[0]);
+   }
 
   /**
    *
@@ -78,11 +90,15 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
                               HiveEndPoint endPoint, char serdeSeparator)
           throws ClassNotFoundException, ConnectionError, SerializationError,
                  InvalidColumn, StreamingException {
-    super(endPoint, serdeSeparator);
+    super(endPoint);
+    this.tableColumns = getCols(tbl);
+    this.serdeSeparator = serdeSeparator;
+
     this.delimiter = delimiter;
     this.fieldToColMapping = getFieldReordering(colNamesForFields, getTableColumns());
     this.reorderingNeeded = isReorderingNeeded(delimiter, getTableColumns());
     LOG.debug("Field reordering needed = " + this.reorderingNeeded + ", for endpoint " + endPoint);
+    this.serdeSeparator = serdeSeparator;
   }
 
   private boolean isReorderingNeeded(String delimiter, ArrayList<String> tableColumns) {
@@ -165,4 +181,71 @@ public class DelimitedInputWriter extends AbstractLazySimpleRecordWriter {
     return buff.toString().getBytes();
   }
 
+  protected ArrayList<String> getTableColumns() {
+    return tableColumns;
+  }
+
+  @Override
+  public void write(long transactionId, byte[] record)
+          throws SerializationError, StreamingIOFailure {
+    try {
+      byte[] orderedFields = reorderFields(record);
+      Object encodedRow = encode(orderedFields);
+      updater.insert(transactionId, encodedRow);
+    } catch (IOException e) {
+      throw new StreamingIOFailure("Error writing record in transaction ("
+              + transactionId + ")", e);
+    }
+  }
+
+  @Override
+  SerDe getSerde() throws SerializationError {
+    if(serde!=null) {
+      return serde;
+    }
+    serde = createSerde(tbl, conf);
+    return serde;
+  }
+
+  private Object encode(byte[] record) throws SerializationError {
+    try {
+      BytesWritable blob = new BytesWritable();
+      blob.set(record, 0, record.length);
+      return serde.deserialize(blob);
+    } catch (SerDeException e) {
+      throw new SerializationError("Unable to convert byte[] record into Object", e);
+    }
+  }
+
+  /**
+   * Creates LazySimpleSerde
+   * @return
+   * @throws SerializationError if serde could not be initialized
+   * @param tbl
+   */
+  protected LazySimpleSerDe createSerde(Table tbl, HiveConf conf)
+          throws SerializationError {
+    try {
+      Properties tableProps = MetaStoreUtils.getTableMetadata(tbl);
+      tableProps.setProperty("field.delim", String.valueOf(serdeSeparator));
+      LazySimpleSerDe serde = new LazySimpleSerDe();
+      serde.initialize(conf, tableProps);
+      return serde;
+    } catch (SerDeException e) {
+      throw new SerializationError("Error initializing serde", e);
+    }
+  }
+
+  private ArrayList<String> getCols(Table table) {
+    List<FieldSchema> cols = table.getSd().getCols();
+    ArrayList<String> colNames = new ArrayList<String>(cols.size());
+    for(FieldSchema col : cols) {
+      colNames.add(col.getName().toLowerCase());
+    }
+    return  colNames;
+  }
+
+  public char getSerdeSeparator() {
+    return serdeSeparator;
+  }
 }
