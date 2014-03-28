@@ -293,17 +293,9 @@ public class TxnHandler {
     try {
       Connection dbConn = getDbConn();
       try {
-        Statement stmt = dbConn.createStatement();
-
-        // delete from HIVE_LOCKS first, we always access HIVE_LOCKS before TXNS
-        String s = "delete from HIVE_LOCKS where hl_txnid = " + txnid;
-        LOG.debug("Going to execute update <" + s + ">");
-        stmt.executeUpdate(s);
-
-        s = "update TXNS set txn_state = '" + TXN_ABORTED + "' where txn_id = " + txnid;
-        LOG.debug("Going to execute update <" + s + ">");
-        int updateCnt = stmt.executeUpdate(s);
-        if (updateCnt != 1) {
+        List<Long> txnids = new ArrayList<Long>(1);
+        txnids.add(txnid);
+        if (abortTxns(dbConn, txnids) != 1) {
           LOG.debug("Going to rollback");
           dbConn.rollback();
           throw new NoSuchTxnException("No such transaction: " + txnid);
@@ -954,6 +946,44 @@ public class TxnHandler {
   }
 
   /**
+   * Abort a group of txns
+   * @param dbConn An active connection
+   * @param txnids list of transactions to abort
+   * @return
+   * @throws SQLException
+   */
+  private int abortTxns(Connection dbConn, List<Long> txnids) throws SQLException {
+    Statement stmt = dbConn.createStatement();
+
+    // delete from HIVE_LOCKS first, we always access HIVE_LOCKS before TXNS
+    StringBuilder buf = new StringBuilder("delete from HIVE_LOCKS where hl_txnid in (");
+    boolean first = true;
+    for (Long id : txnids) {
+      if (first) first = false;
+      else buf.append(',');
+      buf.append(id);
+    }
+    buf.append(')');
+    LOG.debug("Going to execute update <" + buf.toString() + ">");
+    stmt.executeUpdate(buf.toString());
+
+    buf = new StringBuilder("update TXNS set txn_state = '" + TXN_ABORTED + "' where txn_id in (");
+    first = true;
+    for (Long id : txnids) {
+      if (first) first = false;
+      else buf.append(',');
+      buf.append(id);
+    }
+    buf.append(')');
+    LOG.debug("Going to execute update <" + buf.toString() + ">");
+    int updateCnt = stmt.executeUpdate(buf.toString());
+
+    LOG.debug("Going to commit");
+    dbConn.commit();
+    return updateCnt;
+  }
+
+  /**
    * Request a lock
    * @param dbConn database connection
    * @param rqst lock information
@@ -1381,19 +1411,21 @@ public class TxnHandler {
     return;
   }
 
-  // Clean timed out transactions from the database.  This does a commit,
+  // Abort timed out transactions.  This calls abortTxn(), which does a commit,
   // and thus should be done before any calls to heartbeat that will leave
   // open transactions on the underlying database.
   private void timeOutTxns(Connection dbConn) throws SQLException {
     long now = System.currentTimeMillis();
     Statement stmt = dbConn.createStatement();
-    // Remove any timed out locks from the table.
-    String s = "delete from TXNS where txn_last_heartbeat < " + (now - timeout);
-    LOG.debug("Going to execute update <" + s + ">");
-    stmt.executeUpdate(s);
-    LOG.debug("Going to commit");
-    dbConn.commit();
-    return;
+    // Abort any timed out locks from the table.
+    String s = "select txn_id from TXNS where txn_last_heartbeat < " + (now - timeout);
+    LOG.debug("Going to execute query <" + s + ">");
+    ResultSet rs = stmt.executeQuery(s);
+    List<Long> deadTxns = new ArrayList<Long>();
+    while (rs.next()) deadTxns.add(rs.getLong(1));
+    // We don't care whether all of the transactions get deleted or not,
+    // if some didn't it most likely means someone else deleted them in the interum
+    if (deadTxns.size() > 0) abortTxns(dbConn, deadTxns);
   }
 
   private static synchronized void setupJdbcConnectionPool(HiveConf conf) throws SQLException {

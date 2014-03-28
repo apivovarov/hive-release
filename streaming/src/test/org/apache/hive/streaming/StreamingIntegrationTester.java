@@ -58,6 +58,13 @@ public class StreamingIntegrationTester {
       .create('a'));
 
     options.addOption(OptionBuilder
+        .hasArg()
+        .withArgName("abandon-pct")
+        .withDescription("Percentage of transactions to abandon, defaults to 5")
+        .withLongOpt("abandon-pct")
+        .create('b'));
+
+    options.addOption(OptionBuilder
       .hasArgs()
       .withArgName("column-names")
       .withDescription("column names of table to write to")
@@ -73,13 +80,6 @@ public class StreamingIntegrationTester {
       .withLongOpt("database")
       .isRequired()
       .create('d'));
-
-//    options.addOption(OptionBuilder
-//            .hasArg()
-//            .withArgName("user")
-//            .withDescription("User to impersonate")
-//            .withLongOpt("user")
-//            .create('u'));
 
     options.addOption(OptionBuilder
       .hasArg()
@@ -180,12 +180,15 @@ public class StreamingIntegrationTester {
     int frequency = Integer.valueOf(cmdline.getOptionValue('f', "1"));
     int ap = Integer.valueOf(cmdline.getOptionValue('a', "5"));
     float abortPct = ((float)ap) / 100.0f;
+    ap = Integer.valueOf(cmdline.getOptionValue('b', "5"));
+    float abandonPct = ((float)ap) / 100.0f;
     String[] partVals = cmdline.getOptionValues('p');
     String[] cols = cmdline.getOptionValues('c');
     String[] types = cmdline.getOptionValues('s');
 
     StreamingIntegrationTester sit = new StreamingIntegrationTester(db, table, uri,
-        txnsPerBatch, writers, batches, recordsPerTxn, frequency, abortPct, partVals, cols, types, pause);
+        txnsPerBatch, writers, batches, recordsPerTxn, frequency, abortPct, abandonPct, partVals,
+        cols, types, pause);
     sit.go();
   }
 
@@ -205,6 +208,7 @@ public class StreamingIntegrationTester {
   private int recordsPerTxn;
   private int frequency;
   private float abortPct;
+  private float abandonPct;
   private String[] partVals;
   private String[] cols;
   private String[] types;
@@ -213,8 +217,9 @@ public class StreamingIntegrationTester {
 
   private StreamingIntegrationTester(String db, String table, String uri, int txnsPerBatch,
                                      int writers, int batches,  int recordsPerTxn,
-                                     int frequency, float abortPct, String[] partVals,
-                                     String[] cols, String[] types, boolean pause) {
+                                     int frequency, float abortPct,  float abandonPct,
+                                     String[] partVals, String[] cols, String[] types,
+                                     boolean pause) {
     this.db = db;
     this.table = table;
     this.uri = uri;
@@ -224,6 +229,7 @@ public class StreamingIntegrationTester {
     this.recordsPerTxn = recordsPerTxn;
     this.frequency = frequency;
     this.abortPct = abortPct;
+    this.abandonPct = abandonPct;
     this.partVals = partVals;
     this.cols = cols;
     this.types = types;
@@ -240,8 +246,8 @@ public class StreamingIntegrationTester {
       }
 
       for (int i = 0; i < writers; i++) {
-        Writer w = new Writer(endPoint, user, i, txnsPerBatch, batches, recordsPerTxn, frequency, abortPct,
-                cols, types, pause);
+        Writer w = new Writer(endPoint, user, i, txnsPerBatch, batches, recordsPerTxn, frequency,
+            abortPct, abandonPct, cols, types, pause);
         w.start();
       }
 
@@ -259,13 +265,15 @@ public class StreamingIntegrationTester {
     private int recordsPerTxn;
     private int frequency;
     private float abortPct;
+    private float abandonPct;
     private String[] cols;
     private String[] types;
     private boolean pause;
     private Random rand;
 
     Writer(HiveEndPoint endPoint, String user, int writerNumber, int txnsPerBatch, int batches,
-           int recordsPerTxn, int frequency, float abortPct, String[] cols, String[] types, boolean pause) {
+           int recordsPerTxn, int frequency, float abortPct, float abandonPct, String[] cols,
+           String[] types, boolean pause) {
       this.endPoint = endPoint;
       this.user = user;
       this.txnsPerBatch = txnsPerBatch;
@@ -274,6 +282,7 @@ public class StreamingIntegrationTester {
       this.recordsPerTxn = recordsPerTxn;
       this.frequency = frequency;
       this.abortPct = abortPct;
+      this.abandonPct = abandonPct;
       this.cols = cols;
       this.types = types;
       this.pause = pause;
@@ -298,8 +307,8 @@ public class StreamingIntegrationTester {
                 batch.write(generateRecord(cols, types));
               }
               if (rand.nextFloat() < abortPct) batch.abort();
-              else
-              batch.commit();
+              else if (rand.nextFloat() < abandonPct) continue;
+              else batch.commit();
               if(pause) {
                 System.out.println("Writer " + writerNumber + " committed... press Enter to continue. " + Thread.currentThread().getId());
                 System.in.read();
