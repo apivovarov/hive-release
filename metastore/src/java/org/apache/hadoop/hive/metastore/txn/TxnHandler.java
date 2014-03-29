@@ -583,31 +583,6 @@ public class TxnHandler {
     }
   }
 
-  public void heartbeatTxnRange(HeartbeatTxnRangeRequest rqst)
-      throws NoSuchTxnException, TxnAbortedException, MetaException {
-    try {
-      Connection dbConn = getDbConn();
-      try {
-        for (long txn = rqst.getMin(); txn <= rqst.getMax(); txn++) {
-          heartbeatTxn(dbConn, txn);
-        }
-      } catch (SQLException e) {
-        try {
-          LOG.debug("Going to rollback");
-          dbConn.rollback();
-        } catch (SQLException e1) {
-        }
-        detectDeadlock(e, 0, "heartbeatTxnRange");
-        throw new MetaException("Unable to select from transaction database " +
-            StringUtils.stringifyException(e));
-      } finally {
-        closeDbConn(dbConn);
-      }
-    } catch (DeadlockException e) {
-      // Don't try again on deadlock.
-    }
-  }
-
   public void compact(CompactionRequest rqst) throws MetaException {
     // Put a compaction request in the queue.
     int deadlockCnt = 0;

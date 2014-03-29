@@ -528,11 +528,6 @@ struct HeartbeatRequest {
     2: optional i64 txnid
 }
 
-struct HeartbeatTxnRangeRequest {
-    1: required i64 min,
-    2: required i64 max
-}
-
 struct CompactionRequest {
     1: required string dbname,
     2: required string tablename,
@@ -989,7 +984,6 @@ service ThriftHiveMetastore extends fb303.FacebookService
   void unlock(1:UnlockRequest rqst) throws (1:NoSuchLockException o1, 2:TxnOpenException o2)
   ShowLocksResponse show_locks(1:ShowLocksRequest rqst)
   void heartbeat(1:HeartbeatRequest ids) throws (1:NoSuchLockException o1, 2:NoSuchTxnException o2, 3:TxnAbortedException o3)
-  void heartbeat_txn_range(1:HeartbeatTxnRangeRequest txns) throws (1:NoSuchTxnException o1, 2:TxnAbortedException o2)
   void compact(1:CompactionRequest rqst) 
   ShowCompactResponse show_compact(1:ShowCompactRequest rqst)
 }

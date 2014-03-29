@@ -889,47 +889,6 @@ public class TestTxnHandler {
   }
 
   @Test
-  public void heartbeatTxnRange() throws Exception {
-    long txnid = openTxn();
-    assertEquals(1, txnid);
-    txnid = openTxn();
-    txnid = openTxn();
-    txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
-  }
-
-  @Test
-  public void heartbeatTxnRangeOneCommitted() throws Exception {
-    long txnid = openTxn();
-    assertEquals(1, txnid);
-    txnHandler.commitTxn(new CommitTxnRequest(1));
-    txnid = openTxn();
-    txnid = openTxn();
-    boolean sawException = false;
-    try {
-      txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
-    } catch (NoSuchTxnException e) {
-      sawException = true;
-    }
-    assertTrue(sawException);
-  }
-
-  @Test
-  public void heartbeatTxnRangeOneAborted() throws Exception {
-    long txnid = openTxn();
-    assertEquals(1, txnid);
-    txnid = openTxn();
-    txnid = openTxn();
-    txnHandler.abortTxn(new AbortTxnRequest(3));
-    boolean sawException = false;
-    try {
-      txnHandler.heartbeatTxnRange(new HeartbeatTxnRangeRequest(1, 3));
-    } catch (TxnAbortedException e) {
-      sawException = true;
-    }
-    assertTrue(sawException);
-  }
-
-  @Test
   public void testLockTimeout() throws Exception {
     long timeout = txnHandler.setTimeout(1);
     LockComponent comp = new LockComponent(LockType.EXCLUSIVE, LockLevel.DB, "mydb");

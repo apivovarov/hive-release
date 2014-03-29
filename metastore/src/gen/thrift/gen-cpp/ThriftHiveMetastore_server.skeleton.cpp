@@ -537,11 +537,6 @@ class ThriftHiveMetastoreHandler : virtual public ThriftHiveMetastoreIf {
     printf("heartbeat\n");
   }
 
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns) {
-    // Your implementation goes here
-    printf("heartbeat_txn_range\n");
-  }
-
   void compact(const CompactionRequest& rqst) {
     // Your implementation goes here
     printf("compact\n");

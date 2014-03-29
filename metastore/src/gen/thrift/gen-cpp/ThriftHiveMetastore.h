@@ -119,7 +119,6 @@ class ThriftHiveMetastoreIf : virtual public  ::facebook::fb303::FacebookService
   virtual void unlock(const UnlockRequest& rqst) = 0;
   virtual void show_locks(ShowLocksResponse& _return, const ShowLocksRequest& rqst) = 0;
   virtual void heartbeat(const HeartbeatRequest& ids) = 0;
-  virtual void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns) = 0;
   virtual void compact(const CompactionRequest& rqst) = 0;
   virtual void show_compact(ShowCompactResponse& _return, const ShowCompactRequest& rqst) = 0;
 };
@@ -479,9 +478,6 @@ class ThriftHiveMetastoreNull : virtual public ThriftHiveMetastoreIf , virtual p
     return;
   }
   void heartbeat(const HeartbeatRequest& /* ids */) {
-    return;
-  }
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& /* txns */) {
     return;
   }
   void compact(const CompactionRequest& /* rqst */) {
@@ -14768,94 +14764,6 @@ class ThriftHiveMetastore_heartbeat_presult {
 
 };
 
-typedef struct _ThriftHiveMetastore_heartbeat_txn_range_args__isset {
-  _ThriftHiveMetastore_heartbeat_txn_range_args__isset() : txns(false) {}
-  bool txns;
-} _ThriftHiveMetastore_heartbeat_txn_range_args__isset;
-
-class ThriftHiveMetastore_heartbeat_txn_range_args {
- public:
-
-  ThriftHiveMetastore_heartbeat_txn_range_args() {
-  }
-
-  virtual ~ThriftHiveMetastore_heartbeat_txn_range_args() throw() {}
-
-  HeartbeatTxnRangeRequest txns;
-
-  _ThriftHiveMetastore_heartbeat_txn_range_args__isset __isset;
-
-  void __set_txns(const HeartbeatTxnRangeRequest& val) {
-    txns = val;
-  }
-
-  bool operator == (const ThriftHiveMetastore_heartbeat_txn_range_args & rhs) const
-  {
-    if (!(txns == rhs.txns))
-      return false;
-    return true;
-  }
-  bool operator != (const ThriftHiveMetastore_heartbeat_txn_range_args &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const ThriftHiveMetastore_heartbeat_txn_range_args & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class ThriftHiveMetastore_heartbeat_txn_range_pargs {
- public:
-
-
-  virtual ~ThriftHiveMetastore_heartbeat_txn_range_pargs() throw() {}
-
-  const HeartbeatTxnRangeRequest* txns;
-
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class ThriftHiveMetastore_heartbeat_txn_range_result {
- public:
-
-  ThriftHiveMetastore_heartbeat_txn_range_result() {
-  }
-
-  virtual ~ThriftHiveMetastore_heartbeat_txn_range_result() throw() {}
-
-
-  bool operator == (const ThriftHiveMetastore_heartbeat_txn_range_result & /* rhs */) const
-  {
-    return true;
-  }
-  bool operator != (const ThriftHiveMetastore_heartbeat_txn_range_result &rhs) const {
-    return !(*this == rhs);
-  }
-
-  bool operator < (const ThriftHiveMetastore_heartbeat_txn_range_result & ) const;
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-  uint32_t write(::apache::thrift::protocol::TProtocol* oprot) const;
-
-};
-
-
-class ThriftHiveMetastore_heartbeat_txn_range_presult {
- public:
-
-
-  virtual ~ThriftHiveMetastore_heartbeat_txn_range_presult() throw() {}
-
-
-  uint32_t read(::apache::thrift::protocol::TProtocol* iprot);
-
-};
-
 typedef struct _ThriftHiveMetastore_compact_args__isset {
   _ThriftHiveMetastore_compact_args__isset() : rqst(false) {}
   bool rqst;
@@ -15373,9 +15281,6 @@ class ThriftHiveMetastoreClient : virtual public ThriftHiveMetastoreIf, public  
   void heartbeat(const HeartbeatRequest& ids);
   void send_heartbeat(const HeartbeatRequest& ids);
   void recv_heartbeat();
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns);
-  void send_heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns);
-  void recv_heartbeat_txn_range();
   void compact(const CompactionRequest& rqst);
   void send_compact(const CompactionRequest& rqst);
   void recv_compact();
@@ -15495,7 +15400,6 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
   void process_unlock(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_show_locks(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_heartbeat(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
-  void process_heartbeat_txn_range(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_compact(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
   void process_show_compact(int32_t seqid, ::apache::thrift::protocol::TProtocol* iprot, ::apache::thrift::protocol::TProtocol* oprot, void* callContext);
  public:
@@ -15605,7 +15509,6 @@ class ThriftHiveMetastoreProcessor : public  ::facebook::fb303::FacebookServiceP
     processMap_["unlock"] = &ThriftHiveMetastoreProcessor::process_unlock;
     processMap_["show_locks"] = &ThriftHiveMetastoreProcessor::process_show_locks;
     processMap_["heartbeat"] = &ThriftHiveMetastoreProcessor::process_heartbeat;
-    processMap_["heartbeat_txn_range"] = &ThriftHiveMetastoreProcessor::process_heartbeat_txn_range;
     processMap_["compact"] = &ThriftHiveMetastoreProcessor::process_compact;
     processMap_["show_compact"] = &ThriftHiveMetastoreProcessor::process_show_compact;
   }
@@ -16625,15 +16528,6 @@ class ThriftHiveMetastoreMultiface : virtual public ThriftHiveMetastoreIf, publi
       ifaces_[i]->heartbeat(ids);
     }
     ifaces_[i]->heartbeat(ids);
-  }
-
-  void heartbeat_txn_range(const HeartbeatTxnRangeRequest& txns) {
-    size_t sz = ifaces_.size();
-    size_t i = 0;
-    for (; i < (sz - 1); ++i) {
-      ifaces_[i]->heartbeat_txn_range(txns);
-    }
-    ifaces_[i]->heartbeat_txn_range(txns);
   }
 
   void compact(const CompactionRequest& rqst) {
