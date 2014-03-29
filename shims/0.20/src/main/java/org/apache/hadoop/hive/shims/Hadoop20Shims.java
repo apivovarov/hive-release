@@ -593,13 +593,6 @@ public class Hadoop20Shims implements HadoopShims {
   }
 
   @Override
-  public UserGroupInformation loginUserFromKeytabAndReturnUGI(
-      String principal, String keytabFile) throws IOException {
-    throwKerberosUnsupportedError();
-    return null;
-  }
-
-  @Override
   public void reLoginUserFromKeytab() throws IOException{
     throwKerberosUnsupportedError();
   }

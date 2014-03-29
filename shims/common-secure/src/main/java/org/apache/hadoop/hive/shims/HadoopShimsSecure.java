@@ -558,13 +558,6 @@ public abstract class HadoopShimsSecure implements HadoopShims {
   }
 
   @Override
-  public UserGroupInformation loginUserFromKeytabAndReturnUGI(
-      String principal, String keytabFile) throws IOException {
-    String hostPrincipal = SecurityUtil.getServerPrincipal(principal, "0.0.0.0");
-    return UserGroupInformation.loginUserFromKeytabAndReturnUGI(hostPrincipal, keytabFile);
-  }
-
-  @Override
   public String getTokenFileLocEnvName() {
     return UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION;
   }

@@ -76,10 +76,7 @@ public class ThriftHttpCLIService extends ThriftCLIService {
       String schemeName = useSsl ? "https" : "http";
       String authType = hiveConf.getVar(ConfVars.HIVE_SERVER2_AUTHENTICATION);
       // Set during the init phase of HiveServer2 if auth mode is kerberos
-      // UGI for the hive/_HOST (kerberos) principal
       UserGroupInformation serviceUGI = cliService.getServiceUGI();
-      // UGI for the http/_HOST (SPNego) principal
-      UserGroupInformation httpUGI = cliService.getHttpUGI();
 
       if (useSsl) {
         String keyStorePath = hiveConf.getVar(ConfVars.HIVE_SERVER2_SSL_KEYSTORE_PATH).trim();
@@ -104,9 +101,8 @@ public class ThriftHttpCLIService extends ThriftCLIService {
       TProcessor processor = processorFactory.getProcessor(null);
 
       TProtocolFactory protocolFactory = new TBinaryProtocol.Factory();
-
       TServlet thriftHttpServlet = new ThriftHttpServlet(processor, protocolFactory,
-          authType, serviceUGI, httpUGI);
+          authType, serviceUGI);
 
       final ServletContextHandler context = new ServletContextHandler(
           ServletContextHandler.SESSIONS);
