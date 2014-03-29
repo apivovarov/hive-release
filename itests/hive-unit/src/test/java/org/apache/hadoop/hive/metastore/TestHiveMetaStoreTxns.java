@@ -83,8 +83,8 @@ public class TestHiveMetaStoreTxns {
     List<Long> tids = client.openTxns("me", 5).getTxn_ids();
 
     HeartbeatTxnRangeResponse rsp = client.heartbeatTxnRange(1, 5);
-    Assert.assertEquals(0, rsp.getNosuch().size());
-    Assert.assertEquals(0, rsp.getAborted().size());
+    Assert.assertNull(rsp.getNosuch());
+    Assert.assertNull(rsp.getAborted());
 
     client.rollbackTxn(1L);
     client.commitTxn(2L);
