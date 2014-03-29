@@ -1752,7 +1752,7 @@ module ThriftHiveMetastore
 
     def heartbeat_txn_range(txns)
       send_heartbeat_txn_range(txns)
-      return recv_heartbeat_txn_range()
+      recv_heartbeat_txn_range()
     end
 
     def send_heartbeat_txn_range(txns)
@@ -1761,8 +1761,7 @@ module ThriftHiveMetastore
 
     def recv_heartbeat_txn_range()
       result = receive_message(Heartbeat_txn_range_result)
-      return result.success unless result.success.nil?
-      raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'heartbeat_txn_range failed: unknown result')
+      return
     end
 
     def compact(rqst)
@@ -3153,7 +3152,7 @@ module ThriftHiveMetastore
     def process_heartbeat_txn_range(seqid, iprot, oprot)
       args = read_args(iprot, Heartbeat_txn_range_args)
       result = Heartbeat_txn_range_result.new()
-      result.success = @handler.heartbeat_txn_range(args.txns)
+      @handler.heartbeat_txn_range(args.txns)
       write_result(result, oprot, 'heartbeat_txn_range', seqid)
     end
 
@@ -7176,10 +7175,9 @@ module ThriftHiveMetastore
 
   class Heartbeat_txn_range_result
     include ::Thrift::Struct, ::Thrift::Struct_Union
-    SUCCESS = 0
 
     FIELDS = {
-      SUCCESS => {:type => ::Thrift::Types::STRUCT, :name => 'success', :class => ::HeartbeatTxnRangeResponse}
+
     }
 
     def struct_fields; FIELDS; end

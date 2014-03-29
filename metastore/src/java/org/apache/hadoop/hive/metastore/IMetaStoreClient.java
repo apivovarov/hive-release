@@ -22,7 +22,6 @@ import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.metastore.api.CompactionType;
 import org.apache.hadoop.hive.metastore.api.GetOpenTxnsInfoResponse;
 import org.apache.hadoop.hive.metastore.api.GetOpenTxnsResponse;
-import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.NoSuchLockException;
@@ -1236,11 +1235,15 @@ public interface IMetaStoreClient {
    * {@link #heartbeat(long, long)}.
    * @param min minimum transaction id to heartbeat, inclusive
    * @param max maximum transaction id to heartbeat, inclusive
-   * @return a pair of lists that tell which transactions in the list did not exist (they may
-   * have already been closed) and which were aborted.
+   * @throws NoSuchTxnException if the requested transaction does not exist.
+   * This can result fro the transaction having timed out and been deleted by
+   * the compactor.
+   * @throws TxnAbortedException if the requested transaction has been
+   * aborted.  This can result from the transaction timing out.
    * @throws TException
    */
-  public HeartbeatTxnRangeResponse heartbeatTxnRange(long min, long max) throws TException;
+  public void heartbeatTxnRange(long min, long max)
+    throws NoSuchTxnException, TxnAbortedException, TException;
 
   /**
    * Send a request to compact a table or partition.  This will not block until the compaction is
