@@ -350,17 +350,10 @@ public class ShowLocksResponse implements org.apache.thrift.TBase<ShowLocksRespo
                 struct.locks = new ArrayList<ShowLocksResponseElement>(_list410.size);
                 for (int _i411 = 0; _i411 < _list410.size; ++_i411)
                 {
-<<<<<<< HEAD
-                  ShowLocksResponseElement _elem404; // required
-                  _elem404 = new ShowLocksResponseElement();
-                  _elem404.read(iprot);
-                  struct.locks.add(_elem404);
-=======
-                  ShowLocksResponseElement _elem412; // optional
+                  ShowLocksResponseElement _elem412; // required
                   _elem412 = new ShowLocksResponseElement();
                   _elem412.read(iprot);
                   struct.locks.add(_elem412);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -437,17 +430,10 @@ public class ShowLocksResponse implements org.apache.thrift.TBase<ShowLocksRespo
           struct.locks = new ArrayList<ShowLocksResponseElement>(_list415.size);
           for (int _i416 = 0; _i416 < _list415.size; ++_i416)
           {
-<<<<<<< HEAD
-            ShowLocksResponseElement _elem409; // required
-            _elem409 = new ShowLocksResponseElement();
-            _elem409.read(iprot);
-            struct.locks.add(_elem409);
-=======
-            ShowLocksResponseElement _elem417; // optional
+            ShowLocksResponseElement _elem417; // required
             _elem417 = new ShowLocksResponseElement();
             _elem417.read(iprot);
             struct.locks.add(_elem417);
->>>>>>> upstream/branch-0.13
           }
         }
         struct.setLocksIsSet(true);

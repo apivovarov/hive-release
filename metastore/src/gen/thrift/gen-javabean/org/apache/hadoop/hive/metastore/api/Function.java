@@ -997,17 +997,10 @@ public class Function implements org.apache.thrift.TBase<Function, Function._Fie
                 struct.resourceUris = new ArrayList<ResourceUri>(_list370.size);
                 for (int _i371 = 0; _i371 < _list370.size; ++_i371)
                 {
-<<<<<<< HEAD
-                  ResourceUri _elem364; // required
-                  _elem364 = new ResourceUri();
-                  _elem364.read(iprot);
-                  struct.resourceUris.add(_elem364);
-=======
-                  ResourceUri _elem372; // optional
+                  ResourceUri _elem372; // required
                   _elem372 = new ResourceUri();
                   _elem372.read(iprot);
                   struct.resourceUris.add(_elem372);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -1187,17 +1180,10 @@ public class Function implements org.apache.thrift.TBase<Function, Function._Fie
           struct.resourceUris = new ArrayList<ResourceUri>(_list375.size);
           for (int _i376 = 0; _i376 < _list375.size; ++_i376)
           {
-<<<<<<< HEAD
-            ResourceUri _elem369; // required
-            _elem369 = new ResourceUri();
-            _elem369.read(iprot);
-            struct.resourceUris.add(_elem369);
-=======
-            ResourceUri _elem377; // optional
+            ResourceUri _elem377; // required
             _elem377 = new ResourceUri();
             _elem377.read(iprot);
             struct.resourceUris.add(_elem377);
->>>>>>> upstream/branch-0.13
           }
         }
         struct.setResourceUrisIsSet(true);

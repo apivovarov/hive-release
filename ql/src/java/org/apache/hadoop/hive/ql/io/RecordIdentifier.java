@@ -118,24 +118,16 @@ public class RecordIdentifier implements WritableComparable<RecordIdentifier> {
 
   @Override
   public void write(DataOutput dataOutput) throws IOException {
-<<<<<<< HEAD
     dataOutput.writeLong(transactionId);
     dataOutput.writeInt(bucketId);
     dataOutput.writeLong(rowId);
-=======
-    throw new UnsupportedOperationException("Can't write RecordIdentifier");
->>>>>>> upstream/branch-0.13
   }
 
   @Override
   public void readFields(DataInput dataInput) throws IOException {
-<<<<<<< HEAD
     transactionId = dataInput.readLong();
     bucketId = dataInput.readInt();
     rowId = dataInput.readLong();
-=======
-    throw new UnsupportedOperationException("Can't read RecordIdentifier");
->>>>>>> upstream/branch-0.13
   }
 
   @Override

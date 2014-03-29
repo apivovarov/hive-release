@@ -1111,11 +1111,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
             MetaStoreUtils.getIndexTableName(SessionState.get().getCurrentDatabase(),
                 crtIndex.getTableName(), crtIndex.getIndexName());
           Table indexTable = db.getTable(indexTableName);
-<<<<<<< HEAD
-          work.getOutputs().add(new WriteEntity(indexTable, WriteEntity.WriteType.DDL_SHARED));
-=======
           work.getOutputs().add(new WriteEntity(indexTable, WriteEntity.WriteType.DDL_NO_LOCK));
->>>>>>> upstream/branch-0.13
     }
     return 0;
   }
@@ -2792,27 +2788,6 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       os.writeBytes("Start Time");
       os.write(terminator);
 
-<<<<<<< HEAD
-      if (rsp.getCompacts() != null) {
-        for (ShowCompactResponseElement e : rsp.getCompacts()) {
-          os.writeBytes(e.getDbname());
-          os.write(separator);
-          os.writeBytes(e.getTablename());
-          os.write(separator);
-          String part = e.getPartitionname();
-          os.writeBytes(part == null ? "NULL" : part);
-          os.write(separator);
-          os.writeBytes(e.getType().toString());
-          os.write(separator);
-          os.writeBytes(e.getState());
-          os.write(separator);
-          String wid = e.getWorkerid();
-          os.writeBytes(wid == null ? "NULL" : wid);
-          os.write(separator);
-          os.writeBytes(Long.toString(e.getStart()));
-          os.write(terminator);
-        }
-=======
       for (ShowCompactResponseElement e : rsp.getCompacts()) {
         os.writeBytes(e.getDbname());
         os.write(separator);
@@ -2830,18 +2805,13 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         os.write(separator);
         os.writeBytes(Long.toString(e.getStart()));
         os.write(terminator);
->>>>>>> upstream/branch-0.13
       }
       os.close();
     } catch (IOException e) {
       LOG.warn("show compactions: " + stringifyException(e));
       return 1;
     } finally {
-<<<<<<< HEAD
-      IOUtils.closeStream((FSDataOutputStream)os);
-=======
       IOUtils.closeStream(os);
->>>>>>> upstream/branch-0.13
     }
     return 0;
   }
@@ -2882,11 +2852,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       LOG.warn("show transactions: " + stringifyException(e));
       return 1;
     } finally {
-<<<<<<< HEAD
-      IOUtils.closeStream((FSDataOutputStream)os);
-=======
       IOUtils.closeStream(os);
->>>>>>> upstream/branch-0.13
     }
     return 0;
   }
@@ -4224,11 +4190,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     // create the table
     db.createTable(tbl, crtTbl.getIfNotExists());
-<<<<<<< HEAD
-    work.getOutputs().add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_EXCLUSIVE));
-=======
     work.getOutputs().add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_NO_LOCK));
->>>>>>> upstream/branch-0.13
     return 0;
   }
 
@@ -4336,11 +4298,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
 
     // create the table
     db.createTable(tbl, crtTbl.getIfNotExists());
-<<<<<<< HEAD
-    work.getOutputs().add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_EXCLUSIVE));
-=======
     work.getOutputs().add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_NO_LOCK));
->>>>>>> upstream/branch-0.13
     return 0;
   }
 
@@ -4376,11 +4334,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       } catch (InvalidOperationException e) {
         throw new HiveException(e);
       }
-<<<<<<< HEAD
-      work.getOutputs().add(new WriteEntity(oldview, WriteEntity.WriteType.DDL_SHARED));
-=======
       work.getOutputs().add(new WriteEntity(oldview, WriteEntity.WriteType.DDL_NO_LOCK));
->>>>>>> upstream/branch-0.13
     } else {
       // create new view
       Table tbl = db.newTable(crtView.getViewName());
@@ -4407,11 +4361,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       }
 
       db.createTable(tbl, crtView.getIfNotExists());
-<<<<<<< HEAD
-      work.getOutputs().add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_EXCLUSIVE));
-=======
       work.getOutputs().add(new WriteEntity(tbl, WriteEntity.WriteType.DDL_NO_LOCK));
->>>>>>> upstream/branch-0.13
     }
     return 0;
   }

@@ -447,17 +447,10 @@ public class GetOpenTxnsInfoResponse implements org.apache.thrift.TBase<GetOpenT
                 struct.open_txns = new ArrayList<TxnInfo>(_list378.size);
                 for (int _i379 = 0; _i379 < _list378.size; ++_i379)
                 {
-<<<<<<< HEAD
-                  TxnInfo _elem372; // required
-                  _elem372 = new TxnInfo();
-                  _elem372.read(iprot);
-                  struct.open_txns.add(_elem372);
-=======
-                  TxnInfo _elem380; // optional
+                  TxnInfo _elem380; // required
                   _elem380 = new TxnInfo();
                   _elem380.read(iprot);
                   struct.open_txns.add(_elem380);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -531,17 +524,10 @@ public class GetOpenTxnsInfoResponse implements org.apache.thrift.TBase<GetOpenT
         struct.open_txns = new ArrayList<TxnInfo>(_list383.size);
         for (int _i384 = 0; _i384 < _list383.size; ++_i384)
         {
-<<<<<<< HEAD
-          TxnInfo _elem377; // required
-          _elem377 = new TxnInfo();
-          _elem377.read(iprot);
-          struct.open_txns.add(_elem377);
-=======
-          TxnInfo _elem385; // optional
+          TxnInfo _elem385; // required
           _elem385 = new TxnInfo();
           _elem385.read(iprot);
           struct.open_txns.add(_elem385);
->>>>>>> upstream/branch-0.13
         }
       }
       struct.setOpen_txnsIsSet(true);

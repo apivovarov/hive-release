@@ -171,22 +171,13 @@ public class WriteEntity extends Entity implements Serializable {
       case ADDSKEWEDBY:
       case ALTERSKEWEDLOCATION:
       case ALTERBUCKETNUM:
-<<<<<<< HEAD
-=======
       case ALTERPARTITION:
       case ADDCOLS:
->>>>>>> upstream/branch-0.13
       case RENAME:  return WriteType.DDL_EXCLUSIVE;
 
       case ADDPARTITION:
       case ADDSERDEPROPS:
-<<<<<<< HEAD
-      case ADDPROPS:
-      case ALTERPARTITION:
-      case ADDCOLS: return WriteType.DDL_SHARED;
-=======
       case ADDPROPS: return WriteType.DDL_SHARED;
->>>>>>> upstream/branch-0.13
 
       case COMPACT:
       case TOUCH: return WriteType.DDL_NO_LOCK;

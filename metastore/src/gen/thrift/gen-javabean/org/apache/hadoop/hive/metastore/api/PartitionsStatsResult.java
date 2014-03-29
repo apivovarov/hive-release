@@ -371,17 +371,10 @@ public class PartitionsStatsResult implements org.apache.thrift.TBase<Partitions
                     _val291 = new ArrayList<ColumnStatisticsObj>(_list292.size);
                     for (int _i293 = 0; _i293 < _list292.size; ++_i293)
                     {
-<<<<<<< HEAD
-                      ColumnStatisticsObj _elem286; // required
-                      _elem286 = new ColumnStatisticsObj();
-                      _elem286.read(iprot);
-                      _val283.add(_elem286);
-=======
-                      ColumnStatisticsObj _elem294; // optional
+                      ColumnStatisticsObj _elem294; // required
                       _elem294 = new ColumnStatisticsObj();
                       _elem294.read(iprot);
                       _val291.add(_elem294);
->>>>>>> upstream/branch-0.13
                     }
                     iprot.readListEnd();
                   }
@@ -476,17 +469,10 @@ public class PartitionsStatsResult implements org.apache.thrift.TBase<Partitions
             _val302 = new ArrayList<ColumnStatisticsObj>(_list303.size);
             for (int _i304 = 0; _i304 < _list303.size; ++_i304)
             {
-<<<<<<< HEAD
-              ColumnStatisticsObj _elem297; // required
-              _elem297 = new ColumnStatisticsObj();
-              _elem297.read(iprot);
-              _val294.add(_elem297);
-=======
-              ColumnStatisticsObj _elem305; // optional
+              ColumnStatisticsObj _elem305; // required
               _elem305 = new ColumnStatisticsObj();
               _elem305.read(iprot);
               _val302.add(_elem305);
->>>>>>> upstream/branch-0.13
             }
           }
           struct.partStats.put(_key301, _val302);

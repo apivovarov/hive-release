@@ -605,17 +605,10 @@ public class LockRequest implements org.apache.thrift.TBase<LockRequest, LockReq
                 struct.component = new ArrayList<LockComponent>(_list402.size);
                 for (int _i403 = 0; _i403 < _list402.size; ++_i403)
                 {
-<<<<<<< HEAD
-                  LockComponent _elem396; // required
-                  _elem396 = new LockComponent();
-                  _elem396.read(iprot);
-                  struct.component.add(_elem396);
-=======
-                  LockComponent _elem404; // optional
+                  LockComponent _elem404; // required
                   _elem404 = new LockComponent();
                   _elem404.read(iprot);
                   struct.component.add(_elem404);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -732,17 +725,10 @@ public class LockRequest implements org.apache.thrift.TBase<LockRequest, LockReq
         struct.component = new ArrayList<LockComponent>(_list407.size);
         for (int _i408 = 0; _i408 < _list407.size; ++_i408)
         {
-<<<<<<< HEAD
-          LockComponent _elem401; // required
-          _elem401 = new LockComponent();
-          _elem401.read(iprot);
-          struct.component.add(_elem401);
-=======
-          LockComponent _elem409; // optional
+          LockComponent _elem409; // required
           _elem409 = new LockComponent();
           _elem409.read(iprot);
           struct.component.add(_elem409);
->>>>>>> upstream/branch-0.13
         }
       }
       struct.setComponentIsSet(true);

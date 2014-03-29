@@ -439,17 +439,10 @@ public class PartitionsByExprResult implements org.apache.thrift.TBase<Partition
                 struct.partitions = new ArrayList<Partition>(_list272.size);
                 for (int _i273 = 0; _i273 < _list272.size; ++_i273)
                 {
-<<<<<<< HEAD
-                  Partition _elem266; // required
-                  _elem266 = new Partition();
-                  _elem266.read(iprot);
-                  struct.partitions.add(_elem266);
-=======
-                  Partition _elem274; // optional
+                  Partition _elem274; // required
                   _elem274 = new Partition();
                   _elem274.read(iprot);
                   struct.partitions.add(_elem274);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -529,17 +522,10 @@ public class PartitionsByExprResult implements org.apache.thrift.TBase<Partition
         struct.partitions = new ArrayList<Partition>(_list277.size);
         for (int _i278 = 0; _i278 < _list277.size; ++_i278)
         {
-<<<<<<< HEAD
-          Partition _elem271; // required
-          _elem271 = new Partition();
-          _elem271.read(iprot);
-          struct.partitions.add(_elem271);
-=======
-          Partition _elem279; // optional
+          Partition _elem279; // required
           _elem279 = new Partition();
           _elem279.read(iprot);
           struct.partitions.add(_elem279);
->>>>>>> upstream/branch-0.13
         }
       }
       struct.setPartitionsIsSet(true);

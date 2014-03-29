@@ -105,10 +105,6 @@ public class CompactionTxnHandler extends TxnHandler {
    * @param user user to run the jobs as
    */
   public void setRunAs(long cq_id, String user) throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -129,21 +125,14 @@ public class CompactionTxnHandler extends TxnHandler {
          dbConn.rollback();
        } catch (SQLException e1) {
        }
-<<<<<<< HEAD
-       detectDeadlock(e, deadlockCnt++, "setRunAs");
-=======
        detectDeadlock(e, "setRunAs");
->>>>>>> upstream/branch-0.13
      } finally {
        closeDbConn(dbConn);
      }
     } catch (DeadlockException e) {
       setRunAs(cq_id, user);
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 
@@ -154,10 +143,6 @@ public class CompactionTxnHandler extends TxnHandler {
    * @return an info element for this compaction request, or null if there is no work to do now.
    */
   public CompactionInfo findNextToCompact(String workerId) throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       CompactionInfo info = new CompactionInfo();
@@ -203,11 +188,7 @@ public class CompactionTxnHandler extends TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
-<<<<<<< HEAD
-        detectDeadlock(e, deadlockCnt++, "findNextToCompact");
-=======
         detectDeadlock(e, "findNextToCompact");
->>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to connect to transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -215,11 +196,8 @@ public class CompactionTxnHandler extends TxnHandler {
       }
     } catch (DeadlockException e) {
       return findNextToCompact(workerId);
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 
@@ -229,10 +207,6 @@ public class CompactionTxnHandler extends TxnHandler {
    * @param info info on the compaciton entry to mark as compacted.
    */
   public void markCompacted(CompactionInfo info) throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -254,11 +228,7 @@ public class CompactionTxnHandler extends TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
-<<<<<<< HEAD
-        detectDeadlock(e, deadlockCnt++, "markCompacted");
-=======
         detectDeadlock(e, "markCompacted");
->>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to connect to transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -266,11 +236,8 @@ public class CompactionTxnHandler extends TxnHandler {
       }
     } catch (DeadlockException e) {
       markCompacted(info);
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 
@@ -326,10 +293,6 @@ public class CompactionTxnHandler extends TxnHandler {
    * @param info info on the compaction entry to remove
    */
   public void markCleaned(CompactionInfo info) throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -404,11 +367,7 @@ public class CompactionTxnHandler extends TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
-<<<<<<< HEAD
-        detectDeadlock(e, deadlockCnt++, "markCleaned");
-=======
         detectDeadlock(e, "markCleaned");
->>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to connect to transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -416,11 +375,8 @@ public class CompactionTxnHandler extends TxnHandler {
       }
     } catch (DeadlockException e) {
       markCleaned(info);
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 
@@ -428,10 +384,6 @@ public class CompactionTxnHandler extends TxnHandler {
    * Clean up aborted transactions from txns that have no components in txn_components.
    */
   public void cleanEmptyAbortedTxns() throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -465,11 +417,7 @@ public class CompactionTxnHandler extends TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
-<<<<<<< HEAD
-        detectDeadlock(e, deadlockCnt++, "cleanEmptyAbortedTxns");
-=======
         detectDeadlock(e, "cleanEmptyAbortedTxns");
->>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to connect to transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -477,11 +425,8 @@ public class CompactionTxnHandler extends TxnHandler {
       }
     } catch (DeadlockException e) {
       cleanEmptyAbortedTxns();
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 
@@ -495,10 +440,6 @@ public class CompactionTxnHandler extends TxnHandler {
    *                 so that like hostname% will match the worker id.
    */
   public void revokeFromLocalWorkers(String hostname) throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -520,11 +461,7 @@ public class CompactionTxnHandler extends TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
-<<<<<<< HEAD
-        detectDeadlock(e, deadlockCnt++, "revokeFromLocalWorkers");
-=======
         detectDeadlock(e, "revokeFromLocalWorkers");
->>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to connect to transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -532,11 +469,8 @@ public class CompactionTxnHandler extends TxnHandler {
       }
     } catch (DeadlockException e) {
       revokeFromLocalWorkers(hostname);
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 
@@ -550,10 +484,6 @@ public class CompactionTxnHandler extends TxnHandler {
    *                declared dead.
    */
   public void revokeTimedoutWorkers(long timeout) throws MetaException {
-<<<<<<< HEAD
-    int deadlockCnt = 0;
-=======
->>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       long latestValidStart = System.currentTimeMillis() - timeout;
@@ -576,11 +506,7 @@ public class CompactionTxnHandler extends TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
-<<<<<<< HEAD
-        detectDeadlock(e, deadlockCnt++, "revokeTimedoutWorkers");
-=======
         detectDeadlock(e, "revokeTimedoutWorkers");
->>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to connect to transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -588,11 +514,8 @@ public class CompactionTxnHandler extends TxnHandler {
       }
     } catch (DeadlockException e) {
       revokeTimedoutWorkers(timeout);
-<<<<<<< HEAD
-=======
     } finally {
       deadlockCnt = 0;
->>>>>>> upstream/branch-0.13
     }
   }
 }

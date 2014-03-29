@@ -1403,17 +1403,10 @@ public class Table implements org.apache.thrift.TBase<Table, Table._Fields>, jav
                 struct.partitionKeys = new ArrayList<FieldSchema>(_list190.size);
                 for (int _i191 = 0; _i191 < _list190.size; ++_i191)
                 {
-<<<<<<< HEAD
-                  FieldSchema _elem184; // required
-                  _elem184 = new FieldSchema();
-                  _elem184.read(iprot);
-                  struct.partitionKeys.add(_elem184);
-=======
-                  FieldSchema _elem192; // optional
+                  FieldSchema _elem192; // required
                   _elem192 = new FieldSchema();
                   _elem192.read(iprot);
                   struct.partitionKeys.add(_elem192);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -1715,17 +1708,10 @@ public class Table implements org.apache.thrift.TBase<Table, Table._Fields>, jav
           struct.partitionKeys = new ArrayList<FieldSchema>(_list201.size);
           for (int _i202 = 0; _i202 < _list201.size; ++_i202)
           {
-<<<<<<< HEAD
-            FieldSchema _elem195; // required
-            _elem195 = new FieldSchema();
-            _elem195.read(iprot);
-            struct.partitionKeys.add(_elem195);
-=======
-            FieldSchema _elem203; // optional
+            FieldSchema _elem203; // required
             _elem203 = new FieldSchema();
             _elem203.read(iprot);
             struct.partitionKeys.add(_elem203);
->>>>>>> upstream/branch-0.13
           }
         }
         struct.setPartitionKeysIsSet(true);

@@ -8866,11 +8866,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       tsDesc.setStatsAggPrefix(tab.getDbName()+"."+k);
 
       // set up WritenEntity for replication
-<<<<<<< HEAD
-      outputs.add(new WriteEntity(tab, WriteEntity.WriteType.DDL_NO_LOCK));
-=======
       outputs.add(new WriteEntity(tab, WriteEntity.WriteType.DDL_SHARED));
->>>>>>> upstream/branch-0.13
 
       // add WriteEntity for each matching partition
       if (tab.isPartitioned()) {

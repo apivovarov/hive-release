@@ -540,15 +540,9 @@ public class TableStatsRequest implements org.apache.thrift.TBase<TableStatsRequ
                 struct.colNames = new ArrayList<String>(_list306.size);
                 for (int _i307 = 0; _i307 < _list306.size; ++_i307)
                 {
-<<<<<<< HEAD
-                  String _elem300; // required
-                  _elem300 = iprot.readString();
-                  struct.colNames.add(_elem300);
-=======
-                  String _elem308; // optional
+                  String _elem308; // required
                   _elem308 = iprot.readString();
                   struct.colNames.add(_elem308);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -632,15 +626,9 @@ public class TableStatsRequest implements org.apache.thrift.TBase<TableStatsRequ
         struct.colNames = new ArrayList<String>(_list311.size);
         for (int _i312 = 0; _i312 < _list311.size; ++_i312)
         {
-<<<<<<< HEAD
-          String _elem305; // required
-          _elem305 = iprot.readString();
-          struct.colNames.add(_elem305);
-=======
-          String _elem313; // optional
+          String _elem313; // required
           _elem313 = iprot.readString();
           struct.colNames.add(_elem313);
->>>>>>> upstream/branch-0.13
         }
       }
       struct.setColNamesIsSet(true);

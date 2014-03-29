@@ -354,15 +354,9 @@ public class OpenTxnsResponse implements org.apache.thrift.TBase<OpenTxnsRespons
                 struct.txn_ids = new ArrayList<Long>(_list394.size);
                 for (int _i395 = 0; _i395 < _list394.size; ++_i395)
                 {
-<<<<<<< HEAD
-                  long _elem388; // required
-                  _elem388 = iprot.readI64();
-                  struct.txn_ids.add(_elem388);
-=======
-                  long _elem396; // optional
+                  long _elem396; // required
                   _elem396 = iprot.readI64();
                   struct.txn_ids.add(_elem396);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -430,15 +424,9 @@ public class OpenTxnsResponse implements org.apache.thrift.TBase<OpenTxnsRespons
         struct.txn_ids = new ArrayList<Long>(_list399.size);
         for (int _i400 = 0; _i400 < _list399.size; ++_i400)
         {
-<<<<<<< HEAD
-          long _elem393; // required
-          _elem393 = iprot.readI64();
-          struct.txn_ids.add(_elem393);
-=======
-          long _elem401; // optional
+          long _elem401; // required
           _elem401 = iprot.readI64();
           struct.txn_ids.add(_elem401);
->>>>>>> upstream/branch-0.13
         }
       }
       struct.setTxn_idsIsSet(true);

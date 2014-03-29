@@ -1304,17 +1304,10 @@ public class StorageDescriptor implements org.apache.thrift.TBase<StorageDescrip
                 struct.cols = new ArrayList<FieldSchema>(_list156.size);
                 for (int _i157 = 0; _i157 < _list156.size; ++_i157)
                 {
-<<<<<<< HEAD
-                  FieldSchema _elem150; // required
-                  _elem150 = new FieldSchema();
-                  _elem150.read(iprot);
-                  struct.cols.add(_elem150);
-=======
-                  FieldSchema _elem158; // optional
+                  FieldSchema _elem158; // required
                   _elem158 = new FieldSchema();
                   _elem158.read(iprot);
                   struct.cols.add(_elem158);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -1379,15 +1372,9 @@ public class StorageDescriptor implements org.apache.thrift.TBase<StorageDescrip
                 struct.bucketCols = new ArrayList<String>(_list159.size);
                 for (int _i160 = 0; _i160 < _list159.size; ++_i160)
                 {
-<<<<<<< HEAD
-                  String _elem153; // required
-                  _elem153 = iprot.readString();
-                  struct.bucketCols.add(_elem153);
-=======
-                  String _elem161; // optional
+                  String _elem161; // required
                   _elem161 = iprot.readString();
                   struct.bucketCols.add(_elem161);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -1403,17 +1390,10 @@ public class StorageDescriptor implements org.apache.thrift.TBase<StorageDescrip
                 struct.sortCols = new ArrayList<Order>(_list162.size);
                 for (int _i163 = 0; _i163 < _list162.size; ++_i163)
                 {
-<<<<<<< HEAD
-                  Order _elem156; // required
-                  _elem156 = new Order();
-                  _elem156.read(iprot);
-                  struct.sortCols.add(_elem156);
-=======
-                  Order _elem164; // optional
+                  Order _elem164; // required
                   _elem164 = new Order();
                   _elem164.read(iprot);
                   struct.sortCols.add(_elem164);
->>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -1687,17 +1667,10 @@ public class StorageDescriptor implements org.apache.thrift.TBase<StorageDescrip
           struct.cols = new ArrayList<FieldSchema>(_list177.size);
           for (int _i178 = 0; _i178 < _list177.size; ++_i178)
           {
-<<<<<<< HEAD
-            FieldSchema _elem171; // required
-            _elem171 = new FieldSchema();
-            _elem171.read(iprot);
-            struct.cols.add(_elem171);
-=======
-            FieldSchema _elem179; // optional
+            FieldSchema _elem179; // required
             _elem179 = new FieldSchema();
             _elem179.read(iprot);
             struct.cols.add(_elem179);
->>>>>>> upstream/branch-0.13
           }
         }
         struct.setColsIsSet(true);
@@ -1733,15 +1706,9 @@ public class StorageDescriptor implements org.apache.thrift.TBase<StorageDescrip
           struct.bucketCols = new ArrayList<String>(_list180.size);
           for (int _i181 = 0; _i181 < _list180.size; ++_i181)
           {
-<<<<<<< HEAD
-            String _elem174; // required
-            _elem174 = iprot.readString();
-            struct.bucketCols.add(_elem174);
-=======
-            String _elem182; // optional
+            String _elem182; // required
             _elem182 = iprot.readString();
             struct.bucketCols.add(_elem182);
->>>>>>> upstream/branch-0.13
           }
         }
         struct.setBucketColsIsSet(true);
@@ -1752,17 +1719,10 @@ public class StorageDescriptor implements org.apache.thrift.TBase<StorageDescrip
           struct.sortCols = new ArrayList<Order>(_list183.size);
           for (int _i184 = 0; _i184 < _list183.size; ++_i184)
           {
-<<<<<<< HEAD
-            Order _elem177; // required
-            _elem177 = new Order();
-            _elem177.read(iprot);
-            struct.sortCols.add(_elem177);
-=======
-            Order _elem185; // optional
+            Order _elem185; // required
             _elem185 = new Order();
             _elem185.read(iprot);
             struct.sortCols.add(_elem185);
->>>>>>> upstream/branch-0.13
           }
         }
         struct.setSortColsIsSet(true);
