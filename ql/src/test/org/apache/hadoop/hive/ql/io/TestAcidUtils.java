@@ -31,6 +31,10 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+<<<<<<< HEAD
+=======
+import static org.junit.Assert.fail;
+>>>>>>> upstream/branch-0.13
 
 public class TestAcidUtils {
 
@@ -212,7 +216,11 @@ public class TestAcidUtils {
     assertEquals("mock:/tbl/part1/base_5", obsoletes.get(0).getPath().toString());
     try {
       AcidUtils.getAcidState(part, conf, new ValidTxnListImpl("150:2"));
+<<<<<<< HEAD
       assertTrue(false);
+=======
+      fail("should not reach here.");
+>>>>>>> upstream/branch-0.13
     } catch (IllegalArgumentException iae) {
       //expected
     }

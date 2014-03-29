@@ -879,10 +879,10 @@ POSTHOOK: Lineage: tmp_src_part PARTITION(d=5).c SIMPLE [(tmp_src)tmp_src.FieldS
 STAGE DEPENDENCIES:
   Stage-2 is a root stage
   Stage-3 depends on stages: Stage-2
-  Stage-0 depends on stages: Stage-3
-  Stage-4 depends on stages: Stage-0
   Stage-1 depends on stages: Stage-3
-  Stage-5 depends on stages: Stage-1
+  Stage-4 depends on stages: Stage-1
+  Stage-0 depends on stages: Stage-3
+  Stage-5 depends on stages: Stage-0
 
 STAGE PLANS:
   Stage: Stage-2

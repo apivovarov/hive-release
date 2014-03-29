@@ -19,7 +19,6 @@
 package org.apache.hadoop.hive.ql.exec;
 
 import java.io.Serializable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -144,11 +143,16 @@ public class StatsNoJobTask extends Task<StatsNoJobWork> implements Serializable
         long fileSize = 0;
         long numFiles = 0;
         FileSystem fs = dir.getFileSystem(conf);
+<<<<<<< HEAD
         Iterator<FileStatus> itr = ShimLoader.getHadoopShims().listLocatedStatus(fs, dir,
              hiddenFileFilter).iterator();
+=======
+        List<FileStatus> fileList = 
+          ShimLoader.getHadoopShims().listLocatedStatus(fs, dir,
+                                                        hiddenFileFilter);
+>>>>>>> upstream/branch-0.13
         boolean statsAvailable = false;
-        while (itr.hasNext()) {
-          FileStatus file = itr.next();
+        for(FileStatus file: fileList) {
           if (!file.isDir()) {
             InputFormat<?, ?> inputFormat = (InputFormat<?, ?>) ReflectionUtils.newInstance(
                 partn.getInputFormatClass(), jc);
@@ -234,11 +238,16 @@ public class StatsNoJobTask extends Task<StatsNoJobWork> implements Serializable
           long fileSize = 0;
           long numFiles = 0;
           FileSystem fs = dir.getFileSystem(conf);
+<<<<<<< HEAD
           Iterator<FileStatus> itr = ShimLoader.getHadoopShims().listLocatedStatus(fs, dir,
               hiddenFileFilter).iterator();
+=======
+          List<FileStatus> fileList = 
+            ShimLoader.getHadoopShims().listLocatedStatus(fs, dir,
+                                                          hiddenFileFilter);
+>>>>>>> upstream/branch-0.13
           boolean statsAvailable = false;
-          while (itr.hasNext()) {
-            FileStatus file = itr.next();
+          for(FileStatus file: fileList) {
             if (!file.isDir()) {
               InputFormat<?, ?> inputFormat = (InputFormat<?, ?>) ReflectionUtils.newInstance(
                   table.getInputFormatClass(), jc);

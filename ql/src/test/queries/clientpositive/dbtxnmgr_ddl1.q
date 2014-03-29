@@ -42,6 +42,7 @@ alter table T4 add partition (ds='tomorrow');
 create table T5 (a string, b int);
 alter table T5 set fileformat orc;
 
+<<<<<<< HEAD
 --create table T6 (a string, b int) partitioned by (ds string);
 --alter table T6 add partition (ds='tomorrow');
 --alter table T6 partition (ds='tomorrow') set fileformat orc;
@@ -53,6 +54,11 @@ alter table T7 set location 'file:///tmp';
 --alter table T8 add partition (ds='tomorrow');
 --alter table T8 partition (ds='tomorrow') set location 'file:///tmp';
 
+=======
+create table T7 (a string, b int);
+alter table T7 set location 'file:///tmp';
+
+>>>>>>> upstream/branch-0.13
 alter table T2 touch;
 alter table T4 touch partition (ds='tomorrow');
 

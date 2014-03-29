@@ -58,6 +58,8 @@ import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.SerDeStats;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.shims.HadoopShims;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.LongWritable;
@@ -977,8 +979,14 @@ public class OrcInputFormat  implements InputFormat<NullWritable, OrcStruct>,
   getRecordReader(InputSplit inputSplit, JobConf conf,
                   Reporter reporter) throws IOException {
     boolean vectorMode = Utilities.isVectorMode(conf);
+<<<<<<< HEAD
     // if HiveCombineInputFormat gives us FileSplits instead of OrcSplits,
     // assume it is an old file.
+=======
+
+    // if HiveCombineInputFormat gives us FileSplits instead of OrcSplits,
+    // we know it is not ACID.
+>>>>>>> upstream/branch-0.13
     if (inputSplit.getClass() == FileSplit.class) {
       if (vectorMode) {
         return createVectorizedReader(inputSplit, conf, reporter);

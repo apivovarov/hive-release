@@ -308,6 +308,14 @@ public interface HadoopShims {
   public void loginUserFromKeytab(String principal, String keytabFile) throws IOException;
 
   /**
+   *  Perform kerberos login using the given principal and keytab,
+   *  and return the UGI object
+   * @throws IOException
+   */
+  public UserGroupInformation loginUserFromKeytabAndReturnUGI(String principal,
+      String keytabFile) throws IOException;
+
+  /**
    * Perform kerberos re-login using the given principal and keytab, to renew
    * the credentials
    * @throws IOException
@@ -450,7 +458,7 @@ public interface HadoopShims {
    * @throws IOException
    */
   List<FileStatus> listLocatedStatus(FileSystem fs, Path path,
-      PathFilter filter) throws IOException;
+                                     PathFilter filter) throws IOException;
 
   /**
    * For file status returned by listLocatedStatus, convert them into a list

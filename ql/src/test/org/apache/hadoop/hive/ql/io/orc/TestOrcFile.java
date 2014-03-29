@@ -41,6 +41,8 @@ import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.sarg.SearchArgument;
@@ -504,7 +506,12 @@ public class TestOrcFile {
 
     writer.close();
 
+<<<<<<< HEAD
     Reader reader = OrcFile.createReader(testFilePath, OrcFile.readerOptions(conf).filesystem(fs));
+=======
+    Reader reader = OrcFile.createReader(testFilePath,
+        OrcFile.readerOptions(conf).filesystem(fs));
+>>>>>>> upstream/branch-0.13
     RecordReader rows = reader.rows(null);
     int idx = 0;
     while (rows.hasNext()) {

@@ -66,10 +66,33 @@ public class TxnHandler {
   static final private Log LOG = LogFactory.getLog(TxnHandler.class.getName());
 
   static private BoneCP connPool;
+  private static Boolean lockLock = new Boolean("true"); // Random object to lock on for the lock
+  // method
+
+  /**
+   * Number of consecutive deadlocks we have seen
+   */
+  protected int deadlockCnt;
+  protected HiveConf conf;
 
   // Transaction timeout, in milliseconds.
   private long timeout;
-  protected HiveConf conf;
+
+  // DEADLOCK DETECTION AND HANDLING
+  // A note to developers of this class.  ALWAYS access HIVE_LOCKS before TXNS to avoid deadlock
+  // between simultaneous accesses.  ALWAYS access TXN_COMPONENTS before HIVE_LOCKS .
+  //
+  // Private methods should never catch SQLException and then throw MetaException.  The public
+  // methods depend on SQLException coming back so they can detect and handle deadlocks.  Private
+  // methods should only throw MetaException when they explicitly know there's a logic error and
+  // they want to throw past the public methods.
+  //
+  // All public methods that write to the database have to check for deadlocks when a SQLException
+  // comes back and handle it if they see one.  This has to be done with the connection pooling
+  // in mind.  To do this they should call detectDeadlock AFTER rolling back the db transaction,
+  // and then in an outer loop they should catch DeadlockException.  In the catch for this they
+  // should increment the deadlock counter and recall themselves.  See commitTxn for an example.
+  // the connection has been closed and returned to the pool.
 
   // DEADLOCK DETECTION AND HANDLING
   // A note to developers of this class.  ALWAYS access HIVE_LOCKS before TXNS to avoid deadlock
@@ -102,6 +125,7 @@ public class TxnHandler {
     }
 
     timeout = HiveConf.getIntVar(conf, HiveConf.ConfVars.HIVE_TXN_TIMEOUT) * 1000;
+    deadlockCnt = 0;
     buildJumpTable();
   }
 
@@ -165,7 +189,7 @@ public class TxnHandler {
     }
   }
 
-  public GetOpenTxnsResponse getOpenTxns() throws MetaException{
+  public GetOpenTxnsResponse getOpenTxns() throws MetaException {
     // We need to figure out the current transaction number and the list of
     // open transactions.  To avoid needing a transaction on the underlying
     // database we'll look at the current transaction number first.  If it
@@ -267,7 +291,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "openTxns");
+=======
+        detectDeadlock(e, "openTxns");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to select from transaction database "
           + StringUtils.stringifyException(e));
       } finally {
@@ -275,6 +303,11 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       return openTxns(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
@@ -308,7 +341,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "abortTxn");
+=======
+        detectDeadlock(e, "abortTxn");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to update transaction database "
           + StringUtils.stringifyException(e));
       } finally {
@@ -316,6 +353,11 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       abortTxn(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
@@ -363,7 +405,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "commitTxn");
+=======
+        detectDeadlock(e, "commitTxn");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to update transaction database "
           + StringUtils.stringifyException(e));
       } finally {
@@ -371,12 +417,20 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       commitTxn(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
   public LockResponse lock(LockRequest rqst)
       throws NoSuchTxnException, TxnAbortedException, MetaException {
+<<<<<<< HEAD
     int deadlockCnt = 0;
+=======
+>>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -387,7 +441,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "lock");
+=======
+        detectDeadlock(e, "lock");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to update transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -395,12 +453,20 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       return lock(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
   public LockResponse lockNoWait(LockRequest rqst)
       throws NoSuchTxnException,  TxnAbortedException, MetaException {
+<<<<<<< HEAD
     int deadlockCnt = 0;
+=======
+>>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -411,7 +477,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "lockNoWait");
+=======
+        detectDeadlock(e, "lockNoWait");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to update transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -419,12 +489,20 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       return lockNoWait(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
   public LockResponse checkLock(CheckLockRequest rqst)
       throws NoSuchTxnException, NoSuchLockException, TxnAbortedException, MetaException {
+<<<<<<< HEAD
     int deadlockCnt = 0;
+=======
+>>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -445,7 +523,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "checkLock");
+=======
+        detectDeadlock(e, "checkLock");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to update transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -453,12 +535,21 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       return checkLock(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
+
   }
 
   public void unlock(UnlockRequest rqst)
       throws NoSuchLockException, TxnOpenException, MetaException {
+<<<<<<< HEAD
     int deadlockCnt = 0;
+=======
+>>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -497,7 +588,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "unlock");
+=======
+        detectDeadlock(e, "unlock");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to update transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -505,6 +600,11 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       unlock(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
@@ -560,7 +660,10 @@ public class TxnHandler {
 
   public void heartbeat(HeartbeatRequest ids)
       throws NoSuchTxnException,  NoSuchLockException, TxnAbortedException, MetaException {
+<<<<<<< HEAD
     int deadlockCnt = 0;
+=======
+>>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -572,7 +675,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "heartbeat");
+=======
+        detectDeadlock(e, "heartbeat");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to select from transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -580,12 +687,20 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       heartbeat(ids);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
   public void compact(CompactionRequest rqst) throws MetaException {
     // Put a compaction request in the queue.
+<<<<<<< HEAD
     int deadlockCnt = 0;
+=======
+>>>>>>> upstream/branch-0.13
     try {
       Connection dbConn = getDbConn();
       try {
@@ -655,7 +770,11 @@ public class TxnHandler {
           dbConn.rollback();
         } catch (SQLException e1) {
         }
+<<<<<<< HEAD
         detectDeadlock(e, deadlockCnt++, "compact");
+=======
+        detectDeadlock(e, "compact");
+>>>>>>> upstream/branch-0.13
         throw new MetaException("Unable to select from transaction database " +
             StringUtils.stringifyException(e));
       } finally {
@@ -663,6 +782,11 @@ public class TxnHandler {
       }
     } catch (DeadlockException e) {
       compact(rqst);
+<<<<<<< HEAD
+=======
+    } finally {
+      deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
     }
   }
 
@@ -770,21 +894,36 @@ public class TxnHandler {
    * this, so we have to inspect the error messages and catch the telltale signs for each
    * different database.
    * @param e exception that was thrown.
+<<<<<<< HEAD
    * @param deadlockCnt number of times we have seen a deadlock
+=======
+>>>>>>> upstream/branch-0.13
    * @param caller name of the method calling this
    * @throws org.apache.hadoop.hive.metastore.txn.TxnHandler.DeadlockException when deadlock
    * detected and retry count has not been exceeded.
    */
+<<<<<<< HEAD
   protected void detectDeadlock(SQLException e, int deadlockCnt,
                                 String caller) throws DeadlockException {
     final String mysqlDeadlock =
         "Deadlock found when trying to get lock; try restarting transaction";
     if (e.getMessage().contains(mysqlDeadlock)) {
       if (deadlockCnt < ALLOWED_REPEATED_DEADLOCKS) {
+=======
+  protected void detectDeadlock(SQLException e, String caller) throws DeadlockException {
+    final String mysqlDeadlock =
+        "Deadlock found when trying to get lock; try restarting transaction";
+    if (e.getMessage().contains(mysqlDeadlock) || e instanceof SQLTransactionRollbackException) {
+      if (deadlockCnt++ < ALLOWED_REPEATED_DEADLOCKS) {
+>>>>>>> upstream/branch-0.13
         LOG.warn("Deadlock detected in " + caller + ", trying again.");
         throw new DeadlockException();
       } else {
         LOG.error("Too many repeated deadlocks in " + caller + ", giving up.");
+<<<<<<< HEAD
+=======
+        deadlockCnt = 0;
+>>>>>>> upstream/branch-0.13
       }
     }
   }
@@ -914,6 +1053,7 @@ public class TxnHandler {
    */
   private LockResponse lock(Connection dbConn, LockRequest rqst, boolean wait)
       throws NoSuchTxnException,  TxnAbortedException, MetaException, SQLException {
+<<<<<<< HEAD
     // Clean up timed out locks before we attempt to acquire any.
     timeOutLocks(dbConn);
 
@@ -948,18 +1088,93 @@ public class TxnHandler {
         // For each component in this lock request,
         // add an entry to the txn_components table
         // This must be done before HIVE_LOCKS is accessed
+=======
+    // We want to minimize the number of concurrent lock requests being issued.  If we do not we
+    // get a large number of deadlocks in the database, since this method has to both clean
+    // timedout locks and insert new locks.  This synchronization barrier will not eliminiate all
+    // deadlocks, and the code is still resilient in the face of a database deadlock.  But it
+    // will reduce the number.  This could have been done via a lock table command in the
+    // underlying database, but was not for two reasons.  One, different databases have different
+    // syntax for lock table, making it harder to use.  Two, that would lock the HIVE_LOCKS table
+    // and prevent other operations (such as committing transactions, showing locks,
+    // etc.) that should not interfere with this one.
+    synchronized (lockLock) {
+      // Clean up timed out locks before we attempt to acquire any.
+      timeOutLocks(dbConn);
+
+      try {
+        Statement stmt = dbConn.createStatement();
+
+        // Get the next lock id.  We have to do this as select for update so no
+        // one else reads it and updates it under us.
+        LOG.debug("Going to execute query <select nl_next from NEXT_LOCK_ID " +
+            "for update>");
+        ResultSet rs = stmt.executeQuery("select nl_next from NEXT_LOCK_ID " +
+            "for update");
+        if (!rs.next()) {
+          LOG.debug("Going to rollback");
+          dbConn.rollback();
+          throw new MetaException("Transaction tables not properly " +
+              "initialized, no record found in next_lock_id");
+        }
+        long extLockId = rs.getLong(1);
+        String s = "update NEXT_LOCK_ID set nl_next = " + (extLockId + 1);
+        LOG.debug("Going to execute update <" + s + ">");
+        stmt.executeUpdate(s);
+        LOG.debug("Going to commit.");
+        dbConn.commit();
+
+        long txnid = rqst.getTxnid();
+        if (txnid > 0) {
+          // Heartbeat the transaction so we know it is valid and we avoid it timing out while we
+          // are locking.
+          heartbeatTxn(dbConn, txnid);
+
+          // For each component in this lock request,
+          // add an entry to the txn_components table
+          // This must be done before HIVE_LOCKS is accessed
+          for (LockComponent lc : rqst.getComponent()) {
+            String dbName = lc.getDbname();
+            String tblName = lc.getTablename();
+            String partName = lc.getPartitionname();
+            s = "insert into TXN_COMPONENTS " +
+              "(tc_txnid, tc_database, tc_table, tc_partition) " +
+              "values (" + txnid + ", '" + dbName + "', " +
+                (tblName == null ? "null" : "'" + tblName + "'") + ", " +
+                (partName == null ? "null" : "'" +  partName + "'") + ")";
+            LOG.debug("Going to execute update <" + s + ">");
+            stmt.executeUpdate(s);
+          }
+        }
+
+        long intLockId = 0;
+>>>>>>> upstream/branch-0.13
         for (LockComponent lc : rqst.getComponent()) {
+          intLockId++;
           String dbName = lc.getDbname();
           String tblName = lc.getTablename();
           String partName = lc.getPartitionname();
-          s = "insert into TXN_COMPONENTS " +
-            "(tc_txnid, tc_database, tc_table, tc_partition) " +
-            "values (" + txnid + ", '" + dbName + "', " +
-              (tblName == null ? "null" : "'" + tblName + "'") + ", " +
-              (partName == null ? "null" : "'" +  partName + "'") + ")";
+          LockType lockType = lc.getType();
+          char lockChar = 'z';
+          switch (lockType) {
+            case EXCLUSIVE: lockChar = LOCK_EXCLUSIVE; break;
+            case SHARED_READ: lockChar = LOCK_SHARED; break;
+            case SHARED_WRITE: lockChar = LOCK_SEMI_SHARED; break;
+          }
+          long now = System.currentTimeMillis();
+          s = "insert into HIVE_LOCKS " +
+            " (hl_lock_ext_id, hl_lock_int_id, hl_txnid, hl_db, hl_table, " +
+              "hl_partition, hl_lock_state, hl_lock_type, hl_last_heartbeat, hl_user, hl_host)" +
+              " values (" + extLockId + ", " +
+              + intLockId + "," + (txnid >= 0 ? txnid : "null") + ", '" +
+              dbName + "', " + (tblName == null ? "null" : "'" + tblName + "'" )
+              + ", " + (partName == null ? "null" : "'" + partName + "'") +
+              ", '" + LOCK_WAITING + "', " +  "'" + lockChar + "', " + now + ", '" +
+              rqst.getUser() + "', '" + rqst.getHostname() + "')";
           LOG.debug("Going to execute update <" + s + ">");
           stmt.executeUpdate(s);
         }
+<<<<<<< HEAD
       }
 
       long intLockId = 0;
@@ -974,31 +1189,27 @@ public class TxnHandler {
           case EXCLUSIVE: lockChar = LOCK_EXCLUSIVE; break;
           case SHARED_READ: lockChar = LOCK_SHARED; break;
           case SHARED_WRITE: lockChar = LOCK_SEMI_SHARED; break;
+=======
+        LockResponse rsp = checkLock(dbConn, extLockId, txnid, wait);
+        if (!wait && rsp.getState() != LockState.ACQUIRED) {
+          LOG.debug("Lock not acquired, going to rollback");
+          dbConn.rollback();
+          rsp = new LockResponse();
+          rsp.setState(LockState.NOT_ACQUIRED);
+>>>>>>> upstream/branch-0.13
         }
-        long now = System.currentTimeMillis();
-        s = "insert into HIVE_LOCKS " +
-          " (hl_lock_ext_id, hl_lock_int_id, hl_txnid, hl_db, hl_table, " +
-            "hl_partition, hl_lock_state, hl_lock_type, hl_last_heartbeat, hl_user, hl_host)" +
-            " values (" + extLockId + ", " +
-            + intLockId + "," + (txnid >= 0 ? txnid : "null") + ", '" +
-            dbName + "', " + (tblName == null ? "null" : "'" + tblName + "'" )
-            + ", " + (partName == null ? "null" : "'" + partName + "'") +
-            ", '" + LOCK_WAITING + "', " +  "'" + lockChar + "', " + now + ", '" +
-            rqst.getUser() + "', '" + rqst.getHostname() + "')";
-        LOG.debug("Going to execute update <" + s + ">");
-        stmt.executeUpdate(s);
+        return rsp;
+      } catch (NoSuchLockException e) {
+        // This should never happen, as we just added the lock id
+        throw new MetaException("Couldn't find a lock we just created!");
       }
-      LockResponse rsp = checkLock(dbConn, extLockId, txnid, wait);
-      if (!wait && rsp.getState() != LockState.ACQUIRED) {
-        LOG.debug("Lock not acquired, going to rollback");
-        dbConn.rollback();
-        rsp = new LockResponse();
-        rsp.setState(LockState.NOT_ACQUIRED);
-      }
+<<<<<<< HEAD
       return rsp;
     } catch (NoSuchLockException e) {
       // This should never happen, as we just added the lock id
       throw new MetaException("Couldn't find a lock we just created!");
+=======
+>>>>>>> upstream/branch-0.13
     }
   }
 
@@ -1289,11 +1500,19 @@ public class TxnHandler {
     while (rs.next()) {
       ourLockInfo.add(new LockInfo(rs));
       sawAtLeastOne = true;
+<<<<<<< HEAD
     }
     if (!sawAtLeastOne) {
       throw new MetaException("This should never happen!  We already " +
           "checked the lock existed but now we can't find it!");
     }
+=======
+    }
+    if (!sawAtLeastOne) {
+      throw new MetaException("This should never happen!  We already " +
+          "checked the lock existed but now we can't find it!");
+    }
+>>>>>>> upstream/branch-0.13
     return ourLockInfo;
   }
 

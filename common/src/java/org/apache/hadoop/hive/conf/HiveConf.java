@@ -569,6 +569,7 @@ public class HiveConf extends Configuration {
     HIVELIMITOPTENABLE("hive.limit.optimize.enable", false),
     HIVELIMITOPTMAXFETCH("hive.limit.optimize.fetch.max", 50000),
     HIVELIMITPUSHDOWNMEMORYUSAGE("hive.limit.pushdown.memory.usage", -1f),
+    HIVELIMITTABLESCANPARTITION("hive.limit.query.max.table.partition", -1),
 
     HIVEHASHTABLETHRESHOLD("hive.hashtable.initialCapacity", 100000),
     HIVEHASHTABLELOADFACTOR("hive.hashtable.loadfactor", (float) 0.75),
@@ -897,6 +898,8 @@ public class HiveConf extends Configuration {
     HIVE_SERVER2_ALLOW_USER_SUBSTITUTION("hive.server2.allow.user.substitution", true),
     HIVE_SERVER2_KERBEROS_KEYTAB("hive.server2.authentication.kerberos.keytab", ""),
     HIVE_SERVER2_KERBEROS_PRINCIPAL("hive.server2.authentication.kerberos.principal", ""),
+    HIVE_SERVER2_SPNEGO_KEYTAB("hive.server2.authentication.spnego.keytab", ""),
+    HIVE_SERVER2_SPNEGO_PRINCIPAL("hive.server2.authentication.spnego.principal", ""),
     HIVE_SERVER2_PLAIN_LDAP_URL("hive.server2.authentication.ldap.url", null),
     HIVE_SERVER2_PLAIN_LDAP_BASEDN("hive.server2.authentication.ldap.baseDN", null),
     HIVE_SERVER2_PLAIN_LDAP_DOMAIN("hive.server2.authentication.ldap.Domain", null),

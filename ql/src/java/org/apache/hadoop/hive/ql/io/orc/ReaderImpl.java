@@ -324,6 +324,10 @@ final class ReaderImpl implements Reader {
     }
 
     //read last bytes into buffer to get PostScript
+<<<<<<< HEAD
+=======
+    long size = Math.min(maxFileLength, fs.getFileStatus(path).getLen());
+>>>>>>> upstream/branch-0.13
     int readSize = (int) Math.min(size, DIRECTORY_SIZE_GUESS);
     file.seek(size - readSize);
     ByteBuffer buffer = ByteBuffer.allocate(readSize);

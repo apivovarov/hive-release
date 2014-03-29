@@ -342,14 +342,21 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
           case 1: // COMPACTS
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list410 = iprot.readListBegin();
-                struct.compacts = new ArrayList<ShowCompactResponseElement>(_list410.size);
-                for (int _i411 = 0; _i411 < _list410.size; ++_i411)
+                org.apache.thrift.protocol.TList _list418 = iprot.readListBegin();
+                struct.compacts = new ArrayList<ShowCompactResponseElement>(_list418.size);
+                for (int _i419 = 0; _i419 < _list418.size; ++_i419)
                 {
+<<<<<<< HEAD
                   ShowCompactResponseElement _elem412; // required
                   _elem412 = new ShowCompactResponseElement();
                   _elem412.read(iprot);
                   struct.compacts.add(_elem412);
+=======
+                  ShowCompactResponseElement _elem420; // optional
+                  _elem420 = new ShowCompactResponseElement();
+                  _elem420.read(iprot);
+                  struct.compacts.add(_elem420);
+>>>>>>> upstream/branch-0.13
                 }
                 iprot.readListEnd();
               }
@@ -372,6 +379,7 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
 
       oprot.writeStructBegin(STRUCT_DESC);
       if (struct.compacts != null) {
+<<<<<<< HEAD
         if (struct.isSetCompacts()) {
           oprot.writeFieldBegin(COMPACTS_FIELD_DESC);
           {
@@ -381,6 +389,14 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
               _iter413.write(oprot);
             }
             oprot.writeListEnd();
+=======
+        oprot.writeFieldBegin(COMPACTS_FIELD_DESC);
+        {
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.compacts.size()));
+          for (ShowCompactResponseElement _iter421 : struct.compacts)
+          {
+            _iter421.write(oprot);
+>>>>>>> upstream/branch-0.13
           }
           oprot.writeFieldEnd();
         }
@@ -402,6 +418,7 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
     @Override
     public void write(org.apache.thrift.protocol.TProtocol prot, ShowCompactResponse struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
+<<<<<<< HEAD
       BitSet optionals = new BitSet();
       if (struct.isSetCompacts()) {
         optionals.set(0);
@@ -414,6 +431,13 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
           {
             _iter414.write(oprot);
           }
+=======
+      {
+        oprot.writeI32(struct.compacts.size());
+        for (ShowCompactResponseElement _iter422 : struct.compacts)
+        {
+          _iter422.write(oprot);
+>>>>>>> upstream/branch-0.13
         }
       }
     }
@@ -421,6 +445,7 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ShowCompactResponse struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
+<<<<<<< HEAD
       BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
@@ -433,6 +458,17 @@ public class ShowCompactResponse implements org.apache.thrift.TBase<ShowCompactR
             _elem417.read(iprot);
             struct.compacts.add(_elem417);
           }
+=======
+      {
+        org.apache.thrift.protocol.TList _list423 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+        struct.compacts = new ArrayList<ShowCompactResponseElement>(_list423.size);
+        for (int _i424 = 0; _i424 < _list423.size; ++_i424)
+        {
+          ShowCompactResponseElement _elem425; // optional
+          _elem425 = new ShowCompactResponseElement();
+          _elem425.read(iprot);
+          struct.compacts.add(_elem425);
+>>>>>>> upstream/branch-0.13
         }
         struct.setCompactsIsSet(true);
       }
