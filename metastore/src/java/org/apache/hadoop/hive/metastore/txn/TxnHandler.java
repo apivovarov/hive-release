@@ -1218,6 +1218,7 @@ public class TxnHandler {
 
       // Look at everything in front of this lock to see if it should block
       // it or not.
+      boolean acquired = false;
       for (int i = index - 1; i >= 0; i--) {
         // Check if we're operating on the same database, if not, move on
         if (!locks[index].db.equals(locks[i].db)) {
@@ -1246,6 +1247,7 @@ public class TxnHandler {
             (locks[i].state)) {
           case ACQUIRE:
             acquire(dbConn, stmt, extLockId, info.intLockId);
+            acquired = true;
             break;
           case WAIT:
             wait(dbConn, save);
@@ -1260,11 +1262,13 @@ public class TxnHandler {
           case KEEP_LOOKING:
             continue;
         }
+        if (acquired) break; // We've acquired this lock component,
+        // so get out of the loop and look at the next component.
       }
 
-      // If we've arrived here it means there's nothing in the way of the
-      // lock, so acquire the lock.
-      acquire(dbConn, stmt, extLockId, info.intLockId);
+      // If we've arrived here and we have not already acquired, it means there's nothing in the
+      // way of the lock, so acquire the lock.
+      if (!acquired) acquire(dbConn, stmt, extLockId, info.intLockId);
     }
 
     // We acquired all of the locks, so commit and return acquired.
@@ -1418,11 +1422,14 @@ public class TxnHandler {
     long now = System.currentTimeMillis();
     Statement stmt = dbConn.createStatement();
     // Abort any timed out locks from the table.
-    String s = "select txn_id from TXNS where txn_last_heartbeat < " + (now - timeout);
+    String s = "select txn_id from TXNS where txn_state = '" + TXN_OPEN +
+        "' and txn_last_heartbeat <  " + (now - timeout);
     LOG.debug("Going to execute query <" + s + ">");
     ResultSet rs = stmt.executeQuery(s);
     List<Long> deadTxns = new ArrayList<Long>();
-    while (rs.next()) deadTxns.add(rs.getLong(1));
+    // Limit the number of timed out transactions we do in one pass to keep from generating a
+    // huge delete statement
+    for (int i = 0; i < 20 && rs.next(); i++) deadTxns.add(rs.getLong(1));
     // We don't care whether all of the transactions get deleted or not,
     // if some didn't it most likely means someone else deleted them in the interum
     if (deadTxns.size() > 0) abortTxns(dbConn, deadTxns);
