@@ -34,6 +34,7 @@ public interface JobSubmissionConstants {
   public static final int WATCHER_TIMEOUT_SECS = 10;
   public static final int KEEP_ALIVE_MSEC = 60 * 1000;
   public static final String TOKEN_FILE_ARG_PLACEHOLDER = "__WEBHCAT_TOKEN_FILE_LOCATION__";
+  public static final String TOKEN_FILE_ARG_PLACEHOLDER_TEZ = "__WEBHCAT_TOKEN_FILE_LOCATION_TEZ__";
   /**
    * constants needed for Pig job submission
    */
