@@ -18,12 +18,17 @@
 
 package org.apache.hadoop.hive.ql;
 
+import java.io.IOException;
+
+import javax.security.auth.login.LoginException;
+
+import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.util.Shell;
 
 public class WindowsPathUtil {
 
-  public static void convertPathsFromWindowsToHdfs(HiveConf conf){
+  public static void convertPathsFromWindowsToHdfs(HiveConf conf) throws LoginException, IOException {
     if(Shell.WINDOWS){
       String orgWarehouseDir = conf.getVar(HiveConf.ConfVars.METASTOREWAREHOUSE);
       conf.setVar(HiveConf.ConfVars.METASTOREWAREHOUSE, getHdfsUriString(orgWarehouseDir));
@@ -34,7 +39,7 @@ public class WindowsPathUtil {
       String orgTestDataDir = System.getProperty("test.src.data.dir");
       System.setProperty("test.src.data.dir", getHdfsUriString(orgTestDataDir));
 
-      String orgScratchDir = conf.getVar(HiveConf.ConfVars.SCRATCHDIR);
+      String orgScratchDir = FileUtils.getScratchDir(conf);
       conf.setVar(HiveConf.ConfVars.SCRATCHDIR, getHdfsUriString(orgScratchDir));
     }
   }

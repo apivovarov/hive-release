@@ -35,8 +35,8 @@ public class ServerUtils {
 
   public static void cleanUpScratchDir(HiveConf hiveConf) {
     if (hiveConf.getBoolVar(HiveConf.ConfVars.HIVE_START_CLEANUP_SCRATCHDIR)) {
-      String hiveScratchDir = hiveConf.get(HiveConf.ConfVars.SCRATCHDIR.varname);
       try {
+        String hiveScratchDir = FileUtils.getScratchDir(hiveConf);
         Path jobScratchDir = new Path(hiveScratchDir);
         LOG.info("Cleaning scratchDir : " + hiveScratchDir);
         FileSystem fileSystem = jobScratchDir.getFileSystem(hiveConf);
@@ -44,7 +44,7 @@ public class ServerUtils {
       }
       // Even if the cleanup throws some exception it will continue.
       catch (Throwable e) {
-        LOG.warn("Unable to delete scratchDir : " + hiveScratchDir, e);
+        LOG.warn("Unable to delete scratchDir.");
       }
     }
   }

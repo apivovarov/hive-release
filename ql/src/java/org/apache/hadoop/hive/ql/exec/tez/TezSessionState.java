@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.ql.ErrorMsg;
@@ -109,13 +110,15 @@ public class TezSessionState {
   /**
    * Creates a tez session. A session is tied to either a cli/hs2 session. You can
    * submit multiple DAGs against a session (as long as they are executed serially).
-   * @throws IOException
-   * @throws URISyntaxException
-   * @throws LoginException
-   * @throws TezException
+   * @throws IOException 
+   * @throws TezException 
+   * @throws URISyntaxException 
+   * @throws IllegalArgumentException 
+   * @throws LoginException 
    */
-  public void open(String sessionId, HiveConf conf)
-    throws IOException, LoginException, URISyntaxException, TezException {
+  public void open(String sessionId, HiveConf conf) throws
+  TezException, IOException, LoginException, IllegalArgumentException, URISyntaxException
+  {
 
     this.sessionId = sessionId;
     this.conf = conf;
@@ -223,12 +226,13 @@ public class TezSessionState {
   /**
    * createTezDir creates a temporary directory in the scratchDir folder to
    * be used with Tez. Assumes scratchDir exists.
+   * @throws Exception 
    */
   private Path createTezDir(String sessionId)
-    throws IOException {
+    throws LoginException, IOException {
 
     // tez needs its own scratch dir (per session)
-    Path tezDir = new Path(HiveConf.getVar(conf, HiveConf.ConfVars.SCRATCHDIR),
+    Path tezDir = new Path(FileUtils.getScratchDir(conf),
         TEZ_DIR);
     tezDir = new Path(tezDir, sessionId);
     FileSystem fs = tezDir.getFileSystem(conf);
