@@ -21,10 +21,8 @@ package org.apache.hadoop.hive.common;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
@@ -100,17 +98,8 @@ public final class JavaUtils {
     if (loader instanceof Closeable) {
       ((Closeable)loader).close();
     } else if (SUN_MISC_UTIL_RELEASE != null && loader instanceof URLClassLoader) {
-      PrintStream outputStream = System.out;
-      ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-      PrintStream newOutputStream = new PrintStream(byteArrayOutputStream);
       try {
-        // SUN_MISC_UTIL_RELEASE.invoke prints to System.out
-        // So we're changing the outputstream for that call,
-        // and setting it back to original System.out when we're done
-        System.setOut(newOutputStream);
         SUN_MISC_UTIL_RELEASE.invoke(null, loader);
-        String output = byteArrayOutputStream.toString("UTF8");
-        LOG.info(output);
       } catch (InvocationTargetException e) {
         if (e.getTargetException() instanceof IOException) {
           throw (IOException)e.getTargetException();
@@ -118,10 +107,6 @@ public final class JavaUtils {
         throw new IOException(e.getTargetException());
       } catch (Exception e) {
         throw new IOException(e);
-      }
-      finally {
-        System.setOut(outputStream);
-        newOutputStream.close();
       }
     }
   }
