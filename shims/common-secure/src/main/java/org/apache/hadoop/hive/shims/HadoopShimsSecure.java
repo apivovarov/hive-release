@@ -84,6 +84,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
     return HtmlQuoting.unquoteHtmlChars(item);
   }
 
+  @Override
   public HadoopShims.CombineFileInputFormatShim getCombineFileInputFormat() {
     return new CombineFileInputFormatShim() {
       @Override
@@ -173,6 +174,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
     protected boolean isShrinked;
     protected long shrinkedLength;
 
+    @Override
     public boolean next(K key, V value) throws IOException {
 
       while ((curReader == null)
@@ -185,11 +187,13 @@ public abstract class HadoopShimsSecure implements HadoopShims {
       return true;
     }
 
+    @Override
     public K createKey() {
       K newKey = curReader.createKey();
       return (K)(new CombineHiveKey(newKey));
     }
 
+    @Override
     public V createValue() {
       return curReader.createValue();
     }
@@ -197,10 +201,12 @@ public abstract class HadoopShimsSecure implements HadoopShims {
     /**
      * Return the amount of data processed.
      */
+    @Override
     public long getPos() throws IOException {
       return progress;
     }
 
+    @Override
     public void close() throws IOException {
       if (curReader != null) {
         curReader.close();
@@ -211,6 +217,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
     /**
      * Return progress based on the amount of data processed so far.
      */
+    @Override
     public float getProgress() throws IOException {
       return Math.min(1.0f, progress / (float) (split.getLength()));
     }
@@ -311,6 +318,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
       CombineFileInputFormat<K, V>
       implements HadoopShims.CombineFileInputFormatShim<K, V> {
 
+    @Override
     public Path[] getInputPathsShim(JobConf conf) {
       try {
         return FileInputFormat.getInputPaths(conf);
@@ -341,7 +349,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
         super.setMaxSplitSize(minSize);
       }
 
-      InputSplit[] splits = (InputSplit[]) super.getSplits(job, numSplits);
+      InputSplit[] splits = super.getSplits(job, numSplits);
 
       InputSplitShim[] isplits = new InputSplitShim[splits.length];
       for (int pos = 0; pos < splits.length; pos++) {
@@ -351,10 +359,12 @@ public abstract class HadoopShimsSecure implements HadoopShims {
       return isplits;
     }
 
+    @Override
     public InputSplitShim getInputSplitShim() throws IOException {
       return new InputSplitShim();
     }
 
+    @Override
     public RecordReader getRecordReader(JobConf job, HadoopShims.InputSplitShim split,
         Reporter reporter,
         Class<RecordReader<K, V>> rrClass)
@@ -365,6 +375,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
 
   }
 
+  @Override
   public String getInputFormatClassName() {
     return "org.apache.hadoop.hive.ql.io.CombineHiveInputFormat";
   }
@@ -393,6 +404,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
    * the archive as compared to the full path in case of earlier versions.
    * See this api in Hadoop20Shims for comparison.
    */
+  @Override
   public URI getHarUri(URI original, URI base, URI originalBase)
     throws URISyntaxException {
     URI relative = originalBase.relativize(original);
@@ -423,6 +435,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
     public void abortTask(TaskAttemptContext taskContext) { }
   }
 
+  @Override
   public void prepareJobOutput(JobConf conf) {
     conf.setOutputCommitter(NullOutputCommitter.class);
 
@@ -528,6 +541,7 @@ public abstract class HadoopShimsSecure implements HadoopShims {
   @Override
   public void authorizeProxyAccess(String proxyUser, UserGroupInformation realUserUgi,
       String ipAddress,  Configuration conf) throws IOException {
+    ProxyUsers.refreshSuperUserGroupsConfiguration(conf);
     ProxyUsers.authorize(UserGroupInformation.createProxyUser(proxyUser, realUserUgi),
         ipAddress, conf);
   }
