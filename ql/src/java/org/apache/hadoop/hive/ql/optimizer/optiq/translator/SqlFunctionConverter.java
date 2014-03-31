@@ -60,6 +60,24 @@ public class SqlFunctionConverter {
     return node;
   }
 
+  /**
+   * Build AST for flattened Associative expressions ('and', 'or'). Flattened
+   * expressions is of the form or[x,y,z] which is originally represented as
+   * "or[x, or[y, z]]".
+   */
+  public static ASTNode buildAST(SqlOperator op, List<ASTNode> children, int i) {
+    if (i + 1 < children.size()) {
+      HiveToken hToken = optiqToHiveToken.get(op);
+      ASTNode curNode = ((ASTNode) ParseDriver.adaptor.create(hToken.type, hToken.text));
+      ParseDriver.adaptor.addChild(curNode, children.get(i));
+      ParseDriver.adaptor.addChild(curNode, buildAST(op, children, i + 1));
+      return curNode;
+    } else {
+      return children.get(i);
+    }
+
+  }
+
   private static String getName(GenericUDF hiveUDF) {
     if (hiveUDF instanceof GenericUDFBridge) {
       return ((GenericUDFBridge) hiveUDF).getUdfName();
