@@ -506,12 +506,8 @@ public class TestOrcFile {
 
     writer.close();
 
-<<<<<<< HEAD
-    Reader reader = OrcFile.createReader(testFilePath, OrcFile.readerOptions(conf).filesystem(fs));
-=======
     Reader reader = OrcFile.createReader(testFilePath,
         OrcFile.readerOptions(conf).filesystem(fs));
->>>>>>> upstream/branch-0.13
     RecordReader rows = reader.rows(null);
     int idx = 0;
     while (rows.hasNext()) {

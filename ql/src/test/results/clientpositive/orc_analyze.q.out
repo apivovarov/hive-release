@@ -442,11 +442,7 @@ Partition Parameters:
 	numFiles            	1                   
 	numRows             	50                  
 	rawDataSize         	21950               
-<<<<<<< HEAD
 	totalSize           	2067                
-=======
-	totalSize           	1948                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -515,11 +511,7 @@ Partition Parameters:
 	numFiles            	1                   
 	numRows             	50                  
 	rawDataSize         	22050               
-<<<<<<< HEAD
 	totalSize           	2018                
-=======
-	totalSize           	2068                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -734,11 +726,7 @@ Partition Parameters:
 	numFiles            	1                   
 	numRows             	50                  
 	rawDataSize         	21950               
-<<<<<<< HEAD
 	totalSize           	2067                
-=======
-	totalSize           	1948                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -819,11 +807,7 @@ Partition Parameters:
 	numFiles            	1                   
 	numRows             	50                  
 	rawDataSize         	22050               
-<<<<<<< HEAD
 	totalSize           	2018                
-=======
-	totalSize           	2068                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -1154,11 +1138,7 @@ Partition Parameters:
 	numFiles            	4                   
 	numRows             	50                  
 	rawDataSize         	21980               
-<<<<<<< HEAD
 	totalSize           	4760                
-=======
-	totalSize           	4747                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -1251,11 +1231,7 @@ Partition Parameters:
 	numFiles            	4                   
 	numRows             	50                  
 	rawDataSize         	22048               
-<<<<<<< HEAD
 	totalSize           	4830                
-=======
-	totalSize           	4832                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -1572,11 +1548,7 @@ Partition Parameters:
 	numFiles            	4                   
 	numRows             	50                  
 	rawDataSize         	21980               
-<<<<<<< HEAD
 	totalSize           	4760                
-=======
-	totalSize           	4747                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -1681,11 +1653,7 @@ Partition Parameters:
 	numFiles            	4                   
 	numRows             	50                  
 	rawDataSize         	22048               
-<<<<<<< HEAD
 	totalSize           	4830                
-=======
-	totalSize           	4832                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
@@ -2551,11 +2519,7 @@ Partition Parameters:
 	numFiles            	1                   
 	numRows             	50                  
 	rawDataSize         	21950               
-<<<<<<< HEAD
 	totalSize           	2067                
-=======
-	totalSize           	1948                
->>>>>>> upstream/branch-0.13
 #### A masked pattern was here ####
 	 	 
 # Storage Information	 	 
