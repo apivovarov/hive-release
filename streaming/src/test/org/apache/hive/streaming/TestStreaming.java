@@ -66,9 +66,6 @@ public class TestStreaming {
   private final IMetaStoreClient msClient;
   private final Hive hive;
 
-  //public boolean local = false;
-  //private final int port ;
-//  final String metaStoreURI = "thrift://172.16.0.21:9083";
   final String metaStoreURI = null;
 
   // partitioned table
@@ -103,20 +100,11 @@ public class TestStreaming {
     conf.setBoolVar(HiveConf.ConfVars.METASTORE_EXECUTE_SET_UGI, true);
     conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
 
-        /*
-    if(local) {
-      //1) Start from a clean slate (metastore)
-      TxnDbUtil.cleanDb();
-      TxnDbUtil.prepDb();
-      */
     //1) Start from a clean slate (metastore)
     TxnDbUtil.cleanDb();
     TxnDbUtil.prepDb();
 
-    //2) Start Hive Metastore on separate thread
-    //MetaStoreUtils.startMetaStore(port, ShimLoader.getHadoopThriftAuthBridge(), conf);
-
-    //3) obtain metastore clients
+    //2) obtain metastore clients
     hive = Hive.get(conf);
     msClient = hive.getMSC();
     //SessionState.start(new CliSessionState(conf));
@@ -296,7 +284,7 @@ public class TestStreaming {
   }
 
   @Test
-  public void testTransactionBatchCommit() throws Exception {
+  public void testTransactionBatchCommit_Delimited() throws Exception {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
@@ -352,6 +340,34 @@ public class TestStreaming {
 
     Assert.assertEquals(TransactionBatch.TxnState.COMMITTED
             , txnBatch.getCurrentTransactionState());
+    connection.close();
+  }
+
+  @Test
+  public void testTransactionBatchCommit_Json() throws Exception {
+    HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
+            partitionVals);
+    StrictJsonWriter writer = new StrictJsonWriter(endPt);
+    StreamingConnection connection = endPt.newConnection(true);
+
+    // 1st Txn
+    TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
+    txnBatch.beginNextTransaction();
+    Assert.assertEquals(TransactionBatch.TxnState.OPEN
+            , txnBatch.getCurrentTransactionState());
+    String rec1 = "{\"id\" : 1, \"msg\": \"Hello streaming\"}";
+    txnBatch.write(rec1.getBytes());
+    txnBatch.commit();
+
+    checkDataWritten(1, 10, 1, 1, "{1, Hello streaming}");
+
+    Assert.assertEquals(TransactionBatch.TxnState.COMMITTED
+            , txnBatch.getCurrentTransactionState());
+
+    txnBatch.close();
+    Assert.assertEquals(TransactionBatch.TxnState.INACTIVE
+            , txnBatch.getCurrentTransactionState());
+
     connection.close();
   }
 
