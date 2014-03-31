@@ -535,7 +535,7 @@ public final class FunctionRegistry {
         fName = parts[1];
       } else {
         // otherwise, qualify using current db
-        dbName = SessionState.get().getCurrentDatabase();
+        dbName = SessionState.get().getCurrentDatabase().toLowerCase();
         fName = functionName;
       }
 
@@ -639,7 +639,7 @@ public final class FunctionRegistry {
       functionInfo =  mFunctions.get(functionName);
       if (functionInfo == null && !FunctionUtils.isQualifiedFunctionName(functionName)) {
         String qualifiedName = FunctionUtils.qualifyFunctionName(functionName,
-            SessionState.get().getCurrentDatabase());
+            SessionState.get().getCurrentDatabase().toLowerCase());
         functionInfo = getQualifiedFunctionInfo(mFunctions, qualifiedName);
       }
     }

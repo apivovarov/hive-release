@@ -1008,6 +1008,10 @@ public class HiveConf extends Configuration {
     HIVE_CONVERT_JOIN_BUCKET_MAPJOIN_TEZ("hive.convert.join.bucket.mapjoin.tez", false),
     HIVE_LOCALIZE_RESOURCE_WAIT_INTERVAL("hive.localize.resource.wait.interval", 5000L), // in ms
     HIVE_LOCALIZE_RESOURCE_NUM_WAIT_ATTEMPTS("hive.localize.resource.num.wait.attempts", 5),
+
+    // Check if a plan contains a Cross Product.
+    // If there is one, output a warning to the Session's console.
+    HIVE_CHECK_CROSS_PRODUCT("hive.exec.check.crossproducts", true),
     ;
 
     public final String varname;
