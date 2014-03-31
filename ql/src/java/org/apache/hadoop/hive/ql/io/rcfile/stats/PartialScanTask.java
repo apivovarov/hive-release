@@ -113,7 +113,7 @@ public class PartialScanTask extends Task<PartialScanWork> implements
         ctx = new Context(job);
         ctxCreated = true;
       }
-    }catch (IOException e) {
+    }catch (Exception e) {
       e.printStackTrace();
       console.printError("Error launching map-reduce job", "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));

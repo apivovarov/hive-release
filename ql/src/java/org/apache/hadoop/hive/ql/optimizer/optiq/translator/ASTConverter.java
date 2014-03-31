@@ -27,6 +27,7 @@ import org.eigenbase.rex.RexCall;
 import org.eigenbase.rex.RexInputRef;
 import org.eigenbase.rex.RexLiteral;
 import org.eigenbase.rex.RexNode;
+import org.eigenbase.rex.RexUtil;
 import org.eigenbase.rex.RexVisitorImpl;
 import org.eigenbase.sql.SqlOperator;
 import org.eigenbase.sql.type.BasicSqlType;
@@ -255,7 +256,10 @@ public class ASTConverter {
       for (RexNode operand : call.operands) {
         astNodeLst.add(operand.accept(this));
       }
-      return SqlFunctionConverter.buildAST(op, astNodeLst);
+      if (RexUtil.isFlat(call))
+        return SqlFunctionConverter.buildAST(op, astNodeLst, 0);
+      else
+        return SqlFunctionConverter.buildAST(op, astNodeLst);
     }
   }
 

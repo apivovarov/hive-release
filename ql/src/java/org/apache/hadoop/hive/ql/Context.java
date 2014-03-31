@@ -51,6 +51,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.security.auth.login.LoginException;
+
 /**
  * Context for Semantic Analyzers. Usage: not reusable - construct a new one for
  * each query should call clear() at end of use to remove temporary folders
@@ -105,7 +107,7 @@ public class Context {
   private final Map<WriteEntity, List<HiveLockObj>> outputLockObjects =
       new HashMap<WriteEntity, List<HiveLockObj>>();
 
-  public Context(Configuration conf) throws IOException {
+  public Context(Configuration conf) throws LoginException, IOException {
     this(conf, generateExecutionId());
   }
 
@@ -113,14 +115,14 @@ public class Context {
    * Create a Context with a given executionId.  ExecutionId, together with
    * user name and conf, will determine the temporary directory locations.
    */
-  public Context(Configuration conf, String executionId)  {
+  public Context(Configuration conf, String executionId) throws LoginException, IOException {
     this.conf = conf;
     this.executionId = executionId;
 
     // local & non-local tmp location is configurable. however it is the same across
     // all external file systems
     nonLocalScratchPath =
-      new Path(HiveConf.getVar(conf, HiveConf.ConfVars.SCRATCHDIR),
+      new Path(FileUtils.getScratchDir(conf),
                executionId);
     localScratchDir = new Path(HiveConf.getVar(conf, HiveConf.ConfVars.LOCALSCRATCHDIR),
             executionId).toUri().getPath();

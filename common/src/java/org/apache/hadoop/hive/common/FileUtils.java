@@ -24,6 +24,8 @@ import java.net.URISyntaxException;
 import java.util.BitSet;
 import java.util.List;
 
+import javax.security.auth.login.LoginException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -35,6 +37,7 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.Shell;
 
@@ -442,5 +445,15 @@ public final class FileUtils {
     return true;
   }
 
+  public static String getScratchDir(Configuration conf) throws LoginException, IOException  {
+    String scratchDir = conf.get(HiveConf.ConfVars.SCRATCHDIR.varname,
+        HiveConf.ConfVars.SCRATCHDIR.defaultVal);
+
+    UserGroupInformation ugi = ShimLoader.getHadoopShims().getUGIForConf(conf);
+    String userName = ShimLoader.getHadoopShims().getShortUserName(ugi);
+    scratchDir += userName;
+
+    return scratchDir;
+  }
 
 }

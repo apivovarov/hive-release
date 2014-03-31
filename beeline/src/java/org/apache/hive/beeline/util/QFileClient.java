@@ -25,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import javax.security.auth.login.LoginException;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -73,12 +75,12 @@ public class QFileClient {
 
 
   public QFileClient(HiveConf hiveConf, String hiveRootDirectory, String qFileDirectory, String outputDirectory,
-      String expectedDirectory) {
+      String expectedDirectory) throws LoginException, IOException {
     this.hiveRootDirectory = new File(hiveRootDirectory);
     this.qFileDirectory = new File(qFileDirectory);
     this.outputDirectory = new File(outputDirectory);
     this.expectedDirectory = new File(expectedDirectory);
-    this.scratchDirectory = new File(hiveConf.getVar(ConfVars.SCRATCHDIR));
+    this.scratchDirectory = new File(org.apache.hadoop.hive.common.FileUtils.getScratchDir(hiveConf));
     this.warehouseDirectory = new File(hiveConf.getVar(ConfVars.METASTOREWAREHOUSE));
   }
 

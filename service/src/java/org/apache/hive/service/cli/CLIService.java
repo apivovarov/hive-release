@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
@@ -124,10 +125,10 @@ public class CLIService extends CompositeService implements ICLIService {
 
     try {
       // make sure that the base scratch directories exists and writable
-      setupStagingDir(hiveConf.getVar(HiveConf.ConfVars.SCRATCHDIR), false);
+      setupStagingDir(FileUtils.getScratchDir(hiveConf), false);
       setupStagingDir(hiveConf.getVar(HiveConf.ConfVars.LOCALSCRATCHDIR), true);
       setupStagingDir(hiveConf.getVar(HiveConf.ConfVars.DOWNLOADED_RESOURCES_DIR), true);
-    } catch (IOException eIO) {
+    } catch (Exception eIO) {
       throw new ServiceException("Error setting stage directories", eIO);
     }
 

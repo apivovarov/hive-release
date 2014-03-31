@@ -82,6 +82,12 @@
       <artifactId>hive-cli</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hive.hcatalog</groupId>
+      <artifactId>hive-hcatalog-core</artifactId>
+      <optional>true</optional>
+      <version>${project.version}</version>
+    </dependency>
 
     <!-- test -->
     <dependency>

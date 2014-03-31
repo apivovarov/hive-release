@@ -100,7 +100,7 @@ public class BlockMergeTask extends Task<MergeWork> implements Serializable,
         ctx = new Context(job);
         ctxCreated = true;
       }
-    }catch (IOException e) {
+    }catch (Exception e) {
       e.printStackTrace();
       console.printError("Error launching map-reduce job", "\n"
           + org.apache.hadoop.util.StringUtils.stringifyException(e));

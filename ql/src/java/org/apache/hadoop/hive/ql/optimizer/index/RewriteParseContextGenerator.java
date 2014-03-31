@@ -20,6 +20,8 @@ package org.apache.hadoop.hive.ql.optimizer.index;
 
 import java.io.IOException;
 
+import javax.security.auth.login.LoginException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -87,6 +89,10 @@ public final class RewriteParseContextGenerator {
       LOG.error("SemanticException in generating the operator " +
         "tree for input command - " + command + " " , e);
       LOG.error(org.apache.hadoop.util.StringUtils.stringifyException(e));
+      throw new SemanticException(e.getMessage(), e);
+    } catch (LoginException e) {
+      LOG.error("LoginException in generating the oeprator " +
+          "tree for input command - " + command + " ", e);
       throw new SemanticException(e.getMessage(), e);
     }
     return subPCtx;

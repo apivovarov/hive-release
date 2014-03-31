@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.security.auth.login.LoginException;
+
 import junit.framework.TestCase;
 
 import org.apache.hadoop.fs.FileSystem;
