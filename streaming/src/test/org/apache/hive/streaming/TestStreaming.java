@@ -22,6 +22,7 @@ import junit.framework.Assert;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
@@ -39,7 +40,6 @@ import org.apache.hadoop.hive.ql.io.orc.OrcInputFormat;
 import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
 import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
 import org.apache.hadoop.hive.ql.io.orc.OrcStruct;
-import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.mapred.InputFormat;
@@ -64,7 +64,6 @@ public class TestStreaming {
 
   private final HiveConf conf;
   private final IMetaStoreClient msClient;
-  private final Hive hive;
 
   final String metaStoreURI = null;
 
@@ -105,8 +104,7 @@ public class TestStreaming {
     TxnDbUtil.prepDb();
 
     //2) obtain metastore clients
-    hive = Hive.get(conf);
-    msClient = hive.getMSC();
+    msClient = new HiveMetaStoreClient(conf);
     //SessionState.start(new CliSessionState(conf));
     //driver = new Driver(conf);
   }
@@ -395,7 +393,7 @@ public class TestStreaming {
               , txnBatch.getCurrentTransactionState());
       ++batch;
     }
-    Assert.assertEquals(0,txnBatch.remainingTransactions());
+    Assert.assertEquals(0, txnBatch.remainingTransactions());
     txnBatch.close();
 
     Assert.assertEquals(TransactionBatch.TxnState.INACTIVE
