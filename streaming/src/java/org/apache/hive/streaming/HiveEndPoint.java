@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.hive.cli.CliSessionState;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.LockComponentBuilder;
 import org.apache.hadoop.hive.metastore.LockRequestBuilder;
@@ -38,8 +39,6 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
 import org.apache.hadoop.hive.ql.CommandNeedRetryException;
 import org.apache.hadoop.hive.ql.Driver;
-import org.apache.hadoop.hive.ql.metadata.Hive;
-import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.session.SessionState;
 
 import org.apache.hadoop.security.UserGroupInformation;
@@ -52,7 +51,9 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Information about the hive partition to write to
+ * Information about the hive end point (i.e. table or partition) to write to.
+ * A light weight object that does NOT internally hold on to resources such as
+ * network connections. It can be stored in Hashed containers such as sets and hash tables.
  */
 public class HiveEndPoint {
   public final String metaStoreUri;
@@ -64,8 +65,18 @@ public class HiveEndPoint {
 
   static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
 
+  /**
+   *
+   * @param metaStoreUri   URI of the metastore to connect to eg: thrift://localhost:9083
+   * @param database       Name of the Hive database
+   * @param table          Name of table to stream to
+   * @param partitionVals  Indicates the specific partition to stream to. Can be null or empty List if streaming to a
+   *                       table without partitions. The order of values in this list must correspond exactly to the
+   *                       order of partition columns specified during the table creation. E.g. For a table partitioned
+   *                       by (continent string, country string), partitionVals could be the list ("Asia", "India").
+   */
   public HiveEndPoint(String metaStoreUri
-          , String database, String table, List<String> partitionVals) throws ConnectionError {
+          , String database, String table, List<String> partitionVals) {
     this.metaStoreUri = metaStoreUri;
     if(database==null) {
       throw new IllegalArgumentException("Database cannot be null for HiveEndPoint");
@@ -394,12 +405,8 @@ public class HiveEndPoint {
       }
 
       try {
-        return Hive.get(conf).getMSC();
-//        return new HiveMetaStoreClient(conf);
+        return new HiveMetaStoreClient(conf);
       } catch (MetaException e) {
-        throw new ConnectionError("Error connecting to Hive Metastore URI: "
-                + endPoint.metaStoreUri, e);
-      } catch (HiveException e) {
         throw new ConnectionError("Error connecting to Hive Metastore URI: "
                 + endPoint.metaStoreUri, e);
       }
