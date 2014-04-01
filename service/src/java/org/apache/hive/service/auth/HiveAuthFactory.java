@@ -298,7 +298,7 @@ public class HiveAuthFactory {
 
     try {
       if (ShimLoader.getHadoopShims().isSecurityEnabled()) {
-        sessionUgi = ShimLoader.getHadoopShims().createProxyUser(realUser);
+        sessionUgi = ShimLoader.getHadoopShims().createProxyUser(getShortPrincipalName(realUser));
       } else {
         sessionUgi = ShimLoader.getHadoopShims().createRemoteUser(realUser, null);
       }
@@ -310,6 +310,18 @@ public class HiveAuthFactory {
       throw new HiveSQLException("Failed to validate proxy privilage of " + realUser +
           " for " + proxyUser, e);
     }
+  }
+
+  private static String getShortPrincipalName(String principalName)   {
+      if (principalName == null) {
+          return principalName;
+      }
+      String[] namehostRealm = principalName.split("[@]");
+      String[] nameHost =  namehostRealm[0].split("/");
+      String shortName = nameHost[0];
+      LOG.info("HiveAuthFactory.getShortPrincipalName(): principalName: " + principalName +
+          " , shortName: " + shortName);
+      return nameHost[0];
   }
 
 }
