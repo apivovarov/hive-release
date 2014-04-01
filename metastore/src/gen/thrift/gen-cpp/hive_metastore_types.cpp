@@ -8227,7 +8227,6 @@ uint32_t ShowCompactResponse::write(::apache::thrift::protocol::TProtocol* oprot
   uint32_t xfer = 0;
   xfer += oprot->writeStructBegin("ShowCompactResponse");
 
-<<<<<<< HEAD
   if (this->__isset.compacts) {
     xfer += oprot->writeFieldBegin("compacts", ::apache::thrift::protocol::T_LIST, 1);
     {
@@ -8238,15 +8237,6 @@ uint32_t ShowCompactResponse::write(::apache::thrift::protocol::TProtocol* oprot
         xfer += (*_iter358).write(oprot);
       }
       xfer += oprot->writeListEnd();
-=======
-  xfer += oprot->writeFieldBegin("compacts", ::apache::thrift::protocol::T_LIST, 1);
-  {
-    xfer += oprot->writeListBegin(::apache::thrift::protocol::T_STRUCT, static_cast<uint32_t>(this->compacts.size()));
-    std::vector<ShowCompactResponseElement> ::const_iterator _iter358;
-    for (_iter358 = this->compacts.begin(); _iter358 != this->compacts.end(); ++_iter358)
-    {
-      xfer += (*_iter358).write(oprot);
->>>>>>> upstream/branch-0.13
     }
     xfer += oprot->writeFieldEnd();
   }
