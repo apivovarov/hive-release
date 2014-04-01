@@ -1099,10 +1099,6 @@ public class StatsRulesProcFactory {
    */
   static void updateStats(Statistics stats, long newNumRows, boolean useColStats) {
     long oldRowCount = stats.getNumRows();
-    if (oldRowCount == 0) {
-      // there is nothing to update
-      return;
-    }
     double ratio = (double) newNumRows / (double) oldRowCount;
     stats.setNumRows(newNumRows);
 
@@ -1119,7 +1115,7 @@ public class StatsRulesProcFactory {
         // number of distincts should not change. Update the distinct count only when
         // the output number of rows is less than input number of rows.
         if (ratio <= 1.0) {
-          newDV = (long) Math.ceil(ratio * oldDV);
+          newDV = Math.round(ratio * oldDV);
         }
         cs.setNumNulls(newNumNulls);
         cs.setCountDistint(newDV);
