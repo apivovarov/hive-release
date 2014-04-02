@@ -77,7 +77,9 @@ public class Cleaner extends CompactorThread {
               clean(ci);
             }
           } finally {
-            txnHandler.unlock(new UnlockRequest(rsp.getLockid()));
+            if (rsp.getState() == LockState.ACQUIRED) {
+              txnHandler.unlock(new UnlockRequest(rsp.getLockid()));
+            }
           }
         }
 
