@@ -14,6 +14,7 @@ import org.eigenbase.relopt.RelOptCluster;
 import org.eigenbase.reltype.RelDataType;
 import org.eigenbase.reltype.RelDataTypeFactory;
 import org.eigenbase.rex.RexBuilder;
+import org.eigenbase.rex.RexCall;
 import org.eigenbase.rex.RexNode;
 import org.eigenbase.sql.SqlOperator;
 
@@ -21,17 +22,19 @@ import com.google.common.collect.ImmutableMap;
 
 public class RexNodeConverter {
 
-  RelOptCluster                 m_cluster;
-  RelDataType                   inpDataType;
-  ImmutableMap<String, Integer> nameToPosMap;
-  int                           offset;
+  private final RelOptCluster                 m_cluster;
+  private final RelDataType                   m_inpDataType;
+  private final ImmutableMap<String, Integer> m_nameToPosMap;
+  private final int                           m_offset;
+  private final boolean                       m_flattenExpr;
 
-  public RexNodeConverter(RelOptCluster m_cluster, RelDataType inpDataType,
-      ImmutableMap<String, Integer> nameToPosMap, int offset) {
-    this.m_cluster = m_cluster;
-    this.inpDataType = inpDataType;
-    this.nameToPosMap = nameToPosMap;
-    this.offset = offset;
+  public RexNodeConverter(RelOptCluster cluster, RelDataType inpDataType,
+      ImmutableMap<String, Integer> nameToPosMap, int offset, boolean flattenExpr) {
+    this.m_cluster = cluster;
+    this.m_inpDataType = inpDataType;
+    this.m_nameToPosMap = nameToPosMap;
+    this.m_offset = offset;
+    m_flattenExpr = flattenExpr;
   }
 
   public RexNode convert(ExprNodeDesc expr) {
@@ -55,13 +58,21 @@ public class RexNodeConverter {
     for (ExprNodeDesc childExpr : func.getChildren()) {
       childRexNodeLst.add(convert(childExpr));
     }
-    return m_cluster.getRexBuilder().makeCall(optiqOp, childRexNodeLst);
+
+    RexNode convertedFilterExpr = m_cluster.getRexBuilder().makeCall(optiqOp, childRexNodeLst);
+    if (m_flattenExpr && convertedFilterExpr instanceof RexCall) {
+      RexCall call = (RexCall) convertedFilterExpr;
+      convertedFilterExpr = m_cluster.getRexBuilder().makeFlatCall(call.getOperator(),
+          call.getOperands());
+    }
+
+    return convertedFilterExpr;
   }
 
   protected RexNode convert(ExprNodeColumnDesc col) {
-    int pos = nameToPosMap.get(col.getColumn());
-    return m_cluster.getRexBuilder().makeInputRef(inpDataType.getFieldList().get(pos).getType(),
-        pos + offset);
+    int pos = m_nameToPosMap.get(col.getColumn());
+    return m_cluster.getRexBuilder().makeInputRef(m_inpDataType.getFieldList().get(pos).getType(),
+        pos + m_offset);
   }
 
   protected RexNode convert(ExprNodeConstantDesc literal) {

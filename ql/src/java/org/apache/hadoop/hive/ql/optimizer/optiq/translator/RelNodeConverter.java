@@ -78,6 +78,7 @@ import org.eigenbase.sql.fun.SqlStdOperatorTable;
 import org.eigenbase.util.CompositeList;
 import org.eigenbase.util.Pair;
 
+import com.esotericsoftware.minlog.Log;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -230,13 +231,13 @@ public class RelNodeConverter {
       opPositionMap.put(node, opPositionMap.get(parent));
     }
 
-    RexNode convertToOptiqExpr(final ExprNodeDesc expr, final RelNode optiqOP) {
-      return convertToOptiqExpr(expr, optiqOP, 0);
+    RexNode convertToOptiqExpr(final ExprNodeDesc expr, final RelNode optiqOP, final boolean flatten) {
+      return convertToOptiqExpr(expr, optiqOP, 0, flatten);
     }
 
-    RexNode convertToOptiqExpr(final ExprNodeDesc expr, final RelNode optiqOP, int offset) {
+    RexNode convertToOptiqExpr(final ExprNodeDesc expr, final RelNode optiqOP, int offset, final boolean flatten) {
       ImmutableMap<String, Integer> posMap = opPositionMap.get(optiqOP);
-      RexNodeConverter c = new RexNodeConverter(cluster, optiqOP.getRowType(), posMap, offset);
+      RexNodeConverter c = new RexNodeConverter(cluster, optiqOP.getRowType(), posMap, offset, flatten);
       return c.convert(expr);
     }
 
@@ -298,8 +299,8 @@ public class RelNodeConverter {
         int i = 0;
         for (ExprNodeDesc expr : leftCols) {
           List<RexNode> eqExpr = new LinkedList<RexNode>();
-          eqExpr.add(ctx.convertToOptiqExpr(expr, leftRel, 0));
-          eqExpr.add(ctx.convertToOptiqExpr(rightCols.get(i), rightRel, rightColOffSet));
+          eqExpr.add(ctx.convertToOptiqExpr(expr, leftRel, 0, false));
+          eqExpr.add(ctx.convertToOptiqExpr(rightCols.get(i), rightRel, rightColOffSet, false));
 
           RexNode eqOp = ctx.cluster.getRexBuilder().makeCall(SqlStdOperatorTable.EQUALS, eqExpr);
           i++;
@@ -339,7 +340,7 @@ public class RelNodeConverter {
             }
 
             for (ExprNodeDesc expr : entry.getValue()) {
-              eqExpr = ctx.convertToOptiqExpr(expr, childRel, colOffSet);
+              eqExpr = ctx.convertToOptiqExpr(expr, childRel, colOffSet, false);
               List<RexNode> conjElements = new LinkedList<RexNode>();
               conjElements.add(joinPredicate);
               conjElements.add(eqExpr);
@@ -360,7 +361,7 @@ public class RelNodeConverter {
 
   private static int convertExpr(Context ctx, RelNode input, ExprNodeDesc expr,
       List<RexNode> extraExprs) {
-    final RexNode rex = ctx.convertToOptiqExpr(expr, input);
+    final RexNode rex = ctx.convertToOptiqExpr(expr, input, false);
     final int index;
     if (rex instanceof RexInputRef) {
       index = ((RexInputRef) rex).getIndex();
@@ -393,7 +394,7 @@ public class RelNodeConverter {
      * Aggregation call assumes this is the output type.
      */
     if (argList.size() > 0) {
-      RexNode rex = ctx.convertToOptiqExpr(agg.getParameters().get(0), input);
+      RexNode rex = ctx.convertToOptiqExpr(agg.getParameters().get(0), input, false);
       type = rex.getType();
     }
     return new AggregateCall(aggregation, agg.getDistinct(), argList, type, null);
@@ -407,7 +408,7 @@ public class RelNodeConverter {
       HiveRel input = (HiveRel) ctx.getParentNode((Operator<? extends OperatorDesc>) nd, 0);
       FilterOperator filterOp = (FilterOperator) nd;
       RexNode convertedFilterExpr = ctx
-          .convertToOptiqExpr(filterOp.getConf().getPredicate(), input);
+          .convertToOptiqExpr(filterOp.getConf().getPredicate(), input, true);
 
       // Flatten the condition otherwise Optiq chokes on assertion
       // (FilterRelBase)
@@ -437,7 +438,7 @@ public class RelNodeConverter {
       List<RexNode> optiqColLst = new LinkedList<RexNode>();
 
       for (ExprNodeDesc colExpr : colLst) {
-        optiqColLst.add(ctx.convertToOptiqExpr(colExpr, inputRelNode));
+        optiqColLst.add(ctx.convertToOptiqExpr(colExpr, inputRelNode, false));
       }
 
       /*
