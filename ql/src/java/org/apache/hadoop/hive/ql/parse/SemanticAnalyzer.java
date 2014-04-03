@@ -9330,9 +9330,13 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
             disableJoinMerge = true;
             sinkOp = genPlan(qb);
 
-            // 7. Reset result set schema
-            resultSchema = convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp)
-                .getRowResolver(), true);
+            /*
+             * Use non CBO Result Set Schema so as to preserve user specified
+             * names. Hive seems to have bugs with OB/LIMIT in sub queries.
+             * // 7. Reset result set schema resultSchema =
+             * convertRowSchemaToResultSetSchema(opParseCtx.get(sinkOp)
+             * .getRowResolver(), true);
+             */
           } else {
             reAnalyzeAST = true;
             LOG.warn("Skipping CBO. Incomplete column stats for Tables: "

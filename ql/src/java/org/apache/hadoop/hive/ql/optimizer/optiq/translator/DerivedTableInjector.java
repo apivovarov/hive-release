@@ -33,7 +33,11 @@ import com.google.common.collect.Lists;
 public class DerivedTableInjector {
 
   public static RelNode convertOpTree(RelNode rel, List<FieldSchema> resultSchema) {
-    RelNode newTopSelect = introduceTopLevelSelectInResultSchema(rel, resultSchema);
+    // Disable introducing top level select since Hive seems to have bugs with
+    // OB, Limit in sub query.
+    // RelNode newTopSelect = introduceTopLevelSelectInResultSchema(rel,
+    // resultSchema);
+    RelNode newTopSelect = rel;
     convertOpTree(newTopSelect, (RelNode) null);
     return newTopSelect;
   }

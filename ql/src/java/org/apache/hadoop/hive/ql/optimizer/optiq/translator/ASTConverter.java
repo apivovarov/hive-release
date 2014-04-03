@@ -47,19 +47,28 @@ public class ASTConverter {
   SortRel          order;
 
   Schema           schema;
-
+  
   ASTConverter(RelNode root) {
     this.root = root;
     hiveAST = new HiveAST();
   }
 
   public static ASTNode convert(final RelNode relNode, List<FieldSchema> resultSchema) {
-    RelNode optimizedOpTree = DerivedTableInjector.convertOpTree(relNode, resultSchema);
-    ASTConverter c = new ASTConverter(optimizedOpTree);
-    return c.convert();
+    SortRel sortrel = null;
+    RelNode root = DerivedTableInjector.convertOpTree(relNode, resultSchema);
+
+    if (root instanceof SortRel) {
+      sortrel = (SortRel) root;
+      root = sortrel.getChild();
+      if (!(root instanceof ProjectRelBase))
+        throw new RuntimeException("Child of root sort node is not a project");
+    }
+
+    ASTConverter c = new ASTConverter(root);
+    return c.convert(sortrel);
   }
 
-  public ASTNode convert() {
+  public ASTNode convert(SortRel sortrel) {
     /*
      * 1. Walk RelNode Graph; note from, where, gBy.. nodes.
      */
@@ -116,12 +125,15 @@ public class ASTConverter {
 
     /*
      * 7. Order
+     * Use in Order By from the block above. RelNode has no pointer to parent
+     * hence we need to go top down; but OB at each block really belong to its
+     * src/from. Hence the need to pass in sortRel for each block from its parent.
      */
-    if (order != null) {
-      HiveSortRel hiveSort = (HiveSortRel) order;
+    if (sortrel != null) {
+      HiveSortRel hiveSort = (HiveSortRel) sortrel;
       if (!hiveSort.getCollation().getFieldCollations().isEmpty()) {
         ASTNode orderAst = ASTBuilder.createAST(HiveParser.TOK_ORDERBY, "TOK_ORDERBY");
-        schema = new Schema((HiveSortRel) order);
+        schema = new Schema((HiveSortRel) sortrel);
         for (RelFieldCollation c : hiveSort.getCollation().getFieldCollations()) {
           ColumnInfo cI = schema.get(c.getFieldIndex());
           /*
@@ -169,7 +181,7 @@ public class ASTConverter {
       ast = ASTBuilder.join(left.ast, right.ast, join.getJoinType(), cond);
     } else {
       ASTConverter src = new ASTConverter(r);
-      ASTNode srcAST = src.convert();
+      ASTNode srcAST = src.convert(order);
       String sqAlias = ASTConverter.nextAlias();
       s = src.getRowSchema(sqAlias);
       ast = ASTBuilder.subQuery(srcAST, sqAlias);
