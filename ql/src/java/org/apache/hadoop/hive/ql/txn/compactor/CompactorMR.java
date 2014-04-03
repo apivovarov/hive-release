@@ -23,6 +23,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.common.ValidTxnListImpl;
@@ -36,8 +37,6 @@ import org.apache.hadoop.hive.ql.io.AcidUtils;
 import org.apache.hadoop.hive.ql.io.FSRecordWriter;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
 import org.apache.hadoop.hive.serde.serdeConstants;
-import org.apache.hadoop.hive.serde2.SerDe;
-import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
@@ -46,10 +45,15 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.JobContext;
+import org.apache.hadoop.mapred.JobStatus;
 import org.apache.hadoop.mapred.Mapper;
 import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.OutputCommitter;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapred.RunningJob;
+import org.apache.hadoop.mapred.TaskAttemptContext;
 import org.apache.hadoop.mapred.lib.NullOutputFormat;
 import org.apache.hadoop.util.StringUtils;
 
@@ -72,7 +76,8 @@ public class CompactorMR {
 
   static final private String INPUT_FORMAT_CLASS_NAME = "hive.compactor.input.format.class.name";
   static final private String OUTPUT_FORMAT_CLASS_NAME = "hive.compactor.output.format.class.name";
-  static final private String LOCATION = "hive.compactor.input.dir";
+  static final private String TMP_LOCATION = "hive.compactor.input.tmp.dir";
+  static final private String FINAL_LOCATION = "hive.compactor.input.dir";
   static final private String MIN_TXN = "hive.compactor.txn.min";
   static final private String MAX_TXN = "hive.compactor.txn.max";
   static final private String IS_MAJOR = "hive.compactor.is.major";
@@ -82,6 +87,7 @@ public class CompactorMR {
   static final private String BASE_DIR = "hive.compactor.base.dir";
   static final private String DELTA_DIRS = "hive.compactor.delta.dirs";
   static final private String DIRS_TO_SEARCH = "hive.compactor.dirs.to.search";
+  static final private String TMPDIR = "_tmp";
 
   public CompactorMR() {
   }
@@ -108,8 +114,10 @@ public class CompactorMR {
     job.setNumReduceTasks(0);
     job.setInputFormat(CompactorInputFormat.class);
     job.setOutputFormat(NullOutputFormat.class);
+    job.setOutputCommitter(CompactorOutputCommitter.class);
 
-    job.set(LOCATION, sd.getLocation());
+    job.set(FINAL_LOCATION, sd.getLocation());
+    job.set(TMP_LOCATION, sd.getLocation() + "/" + TMPDIR);
     job.set(INPUT_FORMAT_CLASS_NAME, sd.getInputFormat());
     job.set(OUTPUT_FORMAT_CLASS_NAME, sd.getOutputFormat());
     job.setBoolean(IS_MAJOR, isMajor);
@@ -176,7 +184,7 @@ public class CompactorMR {
     LOG.debug("Setting minimum transaction to " + minTxn);
     LOG.debug("Setting maximume transaction to " + maxTxn);
 
-    JobClient.runJob(job);
+    JobClient.runJob(job).waitForCompletion();
   }
 
   /**
@@ -368,7 +376,7 @@ public class CompactorMR {
       StringableList tmpDeltaDirs = new StringableList(entries.get(DELTA_DIRS));
       Path[] deltaDirs = tmpDeltaDirs.toArray(new Path[tmpDeltaDirs.size()]);
       StringableList dirsToSearch = new StringableList(entries.get(DIRS_TO_SEARCH));
-      Map<Integer, List<Path>> splitToBucketMap = new HashMap<Integer, List<Path>>();
+      Map<Integer, BucketTracker> splitToBucketMap = new HashMap<Integer, BucketTracker>();
       for (Path dir : dirsToSearch) {
         FileSystem fs = dir.getFileSystem(entries);
 
@@ -376,21 +384,24 @@ public class CompactorMR {
         // But if it's a legacy file then we need to add it directly.
         if (dir.getName().startsWith(AcidUtils.BASE_PREFIX) ||
             dir.getName().startsWith(AcidUtils.DELTA_PREFIX)) {
+          boolean sawBase = dir.getName().startsWith(AcidUtils.BASE_PREFIX);
           FileStatus[] files = fs.listStatus(dir, AcidUtils.bucketFileFilter);
           for (int j = 0; j < files.length; j++) {
             // For each file, figure out which bucket it is.
             Matcher matcher = AcidUtils.BUCKET_DIGIT_PATTERN.matcher(files[j].getPath().getName());
-            addFileToMap(matcher, files[j].getPath(), splitToBucketMap);
+            addFileToMap(matcher, files[j].getPath(), sawBase, splitToBucketMap);
           }
         } else {
           // Legacy file, see if it's a bucket file
           Matcher matcher = AcidUtils.LEGACY_BUCKET_DIGIT_PATTERN.matcher(dir.getName());
-          addFileToMap(matcher, dir, splitToBucketMap);
+          addFileToMap(matcher, dir, true, splitToBucketMap);
         }
       }
       List<InputSplit> splits = new ArrayList<InputSplit>(splitToBucketMap.size());
-      for (Map.Entry<Integer, List<Path>> e : splitToBucketMap.entrySet()) {
-        splits.add(new CompactorInputSplit(entries, e.getKey(), e.getValue(), baseDir, deltaDirs));
+      for (Map.Entry<Integer, BucketTracker> e : splitToBucketMap.entrySet()) {
+        BucketTracker bt = e.getValue();
+        splits.add(new CompactorInputSplit(entries, e.getKey(), bt.buckets,
+            bt.sawBase ? baseDir : null, deltaDirs));
       }
 
       LOG.debug("Returning " + splits.size() + " splits");
@@ -403,20 +414,31 @@ public class CompactorMR {
       return new CompactorRecordReader((CompactorInputSplit)inputSplit);
     }
 
-    private void addFileToMap(Matcher matcher, Path file,
-                              Map<Integer, List<Path>> splitToBucketMap) {
+    private void addFileToMap(Matcher matcher, Path file, boolean sawBase,
+                              Map<Integer, BucketTracker> splitToBucketMap) {
       if (!matcher.find()) {
         LOG.warn("Found a non-bucket file that we thought matched the bucket pattern! " +
             file.toString());
       }
       int bucketNum = Integer.valueOf(matcher.group());
-      List<Path> p = splitToBucketMap.get(bucketNum);
-      if (p == null) {
-        p = new ArrayList<Path>();
-        splitToBucketMap.put(bucketNum, p);
+      BucketTracker bt = splitToBucketMap.get(bucketNum);
+      if (bt == null) {
+        bt = new BucketTracker();
+        splitToBucketMap.put(bucketNum, bt);
       }
       LOG.debug("Adding " + file.toString() + " to list of files for splits");
-      p.add(file);
+      bt.buckets.add(file);
+      bt.sawBase |= sawBase;
+    }
+
+    private static class BucketTracker {
+      BucketTracker() {
+        sawBase = false;
+        buckets = new ArrayList<Path>();
+      }
+
+      boolean sawBase;
+      List<Path> buckets;
     }
   }
 
@@ -483,6 +505,7 @@ public class CompactorMR {
           instantiate(AcidInputFormat.class, jobConf.get(INPUT_FORMAT_CLASS_NAME));
       ValidTxnList txnList =
           new ValidTxnListImpl(jobConf.get(ValidTxnList.VALID_TXNS_KEY));
+
       AcidInputFormat.RawReader<V> reader =
           aif.getRawReader(jobConf, jobConf.getBoolean(IS_MAJOR, false), split.getBucket(),
               txnList, split.getBaseDir(), split.getDeltaDirs());
@@ -524,7 +547,7 @@ public class CompactorMR {
         AcidOutputFormat<V> aof =
             instantiate(AcidOutputFormat.class, jobConf.get(OUTPUT_FORMAT_CLASS_NAME));
 
-        writer = aof.getRawRecordWriter(new Path(jobConf.get(LOCATION)), options);
+        writer = aof.getRawRecordWriter(new Path(jobConf.get(TMP_LOCATION)), options);
       }
     }
 
@@ -640,5 +663,57 @@ public class CompactorMR {
       throw new IOException(e);
     }
     return t;
+  }
+
+  static class CompactorOutputCommitter extends OutputCommitter {
+
+    @Override
+    public void setupJob(JobContext jobContext) throws IOException {
+
+    }
+
+    @Override
+    public void setupTask(TaskAttemptContext taskAttemptContext) throws IOException {
+
+    }
+
+    @Override
+    public boolean needsTaskCommit(TaskAttemptContext taskAttemptContext) throws IOException {
+      return false;
+    }
+
+    @Override
+    public void commitTask(TaskAttemptContext taskAttemptContext) throws IOException {
+
+    }
+
+    @Override
+    public void abortTask(TaskAttemptContext taskAttemptContext) throws IOException {
+
+    }
+
+    @Override
+    public void commitJob(JobContext context) throws IOException {
+      Path tmpLocation = new Path(context.getJobConf().get(TMP_LOCATION));
+      Path finalLocation = new Path(context.getJobConf().get(FINAL_LOCATION));
+      FileSystem fs = tmpLocation.getFileSystem(context.getJobConf());
+      LOG.debug("Moving contents of " + tmpLocation.toString() + " to " +
+          finalLocation.toString());
+
+      FileStatus[] contents = fs.listStatus(tmpLocation);
+      for (int i = 0; i < contents.length; i++) {
+        Path newPath = new Path(finalLocation, contents[i].getPath().getName());
+        fs.rename(contents[i].getPath(), newPath);
+      }
+      fs.delete(tmpLocation, true);
+    }
+
+    @Override
+    public void abortJob(JobContext context, int status) throws IOException {
+      Path tmpLocation = new Path(context.getJobConf().get(TMP_LOCATION));
+      FileSystem fs = tmpLocation.getFileSystem(context.getJobConf());
+      LOG.debug("Removing " + tmpLocation.toString());
+      fs.delete(tmpLocation, true);
+    }
   }
 }

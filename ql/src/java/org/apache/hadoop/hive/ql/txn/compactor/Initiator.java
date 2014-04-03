@@ -180,7 +180,7 @@ public class Initiator extends CompactorThread {
     if (runJobAsSelf(runAs)) {
       return determineCompactionType(ci, txns, sd);
     } else {
-      LOG.info("Going to initiate cleaner as user " + runAs);
+      LOG.info("Going to initiate as user " + runAs);
       UserGroupInformation ugi = UserGroupInformation.createProxyUser(runAs,
         UserGroupInformation.getLoginUser());
       return ugi.doAs(new PrivilegedExceptionAction<CompactionType>() {

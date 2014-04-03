@@ -280,6 +280,7 @@ public class TestWorker extends CompactorTest {
     // There should still now be 5 directories in the location
     FileSystem fs = FileSystem.get(conf);
     FileStatus[] stat = fs.listStatus(new Path(t.getSd().getLocation()));
+for (int i = 0; i < stat.length; i++) System.out.println("HERE: " + stat[i].getPath().toString());
     Assert.assertEquals(4, stat.length);
 
     // Find the new delta file and make sure it has the right contents
