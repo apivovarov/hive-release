@@ -35,6 +35,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.serializer.SerializationFactory;
@@ -152,14 +153,15 @@ public class CustomPartitionVertex implements VertexManagerPlugin {
        * TezGroupedSplits.
        */
 
-      // This assumes that Grouping will always be used. 
-      // Changing the InputFormat - so that the correct one is initialized in MRInput.
-      this.conf.set("mapred.input.format.class", TezGroupedSplitsInputFormat.class.getName());
-      MRInputUserPayloadProto updatedPayload = MRInputUserPayloadProto
-          .newBuilder(protoPayload)
-          .setConfigurationBytes(MRHelpers.createByteStringFromConf(conf))
-          .build();
-      inputDescriptor.setUserPayload(updatedPayload.toByteArray());
+      if (conf.getBoolean(HiveConf.ConfVars.ENABLE_CUSTOM_GROUPED_SPLITS.varname, true)) {
+        // Changing the InputFormat - so that the correct one is initialized in MRInput.
+        this.conf.set("mapred.input.format.class", TezGroupedSplitsInputFormat.class.getName());
+        MRInputUserPayloadProto updatedPayload = MRInputUserPayloadProto
+            .newBuilder(protoPayload)
+            .setConfigurationBytes(MRHelpers.createByteStringFromConf(conf))
+            .build();
+        inputDescriptor.setUserPayload(updatedPayload.toByteArray());
+      }
     } catch (IOException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -315,24 +317,25 @@ public class CustomPartitionVertex implements VertexManagerPlugin {
   }
 
   private void groupSplits () throws IOException {
-    estimateBucketSizes();
     bucketToGroupedSplitMap = 
-        ArrayListMultimap.<Integer, InputSplit>create(bucketToInitialSplitMap);
-    
-    Map<Integer, Collection<InputSplit>> bucketSplitMap = bucketToInitialSplitMap.asMap();
-    for (int bucketId : bucketSplitMap.keySet()) {
-      Collection<InputSplit>inputSplitCollection = bucketSplitMap.get(bucketId);
-      TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
+      ArrayListMultimap.<Integer, InputSplit>create(bucketToInitialSplitMap);
+    if (conf.getBoolean(HiveConf.ConfVars.ENABLE_CUSTOM_GROUPED_SPLITS.varname, true)) {
+      estimateBucketSizes();
+      Map<Integer, Collection<InputSplit>> bucketSplitMap = bucketToInitialSplitMap.asMap();
+      for (int bucketId : bucketSplitMap.keySet()) {
+        Collection<InputSplit>inputSplitCollection = bucketSplitMap.get(bucketId);
+        TezMapredSplitsGrouper grouper = new TezMapredSplitsGrouper();
 
-      InputSplit[] groupedSplits = grouper.getGroupedSplits(conf, 
-          inputSplitCollection.toArray(new InputSplit[0]), bucketToNumTaskMap.get(bucketId),
-          HiveInputFormat.class.getName());
-      LOG.info("Original split size is " + 
-          inputSplitCollection.toArray(new InputSplit[0]).length + 
-          " grouped split size is " + groupedSplits.length);
-      bucketToGroupedSplitMap.removeAll(bucketId);
-      for (InputSplit inSplit : groupedSplits) {
-        bucketToGroupedSplitMap.put(bucketId, inSplit);
+        InputSplit[] groupedSplits = grouper.getGroupedSplits(conf, 
+            inputSplitCollection.toArray(new InputSplit[0]), bucketToNumTaskMap.get(bucketId),
+            HiveInputFormat.class.getName());
+        LOG.info("Original split size is " + 
+            inputSplitCollection.toArray(new InputSplit[0]).length + 
+            " grouped split size is " + groupedSplits.length);
+        bucketToGroupedSplitMap.removeAll(bucketId);
+        for (InputSplit inSplit : groupedSplits) {
+          bucketToGroupedSplitMap.put(bucketId, inSplit);
+        }
       }
     }
   }

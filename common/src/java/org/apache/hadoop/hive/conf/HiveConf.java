@@ -1012,6 +1012,7 @@ public class HiveConf extends Configuration {
     // Check if a plan contains a Cross Product.
     // If there is one, output a warning to the Session's console.
     HIVE_CHECK_CROSS_PRODUCT("hive.exec.check.crossproducts", true),
+    ENABLE_CUSTOM_GROUPED_SPLITS("hive.enable.custom.grouped.spltis", true),
     ;
 
     public final String varname;

@@ -27,6 +27,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -56,12 +57,14 @@ import org.apache.hadoop.hive.ql.exec.mr.ExecMapper;
 import org.apache.hadoop.hive.ql.exec.mr.ExecReducer;
 import org.apache.hadoop.hive.ql.exec.tez.tools.TezMergedLogicalInput;
 import org.apache.hadoop.hive.ql.io.BucketizedHiveInputFormat;
+import org.apache.hadoop.hive.ql.io.CombineHiveInputFormat;
 import org.apache.hadoop.hive.ql.io.HiveInputFormat;
 import org.apache.hadoop.hive.ql.io.HiveKey;
 import org.apache.hadoop.hive.ql.io.HiveOutputFormatImpl;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.plan.BaseWork;
 import org.apache.hadoop.hive.ql.plan.MapWork;
+import org.apache.hadoop.hive.ql.plan.PartitionDesc;
 import org.apache.hadoop.hive.ql.plan.ReduceWork;
 import org.apache.hadoop.hive.ql.plan.TezEdgeProperty;
 import org.apache.hadoop.hive.ql.plan.TezEdgeProperty.EdgeType;
@@ -414,7 +417,7 @@ public class DagUtils {
     Vertex map = null;
 
     // use tez to combine splits
-    boolean useTezGroupedSplits = false;
+    boolean useTezGroupedSplits = true;
 
     int numTasks = -1;
     Class amSplitGeneratorClass = null;
@@ -430,7 +433,32 @@ public class DagUtils {
         }
       }
     }
+
+    // we cannot currently allow grouping of splits where each split is a
+    // different input format. Long term fix would be to have a custom input format
+    // logic that groups only the splits that share the same input format
+    Class<?> previousClass = null;
+    for (String path : mapWork.getPathToPartitionInfo().keySet()) {
+      PartitionDesc pd = mapWork.getPathToPartitionInfo().get(path);
+      Class<?> currentClass = pd.getInputFileFormatClass();
+      if (previousClass == null) {
+        previousClass = currentClass;
+      }
+      LOG.debug("Current class = "+currentClass+", previous class = "+previousClass+", verifying ");
+      if (currentClass != previousClass) {
+        useTezGroupedSplits = false;
+        break;
+      }
+    }
     if (vertexHasCustomInput) {
+      // if it is the case of different input formats for different partitions, we cannot group
+      // in the custom vertex for now. Long term, this can be improved to group the buckets that
+      // share the same input format.
+      if (useTezGroupedSplits == false) {
+        conf.setBoolean(HiveConf.ConfVars.ENABLE_CUSTOM_GROUPED_SPLITS.varname, false);
+      } else {
+        conf.setBoolean(HiveConf.ConfVars.ENABLE_CUSTOM_GROUPED_SPLITS.varname, true);
+      }
       useTezGroupedSplits = false;
       // grouping happens in execution phase. Setting the class to TezGroupedSplitsInputFormat 
       // here would cause pre-mature grouping which would be incorrect.
@@ -439,13 +467,17 @@ public class DagUtils {
       // mapreduce.tez.input.initializer.serialize.event.payload should be set to false when using
       // this plug-in to avoid getting a serialized event at run-time.
       conf.setBoolean("mapreduce.tez.input.initializer.serialize.event.payload", false);
-    } else {
+    } else if (useTezGroupedSplits) {
       // we'll set up tez to combine spits for us iff the input format
       // is HiveInputFormat
       if (inputFormatClass == HiveInputFormat.class) {
-        useTezGroupedSplits = true;
         conf.setClass("mapred.input.format.class", TezGroupedSplitsInputFormat.class, InputFormat.class);
+      } else {
+        conf.setClass("mapred.input.format.class", CombineHiveInputFormat.class, InputFormat.class);
+        useTezGroupedSplits = false;
       }
+    } else {
+      conf.setClass("mapred.input.format.class", CombineHiveInputFormat.class, InputFormat.class);
     }
 
     if (HiveConf.getBoolVar(conf, ConfVars.HIVE_AM_SPLIT_GENERATION)) {
