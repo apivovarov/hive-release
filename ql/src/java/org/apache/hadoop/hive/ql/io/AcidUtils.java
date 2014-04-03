@@ -317,7 +317,6 @@ public class AcidUtils {
     List<ParsedDelta> working = new ArrayList<ParsedDelta>();
     final List<FileStatus> original = new ArrayList<FileStatus>();
     final List<FileStatus> obsolete = new ArrayList<FileStatus>();
-    Path ignoredBase = null;
     List<FileStatus> children = SHIMS.listLocatedStatus(fs, directory,
         hiddenFileFilter);
     for(FileStatus child: children) {
@@ -325,20 +324,15 @@ public class AcidUtils {
       String fn = p.getName();
       if (fn.startsWith(BASE_PREFIX) && child.isDir()) {
         long txn = parseBase(p);
-        if (txnList.isTxnRangeCommitted(0, txn) !=
-            ValidTxnList.RangeResponse.ALL) {
-          ignoredBase = p;
+        if (bestBase == null) {
+          bestBase = child;
+          bestBaseTxn = txn;
+        } else if (bestBaseTxn < txn) {
+          obsolete.add(bestBase);
+          bestBase = child;
+          bestBaseTxn = txn;
         } else {
-          if (bestBase == null) {
-            bestBase = child;
-            bestBaseTxn = txn;
-          } else if (bestBaseTxn < txn) {
-            obsolete.add(bestBase);
-            bestBase = child;
-            bestBaseTxn = txn;
-          } else {
-            obsolete.add(child);
-          }
+          obsolete.add(child);
         }
       } else if (fn.startsWith(DELTA_PREFIX) && child.isDir()) {
         ParsedDelta delta = parseDelta(child);
@@ -350,13 +344,6 @@ public class AcidUtils {
       } else {
         findOriginals(fs, child, original);
       }
-    }
-
-    // Complain if all of the bases were too recent for the minimum excluded
-    // transaction.
-    if (bestBase == null && ignoredBase != null) {
-      throw new IllegalArgumentException("All base directories were ignored," +
-          " such as " + ignoredBase + " by " + txnList);
     }
 
     // if we have a base, the original files are obsolete.
