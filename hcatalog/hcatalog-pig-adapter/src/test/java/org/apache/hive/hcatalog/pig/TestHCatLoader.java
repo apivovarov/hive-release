@@ -611,10 +611,15 @@ public class TestHCatLoader {
             //note that here we ignore nanos part of Hive Timestamp since nanos are dropped when reading Hive from Pig by design
           }
           else {
-            assertTrue("rowNum=" + numTuplesRead + " colNum=" + colPos + " Reference data=" + referenceData + " actual=" +
-                t.get(colPos) + "; types=(" + referenceData.getClass() + "," + t.get(colPos).getClass() + ")",
-                referenceData.toString().equals(t.get(colPos).toString()));
-            //doing String comps here as value objects in Hive in Pig are different so equals() doesn't work
+            // If we reached here, the data must be identical, except for scenarios that allow bool-int conversions
+            // So, we first check if there is a comparison, and if there is, we assert equivalence there, and if
+            // not, then we check for .toString equality
+            if (!isBoolIntComparison(referenceData, t.get(colPos))){
+              assertTrue("rowNum=" + numTuplesRead + " colNum=" + colPos + " Reference data=" + referenceData + " actual=" +
+                  t.get(colPos) + "; types=(" + referenceData.getClass() + "," + t.get(colPos).getClass() + ")",
+                  referenceData.toString().equals(t.get(colPos).toString()));
+              //doing String comps here as value objects in Hive in Pig are different so equals() doesn't work
+            }
           }
           colPos++;
         }
@@ -622,6 +627,18 @@ public class TestHCatLoader {
       }
       assertTrue("Expected " + primitiveRows.length + "; found " + numTuplesRead, numTuplesRead == primitiveRows.length);
     }
+
+    // Helper method that attempts to check if a provided Integer and Boolean
+    // objects are equivalent.
+    private static boolean isBoolIntComparison(Object a, Object b) {
+      if ((a.getClass() == Boolean.class) && (b.getClass() == Integer.class)) {
+        return (((Integer)b == 1) == (Boolean)a);
+      } else if ((b.getClass() == Boolean.class) && (a.getClass() == Integer.class)) {
+        return (((Integer)a == 1) == (Boolean)b);
+      }
+      return false;
+    }
+
     private static void setupAllTypesTable(Driver driver) throws Exception {
       String[] primitiveData = new String[primitiveRows.length];
       for(int i = 0; i < primitiveRows.length; i++) {
