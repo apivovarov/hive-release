@@ -53,7 +53,9 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Shell;
 import org.apache.thrift.TException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -111,7 +113,7 @@ public class TestStreaming {
       }
       return new FileStatus(file.length(), file.isDirectory(), 1, 1024,
           file.lastModified(), file.lastModified(),
-          FsPermission.createImmutable(mod), "owen", "users", null, path);
+          FsPermission.createImmutable(mod), "owen", "users", path);
     }
   }
 
@@ -138,14 +140,14 @@ public class TestStreaming {
   private final String PART1_CONTINENT = "Asia";
   private final String PART1_COUNTRY = "India";
 
+  @Rule
+  public TemporaryFolder dbFolder = new TemporaryFolder();
 
-  //private Driver driver;
+
   public TestStreaming() throws Exception {
     partitionVals = new ArrayList<String>(2);
     partitionVals.add(PART1_CONTINENT);
     partitionVals.add(PART1_COUNTRY);
-
-    //port = MetaStoreUtils.findFreePort();
 
     conf = new HiveConf(this.getClass());
     conf.set("fs.raw.impl", RawFileSystem.class.getName());
@@ -170,10 +172,10 @@ public class TestStreaming {
   public void setup() throws Exception {
     // drop and recreate the necessary databases and tables
     dropDB(msClient, dbName);
-    createDbAndTable(msClient, dbName, tblName, partitionVals, conf);
+    createDbAndTable(msClient, dbName, tblName, partitionVals);
 
     dropDB(msClient, dbName2);
-    createDbAndTable(msClient, dbName2, tblName2, partitionVals, conf);
+    createDbAndTable(msClient, dbName2, tblName2, partitionVals);
   }
 
   private void printResults(ArrayList<String> res) {
@@ -660,7 +662,6 @@ public class TestStreaming {
     private String data;
 
     WriterThd(HiveEndPoint ep, String data) throws Exception {
-      String uri = "thrift://172.16.0.21:9083";
       this.ep = ep;
       writer = new DelimitedInputWriter(fieldNames, ",", ep);
       conn = ep.newConnection(false);
@@ -734,12 +735,13 @@ public class TestStreaming {
 
   }
 
-  public static void createDbAndTable(IMetaStoreClient client, String databaseName,
-                                      String tableName, List<String> partVals,
-                                      HiveConf conf)
+  public void createDbAndTable(IMetaStoreClient client, String databaseName,
+                               String tableName, List<String> partVals)
           throws Exception {
     Database db = new Database();
     db.setName(databaseName);
+    String dbLocation = "raw://" + dbFolder.newFolder(databaseName + ".db").getCanonicalPath();
+    db.setLocationUri(dbLocation);
     client.createDatabase(db);
 
     Table tbl = new Table();
@@ -749,10 +751,7 @@ public class TestStreaming {
     StorageDescriptor sd = new StorageDescriptor();
     sd.setCols(getTableColumns());
     sd.setNumBuckets(1);
-    Path root = new Path("raw:///tmp/streaming");
-    FileSystem fs = root.getFileSystem(conf);
-    fs.delete(root, true);
-    sd.setLocation(root + "/" + databaseName + "/" + tableName);
+    sd.setLocation(dbLocation + Path.SEPARATOR + tableName);
     tbl.setPartitionKeys(getPartitionKeys());
 
     tbl.setSd(sd);
@@ -779,26 +778,40 @@ public class TestStreaming {
     partLocation = createdPartition.getSd().getLocation();
   }
 
-  /*
-  private void descPart() throws CommandNeedRetryException, IOException {
-    driver.run("describe formatted " + dbName + "." + tblName);
-    ArrayList<String> res = new ArrayList<String>();
-    driver.getResults(res);
-    printResults(res);
-  }
-  */
-
-
   private static void addPartition(IMetaStoreClient client, Table tbl
           , List<String> partValues)
           throws IOException, TException {
     Partition part = new Partition();
-    part.setDbName(dbName);
+    part.setDbName(tbl.getDbName());
     part.setTableName(tblName);
-    part.setSd(tbl.getSd());
+    StorageDescriptor sd = new StorageDescriptor(tbl.getSd());
+    sd.setLocation(sd.getLocation() + Path.SEPARATOR + makePartPath(tbl.getPartitionKeys(), partValues));
+    part.setSd(sd);
     part.setValues(partValues);
     client.add_partition(part);
   }
+
+  private static String makePartPath(List<FieldSchema> partKeys, List<String> partVals) {
+    if(partKeys.size()!=partVals.size()) {
+      throw new IllegalArgumentException("Partition values:" + partVals + ", does not match the partition Keys in table :" + partKeys );
+    }
+    StringBuffer buff = new StringBuffer(partKeys.size()*20);
+    buff.append(" ( ");
+    int i=0;
+    for(FieldSchema schema : partKeys) {
+      buff.append(schema.getName());
+      buff.append("='");
+      buff.append(partVals.get(i));
+      buff.append("'");
+      if(i!=partKeys.size()-1) {
+        buff.append(Path.SEPARATOR);
+      }
+      ++i;
+    }
+    buff.append(" )");
+    return buff.toString();
+  }
+
 
   private static List<FieldSchema> getTableColumns() {
     List<FieldSchema> fields = new ArrayList<FieldSchema>();
