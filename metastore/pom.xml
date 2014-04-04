@@ -227,6 +227,18 @@
       <plugin>
         <groupId>org.datanucleus</groupId>
         <artifactId>datanucleus-maven-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>org.datanucleus</groupId>
+            <artifactId>datanucleus-core</artifactId>
+            <version>${datanucleus-core.version}</version>
+          </dependency>
+          <dependency>
+            <groupId>javax.jdo</groupId>
+            <artifactId>jdo-api</artifactId>
+            <version>${jdo-api.version}</version>
+          </dependency>
+        </dependencies>
         <configuration>
           <api>JDO</api>
           <verbose>true</verbose>
