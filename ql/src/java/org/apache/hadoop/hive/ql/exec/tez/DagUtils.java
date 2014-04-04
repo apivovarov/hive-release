@@ -43,7 +43,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -833,7 +832,6 @@ public class DagUtils {
    * @param conf
    * @return localresource from tez localization.
    * @throws IOException when any file system related calls fails.
-   * @throws InterruptedException 
    */
   public LocalResource localizeResource(Path src, Path dest, Configuration conf)
     throws IOException {
@@ -845,32 +843,8 @@ public class DagUtils {
     if (src != null) {
       if (!checkPreExisting(src, dest, conf)) {
         // copy the src to the destination and create local resource.
-        // do not overwrite.
-        try {
-          destFS.copyFromLocalFile(false, false, src, dest);
-        } catch (FileAlreadyExistsException e) {
-          int waitAttempts =
-              conf.getInt(HiveConf.ConfVars.HIVE_LOCALIZE_RESOURCE_NUM_WAIT_ATTEMPTS.varname,
-                  HiveConf.ConfVars.HIVE_LOCALIZE_RESOURCE_NUM_WAIT_ATTEMPTS.defaultIntVal);
-          long sleepInterval =
-              conf.getLong(HiveConf.ConfVars.HIVE_LOCALIZE_RESOURCE_WAIT_INTERVAL.varname,
-                  HiveConf.ConfVars.HIVE_LOCALIZE_RESOURCE_WAIT_INTERVAL.defaultLongVal);
-          LOG.info("Number of wait attempts: " + waitAttempts + ". Wait interval: "
-                  + sleepInterval);
-          for (int i = 0; i < waitAttempts; i++) {
-            if (!checkPreExisting(src, dest, conf)) {
-              try {
-                Thread.currentThread();
-                Thread.sleep(sleepInterval);
-              } catch (InterruptedException interruptedException) {
-                throw new IOException(interruptedException);
-              }
-            }
-          }
-          LOG.error("Could not find the jar that was being uploaded");
-          throw new IOException("Previous writer likely failed to write " + dest +
-              ". Failing because I am unlikely to write too.");
-        }
+        // overwrite even if file already exists.
+        destFS.copyFromLocalFile(false, true, src, dest);
       }
     }
 

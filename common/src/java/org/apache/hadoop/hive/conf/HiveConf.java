@@ -161,7 +161,7 @@ public class HiveConf extends Configuration {
     SCRIPTWRAPPER("hive.exec.script.wrapper", null),
     PLAN("hive.exec.plan", ""),
     PLAN_SERIALIZATION("hive.plan.serialization.format","kryo"),
-    SCRATCHDIR("hive.exec.scratchdir", "/tmp/hive-"),
+    SCRATCHDIR("hive.exec.scratchdir", "/tmp/hive-" + System.getProperty("user.name")),
     LOCALSCRATCHDIR("hive.exec.local.scratchdir", System.getProperty("java.io.tmpdir") + File.separator + System.getProperty("user.name")),
     SCRATCHDIRPERMISSION("hive.scratch.dir.permission", "700"),
     SUBMITVIACHILD("hive.exec.submitviachild", false),
@@ -1008,7 +1008,6 @@ public class HiveConf extends Configuration {
     //   Maintains division behavior: int / int => double
     // Setting to 0.13:
     HIVE_COMPAT("hive.compat", HiveCompat.DEFAULT_COMPAT_LEVEL),
-    HIVE_CONVERT_JOIN_BUCKET_MAPJOIN_TEZ("hive.convert.join.bucket.mapjoin.tez", false),
     HIVE_LOCALIZE_RESOURCE_WAIT_INTERVAL("hive.localize.resource.wait.interval", 5000L), // in ms
     HIVE_LOCALIZE_RESOURCE_NUM_WAIT_ATTEMPTS("hive.localize.resource.num.wait.attempts", 5),
 
@@ -1016,6 +1015,7 @@ public class HiveConf extends Configuration {
     // If there is one, output a warning to the Session's console.
     HIVE_CHECK_CROSS_PRODUCT("hive.exec.check.crossproducts", true),
     ENABLE_CUSTOM_GROUPED_SPLITS("hive.enable.custom.grouped.spltis", true),
+    HIVE_CONVERT_JOIN_BUCKET_MAPJOIN_TEZ("hive.convert.join.bucket.mapjoin.tez", false),
     ;
 
     public final String varname;

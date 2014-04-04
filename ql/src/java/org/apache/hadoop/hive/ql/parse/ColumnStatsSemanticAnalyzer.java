@@ -488,7 +488,7 @@ public class ColumnStatsSemanticAnalyzer extends SemanticAnalyzer {
     // Parse the rewritten query string
     try {
       ctx = new Context(conf);
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new SemanticException(ErrorMsg.COLUMNSTATSCOLLECTOR_IO_ERROR.getMsg());
     }
     ctx.setCmd(rewrittenQuery);
