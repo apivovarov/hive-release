@@ -150,7 +150,7 @@
     <zookeeper.version>3.4.5</zookeeper.version>
     <jpam.version>1.1</jpam.version>
     <joda-time.version>2.1</joda-time.version>
-    <surefire.timeout>3600</surefire.timeout>
+    <surefire.timeout>144000</surefire.timeout>
   </properties>
 
   <repositories>
