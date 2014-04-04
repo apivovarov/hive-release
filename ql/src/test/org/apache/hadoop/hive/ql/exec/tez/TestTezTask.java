@@ -33,6 +33,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.security.auth.login.LoginException;
 
@@ -161,7 +162,7 @@ public class TestTezTask {
     session = mock(TezSession.class);
     sessionState = mock(TezSessionState.class);
     when(sessionState.getSession()).thenReturn(session);
-    when(session.submitDAG(any(DAG.class))).thenThrow(new SessionNotRunning(""))
+    when(session.submitDAG(any(DAG.class), any(Map.class))).thenThrow(new SessionNotRunning(""))
       .thenReturn(mock(DAGClient.class));
   }
 
@@ -176,7 +177,7 @@ public class TestTezTask {
 
   @Test
   public void testBuildDag() throws IllegalArgumentException, IOException, Exception {
-    DAG dag = task.build(conf, work, path, appLr, new Context(conf));
+    DAG dag = task.build(conf, work, path, appLr, null, new Context(conf));
     for (BaseWork w: work.getAllWork()) {
       Vertex v = dag.getVertex(w.getName());
       assertNotNull(v);
@@ -196,7 +197,7 @@ public class TestTezTask {
 
   @Test
   public void testEmptyWork() throws IllegalArgumentException, IOException, Exception {
-    DAG dag = task.build(conf, new TezWork(""), path, appLr, new Context(conf));
+    DAG dag = task.build(conf, new TezWork(""), path, appLr, null, new Context(conf));
     assertEquals(dag.getVertices().size(), 0);
   }
 
@@ -204,11 +205,11 @@ public class TestTezTask {
   public void testSubmit() throws LoginException, IllegalArgumentException,
   IOException, TezException, InterruptedException, URISyntaxException, HiveException {
     DAG dag = new DAG("test");
-    task.submit(conf, dag, path, appLr, sessionState);
+    task.submit(conf, dag, path, appLr, null, sessionState);
     // validate close/reopen
-    verify(sessionState, times(1)).open(any(String.class), any(HiveConf.class));
+    verify(sessionState, times(1)).open(any(HiveConf.class));
     verify(sessionState, times(1)).close(eq(true));
-    verify(session, times(2)).submitDAG(any(DAG.class));
+    verify(session, times(2)).submitDAG(any(DAG.class), any(Map.class));
   }
 
   @Test

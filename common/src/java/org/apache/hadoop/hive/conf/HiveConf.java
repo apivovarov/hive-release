@@ -978,6 +978,9 @@ public class HiveConf extends Configuration {
     // Whether to generate the splits locally or in the AM (tez only)
     HIVE_AM_SPLIT_GENERATION("hive.compute.splits.in.am", true),
 
+    // Whether to re-localize jars for input formats and such w/o restarting AM (tez only)
+    TEZ_RELOCALIZE_JARS_FOR_AM("hive.tez.relocalize.am", true),
+
     HIVE_PREWARM_ENABLED("hive.prewarm.enabled", false),
     HIVE_PREWARM_NUM_CONTAINERS("hive.prewarm.numcontainers", 10),
 
