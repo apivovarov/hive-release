@@ -356,7 +356,7 @@ public class CustomPartitionVertex implements VertexManagerPlugin {
       bucketSizeMap.put(bucketId, size);
     }
 
-    int totalResource = context.getTotalAvailableResource().getMemory();
+    int totalResource = context.getTotalAVailableResource().getMemory();
     int taskResource = context.getVertexTaskResource().getMemory();
     float waves = conf.getFloat(
         TezConfiguration.TEZ_AM_GROUPING_SPLIT_WAVES,
