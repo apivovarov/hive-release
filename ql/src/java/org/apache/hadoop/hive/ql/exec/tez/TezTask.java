@@ -127,9 +127,7 @@ public class TezTask extends Task<TezWork> {
       // we will localize all the files (jars, plans, hashtables) to the
       // scratch dir. let's create this and tmp first.
       Path scratchDir = ctx.getMRScratchDir();
-
-      // create the tez tmp dir
-      scratchDir = utils.createTezDir(scratchDir, conf);
+      utils.createTezDir(scratchDir, conf);
 
       // we need to get the user specified local resources for this dag
       String hiveJarDir = utils.getHiveJarDirectory(conf);
@@ -219,7 +217,8 @@ public class TezTask extends Task<TezWork> {
     List<BaseWork> ws = work.getAllWork();
     Collections.reverse(ws);
 
-    FileSystem fs = scratchDir.getFileSystem(conf);
+    Path tezDir = utils.getTezDir(scratchDir);
+    FileSystem fs = tezDir.getFileSystem(conf);
 
     // the name of the dag is what is displayed in the AM/Job UI
     DAG dag = new DAG(work.getName());
@@ -274,7 +273,7 @@ public class TezTask extends Task<TezWork> {
       } else {
         // Regular vertices
         JobConf wxConf = utils.initializeVertexConf(conf, w);
-        Vertex wx = utils.createVertex(wxConf, w, scratchDir, appJarLr, 
+        Vertex wx = utils.createVertex(wxConf, w, tezDir, appJarLr, 
           additionalLr, fs, ctx, !isFinal, work);
         dag.addVertex(wx);
         utils.addCredentials(w, dag);
