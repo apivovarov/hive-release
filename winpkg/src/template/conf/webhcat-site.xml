@@ -57,7 +57,7 @@ limitations under the License.
 
   <property>
     <name>templeton.exec.envs</name>
-    <value>HADOOP_HOME,JAVA_HOME,HIVE_HOME,TEMP,HADOOP_BIN_PATH,PATH,SystemRoot</value>
+    <value>HADOOP_HOME,JAVA_HOME,HIVE_HOME,TEMP,HADOOP_BIN_PATH,PATH,SystemRoot,TEZ_CLASSPATH</value>
     <description>The environment variables passed through to exec.</description>
   </property>
 
