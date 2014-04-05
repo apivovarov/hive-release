@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.ql.QueryPlan;
 import org.apache.hadoop.hive.ql.exec.ExplainTask;
+import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineEvent;
@@ -49,7 +50,7 @@ public class ATSHook implements ExecuteWithHookContext {
   private final TimelineClient timelineClient;
   private enum EntityTypes { HIVE_QUERY_ID };
   private enum EventTypes { QUERY_SUBMITTED, QUERY_COMPLETED };
-  private enum OtherInfoTypes { query, status };
+  private enum OtherInfoTypes { query, status, tez, mapred };
   private enum PrimaryFilterTypes { user };
   private YarnConfiguration yarnConf;
   private static final int WAIT_TIME = 3;
@@ -88,6 +89,12 @@ public class ATSHook implements ExecuteWithHookContext {
             String queryId = plan.getQueryId();
             long queryStartTime = plan.getQueryStartTime();
             String user = hookContext.getUgi().getUserName();
+            int mrJobs = Utilities.getMRTasks(plan.getRootTasks()).size();
+            int tezJobs = Utilities.getTezTasks(plan.getRootTasks()).size();
+
+            if (mrJobs + tezJobs <= 0) {
+              return; // ignore client only queries
+            }
 
             switch(hookContext.getHookType()) {
             case PRE_EXEC_HOOK:
@@ -97,7 +104,7 @@ public class ATSHook implements ExecuteWithHookContext {
               JSONObject explainPlan = explain.getJSONPlan(null, null, plan.getRootTasks(),
                    plan.getFetchTask(), true, false, false);
               fireAndForget(hookContext.getConf(), createPreHookEvent(queryId, query,
-                   explainPlan, queryStartTime, user));
+                   explainPlan, queryStartTime, user, mrJobs, tezJobs));
               break;
             case POST_EXEC_HOOK:
               fireAndForget(hookContext.getConf(), createPostHookEvent(queryId, currentTime, user, true));
@@ -117,7 +124,7 @@ public class ATSHook implements ExecuteWithHookContext {
   }
 
   TimelineEntity createPreHookEvent(String queryId, String query, JSONObject explainPlan, 
-      long startTime, String user) throws Exception {
+      long startTime, String user, int mrJobs, int tezJobs) throws Exception {
 
     JSONObject queryObj = new JSONObject();
     queryObj.put("queryText", query);
@@ -139,6 +146,8 @@ public class ATSHook implements ExecuteWithHookContext {
     atsEntity.addEvent(startEvt);
 
     atsEntity.addOtherInfo(OtherInfoTypes.query.name(), queryObj.toString());
+    atsEntity.addOtherInfo(OtherInfoTypes.tez.name(), tezJobs > 0);
+    atsEntity.addOtherInfo(OtherInfoTypes.mapred.name(), mrJobs > 0);
     return atsEntity;
   }
 
