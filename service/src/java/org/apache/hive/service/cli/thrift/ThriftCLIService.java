@@ -220,7 +220,7 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
         clientIpAddress = TSetIpAddressProcessor.getUserIpAddress();
       }
     }
-    LOG.info("Client's IP Address: " + clientIpAddress);
+    LOG.debug("Client's IP Address: " + clientIpAddress);
     return clientIpAddress;
   }
 

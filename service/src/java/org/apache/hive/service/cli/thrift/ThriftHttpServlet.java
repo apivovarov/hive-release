@@ -88,12 +88,12 @@ public class ThriftHttpServlet extends TServlet {
       else {
         clientUserName = doPasswdAuth(request, authType);
       }
-      LOG.info("Client username: " + clientUserName);
+      LOG.debug("Client username: " + clientUserName);
       // Set the thread local username to be used for doAs if true
       SessionManager.setUserName(clientUserName);
       
-      clientIpAddress = request.getLocalAddr();
-      LOG.info("Client IP Address: " + clientIpAddress);
+      clientIpAddress = request.getRemoteAddr();
+      LOG.debug("Client IP Address: " + clientIpAddress);
       // Set the thread local ip address
       SessionManager.setIpAddress(clientIpAddress);
       
