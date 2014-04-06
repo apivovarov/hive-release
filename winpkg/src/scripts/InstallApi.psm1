@@ -168,7 +168,7 @@ function Install(
         ###
         $streamingJarUriPath = $ENV:HADOOP_HOME + "/share/hadoop/tools/lib/hadoop-streaming-@hadoop.version@.jar"
         $streamingJarUriPath = ConvertAbsolutePathToUri $streamingJarUriPath
-        $templetonLibJarsPath = $ENV:TEMPLETON_HOME + "/share/webhcat/svr/lib/zookeeper-@zookeeper.version@.jar"
+        $templetonLibJarsPath = $ENV:ZOOKEEPER_HOME + "/zookeeper-@zookeeper.version@.jar"
         $templetonLibJarsPath = ConvertAbsolutePathToUri $templetonLibJarsPath
         $templetonJar = "$ENV:TEMPLETON_HOME\share\webhcat\svr\lib\hive-webhcat-$WebHCatVersion.jar"
 
