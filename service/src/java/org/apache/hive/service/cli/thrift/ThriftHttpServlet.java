@@ -84,6 +84,7 @@ public class ThriftHttpServlet extends TServlet {
         if (doAsQueryParam != null) {
           SessionManager.setProxyUserName(doAsQueryParam);
         }
+
       }
       else {
         clientUserName = doPasswdAuth(request, authType);
