@@ -89,7 +89,6 @@ function Main( $scriptDir )
     ###
     ### Install and Configure Hive
     ###
-    Install "hive" $nodeInstallRoot $serviceCredential $hiveRoles
     if ((Test-Path ENV:IS_TEZ) -and ($ENV:IS_TEZ -ieq "yes"))
     {
       $locations = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment',
@@ -107,11 +106,14 @@ function Main( $scriptDir )
       }
       Write-Log "Setting HIVE_CLASSPATH to $ENV:TEZ_CLASSPATH at machine scope"
       [Environment]::SetEnvironmentVariable( "HIVE_CLASSPATH", "$ENV:TEZ_CLASSPATH", [EnvironmentVariableTarget]::Machine )
+      $ENV:HIVE_CLASSPATH = "$ENV:TEZ_CLASSPATH"
     }
     else
     {
       Write-Log "Not Setting HIVE_CLASSPATH to TEZ_CLASSPATH since TEZ is not enabled."
     }
+
+    Install "hive" $nodeInstallRoot $serviceCredential $hiveRoles
 
     Write-Log "Installation of Hive completed successfully"
     ###
