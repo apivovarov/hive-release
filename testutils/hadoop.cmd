@@ -137,6 +137,10 @@ set HADOOP_OPTS=%HADOOP_OPTS% -Dhadoop.log.dir=%HADOOP_LOG_DIR%
 set HADOOP_OPTS=%HADOOP_OPTS% -Dhadoop.log.file=%HADOOP_LOGFILE%
 set HADOOP_OPTS=%HADOOP_OPTS% -Dhadoop.root.logger=%HADOOP_ROOT_LOGGER%
 
+if defined HADOOP_HOME (
+  set HADOOP_OPTS=%HADOOP_OPTS% -Djava.library.path=%HADOOP_HOME%\bin
+)
+
 if defined HADOOP_PREFIX (
   set HADOOP_OPTS=%HADOOP_OPTS% -Dhadoop.home.dir=%HADOOP_PREFIX%
 )
