@@ -77,8 +77,6 @@ public class TezSessionState {
 
   private HashSet<String> additionalAmFiles = null;
 
-  private HashSet<String> additionalAmFiles = null;
-
   private static List<TezSessionState> openSessions
     = Collections.synchronizedList(new LinkedList<TezSessionState>());
 

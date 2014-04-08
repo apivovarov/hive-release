@@ -46,11 +46,6 @@ public class TestTezSessionState extends TezSessionState {
     this.sessionId = sessionId;
   }
 
-  public TestTezSessionState(String sessionId) {
-    super(sessionId);
-    this.sessionId = sessionId;
-  }
-
   @Override
     public boolean isOpen() {
       return open;
