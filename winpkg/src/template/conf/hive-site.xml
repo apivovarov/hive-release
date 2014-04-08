@@ -139,4 +139,59 @@
   <value>org.apache.hadoop.hive.ql.security.authorization.StorageBasedAuthorizationProvider</value>
 </property>
 
+<property>
+  <name>hive.optimize.mapjoin.mapreduce</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.enforce.bucketing</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.enforce.sorting</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.optimize.index.filter</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.mapred.reduce.tasks.speculative.execution</name>
+  <value>false</value>
+</property>
+
+<property>
+  <name>hive.orc.splits.include.file.footer</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.exec.local.cache</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.vectorized.execution.enabled</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.convert.join.bucket.mapjoin.tez</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.stats.dbclass</name>
+  <value>counter</value>
+</property>
+
+<property>
+  <name>hive.compute.query.using.stats</name>
+  <value>true</value>
+</property>
+
 </configuration>
