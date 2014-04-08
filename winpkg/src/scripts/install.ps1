@@ -190,9 +190,15 @@ function Main( $scriptDir )
     $pythonpath = Which python
     Write-Log "Using python from $pythonpath"
     $xmlFile = Join-Path $ENV:TEMPLETON_HOME "etc\webhcat\webhcat-site.xml"
+
+    $zookeeperNodes = $env:ZOOKEEPER_HOSTS.Replace(",",":2181,")
+    $zookeeperNodes = $zookeeperNodes + ":2181"
+
     UpdateXmlConfig $xmlFile @{
         "templeton.hive.properties" = "hive.metastore.local=false,hive.metastore.uris=thrift://${ENV:HIVE_SERVER_HOST}:9083";
-        "templeton.python" = "$pythonpath" }
+        "templeton.python" = "$pythonpath";
+        "templeton.storage.class" = "org.apache.hive.hcatalog.templeton.tool.ZooKeeperStorage";
+        "templeton.zookeeper.hosts" = "$zookeeperNodes"}
     Write-Log "Finished installing Apache Templeton"
 }
 
