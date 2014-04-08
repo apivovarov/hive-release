@@ -334,6 +334,9 @@ goto :EOF
 
 	set /a SERVICE_COUNT = %SERVICE_COUNT% + 1
 	set VAR%SERVICE_COUNT%=rcfilecat
+
+	set /a SERVICE_COUNT = %SERVICE_COUNT% + 1
+	set VAR%SERVICE_COUNT%=schematool
 goto :EOF
 
 :AddToAuxParam
