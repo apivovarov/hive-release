@@ -115,7 +115,11 @@ public class TezTask extends Task<TezWork> {
       // Need to remove this static hack. But this is the way currently to get a session.
       SessionState ss = SessionState.get();
       session = ss.getTezSession();
+<<<<<<< HEAD
       session = TezSessionPoolManager.getInstance().getSession(session, conf, canReloc);
+=======
+      session = TezSessionPoolManager.getInstance().getSession(session, conf, false);
+>>>>>>> upstream/branch-0.13
       ss.setTezSession(session);
 
       // jobConf will hold all the configuration for hadoop, tez, and hive
@@ -127,6 +131,7 @@ public class TezTask extends Task<TezWork> {
       // we will localize all the files (jars, plans, hashtables) to the
       // scratch dir. let's create this and tmp first.
       Path scratchDir = ctx.getMRScratchDir();
+<<<<<<< HEAD
       utils.createTezDir(scratchDir, conf);
 
       // we need to get the user specified local resources for this dag
@@ -140,6 +145,23 @@ public class TezTask extends Task<TezWork> {
       // If we have any jars from input format, we need to restart the session because
       // AM will need them; so, AM has to be restarted. What a mess...
       if (!canReloc && !session.hasResources(handlerLr)) {
+=======
+
+      // create the tez tmp dir
+      scratchDir = utils.createTezDir(scratchDir, conf);
+
+      // we need to get the user specified local resources for this dag
+      String hiveJarDir = utils.getHiveJarDirectory(conf);
+      List<LocalResource> additionalLr = utils.localizeTempFilesFromConf(hiveJarDir, conf);
+      List<LocalResource> handlerLr = utils.localizeTempFiles(hiveJarDir, conf, inputOutputJars);
+      if (handlerLr != null) {
+        additionalLr.addAll(handlerLr);
+      }
+
+      // If we have any jars from input format, we need to restart the session because
+      // AM will need them; so, AM has to be restarted. What a mess...
+      if (!session.hasResources(handlerLr)) {
+>>>>>>> upstream/branch-0.13
         if (session.isOpen()) {
           LOG.info("Tez session being reopened to pass custom jars to AM");
           session.close(false);
@@ -217,8 +239,7 @@ public class TezTask extends Task<TezWork> {
     List<BaseWork> ws = work.getAllWork();
     Collections.reverse(ws);
 
-    Path tezDir = utils.getTezDir(scratchDir);
-    FileSystem fs = tezDir.getFileSystem(conf);
+    FileSystem fs = scratchDir.getFileSystem(conf);
 
     // the name of the dag is what is displayed in the AM/Job UI
     DAG dag = new DAG(work.getName());
@@ -273,7 +294,7 @@ public class TezTask extends Task<TezWork> {
       } else {
         // Regular vertices
         JobConf wxConf = utils.initializeVertexConf(conf, w);
-        Vertex wx = utils.createVertex(wxConf, w, tezDir, appJarLr, 
+        Vertex wx = utils.createVertex(wxConf, w, scratchDir, appJarLr, 
           additionalLr, fs, ctx, !isFinal, work);
         dag.addVertex(wx);
         utils.addCredentials(w, dag);
