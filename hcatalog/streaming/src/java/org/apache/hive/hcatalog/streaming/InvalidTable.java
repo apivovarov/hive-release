@@ -24,10 +24,6 @@ public class InvalidTable extends StreamingException {
     return "Invalid table db:" + db + ", table:" + table;
   }
 
-  public InvalidTable(String db, String table, Exception cause) {
-    super(makeMsg(db,table), cause);
-  }
-
   public InvalidTable(String db, String table) {
     super(makeMsg(db,table), null);
   }

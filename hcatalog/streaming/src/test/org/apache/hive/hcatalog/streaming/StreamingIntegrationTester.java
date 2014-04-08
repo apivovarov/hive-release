@@ -155,7 +155,7 @@ public class StreamingIntegrationTester {
     options.addOption(OptionBuilder
             .hasArg(false)
             .withArgName("pause")
-            .withDescription("pause for keyboard input on every commit and batch close. disabled by default")
+            .withDescription("Wait on keyboard input after commit & batch close. default: disabled")
             .withLongOpt("pause")
             .create('x'));
 
@@ -165,11 +165,11 @@ public class StreamingIntegrationTester {
     try {
       cmdline = parser.parse(options, args);
     } catch (ParseException e) {
+      System.err.println(e.getMessage());
       usage(options);
     }
 
     boolean pause = cmdline.hasOption('x');
-//    String user = cmdline.getOptionValue('u');
     String db = cmdline.getOptionValue('d');
     String table = cmdline.getOptionValue('t');
     String uri = cmdline.getOptionValue('m');
@@ -198,7 +198,6 @@ public class StreamingIntegrationTester {
     System.exit(-1);
   }
 
-  private String user;
   private String db;
   private String table;
   private String uri;
@@ -239,15 +238,15 @@ public class StreamingIntegrationTester {
   private void go() {
     HiveEndPoint endPoint = null;
     try {
-      if(partVals == null) {
+      if (partVals == null) {
         endPoint = new HiveEndPoint(uri, db, table, null);
       } else {
         endPoint = new HiveEndPoint(uri, db, table, Arrays.asList(partVals));
       }
 
       for (int i = 0; i < writers; i++) {
-        Writer w = new Writer(endPoint, user, i, txnsPerBatch, batches, recordsPerTxn, frequency,
-            abortPct, abandonPct, cols, types, pause);
+        Writer w = new Writer(endPoint, i, txnsPerBatch, batches, recordsPerTxn, frequency, abortPct,
+                abandonPct, cols, types, pause);
         w.start();
       }
 
@@ -258,7 +257,6 @@ public class StreamingIntegrationTester {
 
   private static class Writer extends Thread {
     private HiveEndPoint endPoint;
-    private final String user;
     private int txnsPerBatch;
     private int batches;
     private int writerNumber;
@@ -271,11 +269,10 @@ public class StreamingIntegrationTester {
     private boolean pause;
     private Random rand;
 
-    Writer(HiveEndPoint endPoint, String user, int writerNumber, int txnsPerBatch, int batches,
+    Writer(HiveEndPoint endPoint, int writerNumber, int txnsPerBatch, int batches,
            int recordsPerTxn, int frequency, float abortPct, float abandonPct, String[] cols,
            String[] types, boolean pause) {
       this.endPoint = endPoint;
-      this.user = user;
       this.txnsPerBatch = txnsPerBatch;
       this.batches = batches;
       this.writerNumber = writerNumber;
@@ -308,9 +305,11 @@ public class StreamingIntegrationTester {
               }
               if (rand.nextFloat() < abortPct) batch.abort();
               else if (rand.nextFloat() < abandonPct) continue;
-              else batch.commit();
-              if(pause) {
-                System.out.println("Writer " + writerNumber + " committed... press Enter to continue. " + Thread.currentThread().getId());
+              else
+              batch.commit();
+              if (pause) {
+                System.out.println("Writer " + writerNumber +
+                        " committed... press Enter to continue. " + Thread.currentThread().getId());
                 System.in.read();
               }
             }
@@ -318,17 +317,18 @@ public class StreamingIntegrationTester {
             if (end - start < frequency) Thread.sleep(frequency - (end - start));
           } finally {
             batch.close();
-            if(pause) {
-              System.out.println("Writer " + writerNumber + " has closed a Batch.. press Enter to continue. " + Thread.currentThread().getId());
+            if (pause) {
+              System.out.println("Writer " + writerNumber +
+                  " has closed a Batch.. press Enter to continue. " + Thread.currentThread().getId());
               System.in.read();
             }
           }
         }
       } catch (Throwable t) {
-       System.err.println("Writer number " + writerNumber + " caught exception while testing: " +
-           StringUtils.stringifyException(t));
+       System.err.println("Writer number " + writerNumber
+               + " caught exception while testing: " + StringUtils.stringifyException(t));
       } finally {
-        if(conn!=null) conn.close();
+        if (conn!=null) conn.close();
       }
     }
 

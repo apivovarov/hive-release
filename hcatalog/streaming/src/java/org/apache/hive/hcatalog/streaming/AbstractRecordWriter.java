@@ -29,9 +29,9 @@ import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.ql.io.AcidOutputFormat;
 import org.apache.hadoop.hive.ql.io.RecordUpdater;
-import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.thrift.TException;
 
 import java.io.IOException;
@@ -53,7 +53,7 @@ abstract class AbstractRecordWriter implements RecordWriter {
   private int currentBucketId = 0;
   private final Path partitionPath;
 
-  final OrcOutputFormat outf = new OrcOutputFormat();
+  final AcidOutputFormat<?> outf;
 
   protected AbstractRecordWriter(HiveEndPoint endPoint)
           throws ConnectionError, StreamingException {
@@ -66,13 +66,18 @@ abstract class AbstractRecordWriter implements RecordWriter {
       this.partitionPath = getPathForEndPoint(msClient, endPoint);
       this.totalBuckets = tbl.getSd().getNumBuckets();
       if(totalBuckets <= 0) {
-        throw new StreamingException("Cannot stream to table that has not been bucketed : " + endPoint);
+        throw new StreamingException("Cannot stream to table that has not been bucketed : "
+                + endPoint);
       }
+      String outFormatName = this.tbl.getSd().getOutputFormat();
+      outf = (AcidOutputFormat<?>) ReflectionUtils.newInstance(Class.forName(outFormatName), conf);
     } catch (MetaException e) {
       throw new ConnectionError(endPoint, e);
     } catch (NoSuchObjectException e) {
       throw new ConnectionError(endPoint, e);
     } catch (TException e) {
+      throw new StreamingException(e.getMessage(), e);
+    } catch (ClassNotFoundException e) {
       throw new StreamingException(e.getMessage(), e);
     }
 
@@ -91,13 +96,12 @@ abstract class AbstractRecordWriter implements RecordWriter {
 
   @Override
   public void clear() throws StreamingIOFailure {
-    return;
   }
 
   /**
    * Creates a new record updater for the new batch
-   * @param minTxnId
-   * @param maxTxnID
+   * @param minTxnId smallest Txnid in the batch
+   * @param maxTxnID largest Txnid in the batch
    * @throws StreamingIOFailure if failed to create record updater
    */
   @Override

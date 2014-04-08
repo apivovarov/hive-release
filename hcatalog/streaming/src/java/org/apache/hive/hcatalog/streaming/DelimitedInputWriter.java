@@ -239,7 +239,7 @@ public class DelimitedInputWriter extends AbstractRecordWriter {
   private ArrayList<String> getCols(Table table) {
     List<FieldSchema> cols = table.getSd().getCols();
     ArrayList<String> colNames = new ArrayList<String>(cols.size());
-    for(FieldSchema col : cols) {
+    for (FieldSchema col : cols) {
       colNames.add(col.getName().toLowerCase());
     }
     return  colNames;

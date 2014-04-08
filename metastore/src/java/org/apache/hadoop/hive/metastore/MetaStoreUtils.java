@@ -1052,24 +1052,6 @@ public class MetaStoreUtils {
     loopUntilHMSReady(port);
   }
 
-  public static void startMetaStore(final int port,
-                                    final HadoopThriftAuthBridge bridge, final HiveConf conf) throws Exception {
-    Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          HiveMetaStore.startMetaStore(port, bridge, conf, null, null, null);
-        } catch (Throwable e) {
-          LOG.error("Metastore Thrift Server threw an exception...",e);
-        }
-      }
-    });
-    thread.setDaemon(true);
-    thread.start();
-    loopUntilHMSReady(port);
-  }
-
-
   /**
    * A simple connect test to make sure that the metastore is up
    * @throws Exception

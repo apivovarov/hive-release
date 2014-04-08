@@ -70,20 +70,22 @@ public class HiveEndPoint {
    * @param metaStoreUri   URI of the metastore to connect to eg: thrift://localhost:9083
    * @param database       Name of the Hive database
    * @param table          Name of table to stream to
-   * @param partitionVals  Indicates the specific partition to stream to. Can be null or empty List if streaming to a
-   *                       table without partitions. The order of values in this list must correspond exactly to the
-   *                       order of partition columns specified during the table creation. E.g. For a table partitioned
-   *                       by (continent string, country string), partitionVals could be the list ("Asia", "India").
+   * @param partitionVals  Indicates the specific partition to stream to. Can be null or empty List
+   *                       if streaming to a table without partitions. The order of values in this
+   *                       list must correspond exactly to the order of partition columns specified
+   *                       during the table creation. E.g. For a table partitioned by
+   *                       (continent string, country string), partitionVals could be the list
+   *                       ("Asia", "India").
    */
   public HiveEndPoint(String metaStoreUri
           , String database, String table, List<String> partitionVals) {
     this.metaStoreUri = metaStoreUri;
-    if(database==null) {
+    if (database==null) {
       throw new IllegalArgumentException("Database cannot be null for HiveEndPoint");
     }
     this.database = database;
     this.table = table;
-    if(table==null) {
+    if (table==null) {
       throw new IllegalArgumentException("Table cannot be null for HiveEndPoint");
     }
     this.partitionVals = partitionVals==null ? new ArrayList<String>()
@@ -109,12 +111,12 @@ public class HiveEndPoint {
     return newConnection(null, createPartIfNotExists);
   }
 
-  //TODO: make this function public once proxyUser is fully supported
   /**
    * Acquire a new connection to MetaStore for streaming
    * @param proxyUser User on whose behalf all hdfs and hive operations will be
    *                  performed on this connection. Set it to null or empty string
    *                  to connect as user of current process without impersonation.
+   *                  Currently this argument is not supported and must be null
    * @param createPartIfNotExists If true, the partition specified in the endpoint
    *                              will be auto created if it does not exist
    * @return
@@ -125,9 +127,10 @@ public class HiveEndPoint {
    * @throws PartitionCreationFailed if failed to create partition
    * @throws InterruptedException
    */
-  private StreamingConnection newConnection(final String proxyUser, final boolean createPartIfNotExists)
-          throws ConnectionError, InvalidPartition, InvalidTable, PartitionCreationFailed
-          , ImpersonationFailed , InterruptedException {
+  private StreamingConnection newConnection(final String proxyUser,
+                                            final boolean createPartIfNotExists)
+          throws ConnectionError, InvalidPartition,
+               InvalidTable, PartitionCreationFailed, ImpersonationFailed , InterruptedException {
     if (proxyUser ==null || proxyUser.trim().isEmpty() ) {
       return newConnectionImpl(System.getProperty("user.name"), null, createPartIfNotExists);
     }
@@ -177,12 +180,12 @@ public class HiveEndPoint {
 
     HiveEndPoint endPoint = (HiveEndPoint) o;
 
-    if ( database != null
+    if (database != null
             ? !database.equals(endPoint.database)
             : endPoint.database != null ) {
       return false;
     }
-    if ( metaStoreUri != null
+    if (metaStoreUri != null
             ? !metaStoreUri.equals(endPoint.metaStoreUri)
             : endPoint.metaStoreUri != null ) {
       return false;
@@ -242,7 +245,7 @@ public class HiveEndPoint {
       this.endPt = endPoint;
       this.ugi = ugi;
       this.msClient = getMetaStoreClient(endPoint, conf);
-      if(createPart  &&  !endPoint.partitionVals.isEmpty()) {
+      if (createPart  &&  !endPoint.partitionVals.isEmpty()) {
         createPartitionIfNotExists(endPoint, msClient, conf);
       }
     }
@@ -252,7 +255,7 @@ public class HiveEndPoint {
      */
     @Override
     public void close() {
-      if(ugi==null) {
+      if (ugi==null) {
         msClient.close();
         return;
       }
@@ -289,8 +292,9 @@ public class HiveEndPoint {
      */
     public TransactionBatch fetchTransactionBatch(final int numTransactions,
                                                       final RecordWriter recordWriter)
-            throws StreamingException, TransactionBatchUnAvailable, ImpersonationFailed, InterruptedException {
-      if(ugi==null) {
+            throws StreamingException, TransactionBatchUnAvailable, ImpersonationFailed
+                  , InterruptedException {
+      if (ugi==null) {
         return fetchTransactionBatchImpl(numTransactions, recordWriter);
       }
       try {
@@ -311,21 +315,22 @@ public class HiveEndPoint {
     private TransactionBatch fetchTransactionBatchImpl(int numTransactions,
                                                   RecordWriter recordWriter)
             throws StreamingException, TransactionBatchUnAvailable {
-      return new TransactionBatchImpl(proxyUser, ugi, endPt, numTransactions, msClient, recordWriter);
+      return new TransactionBatchImpl(proxyUser, ugi, endPt, numTransactions, msClient
+              , recordWriter);
     }
 
 
     private static void createPartitionIfNotExists(HiveEndPoint ep,
                                                    IMetaStoreClient msClient, HiveConf conf)
             throws InvalidTable, PartitionCreationFailed {
-      if(ep.partitionVals.isEmpty()) {
+      if (ep.partitionVals.isEmpty()) {
         return;
       }
       SessionState state = SessionState.start(new CliSessionState(conf));
       Driver driver = new Driver(conf);
 
       try {
-        if(LOG.isDebugEnabled()) {
+        if (LOG.isDebugEnabled()) {
           LOG.debug("Attempting to create partition (if not existent) " + ep);
         }
 
@@ -359,15 +364,15 @@ public class HiveEndPoint {
 
     private static boolean runDDL(Driver driver, String sql) throws QueryFailedException {
       int retryCount = 1; // # of times to retry if first attempt fails
-      for(int attempt=0; attempt<=retryCount; ++attempt) {
+      for (int attempt=0; attempt<=retryCount; ++attempt) {
         try {
-          if(LOG.isDebugEnabled()) {
+          if (LOG.isDebugEnabled()) {
             LOG.debug("Running Hive Query: "+ sql);
           }
           driver.run(sql);
           return true;
         } catch (CommandNeedRetryException e) {
-          if(attempt==retryCount) {
+          if (attempt==retryCount) {
             throw new QueryFailedException(sql, e);
           }
           continue;
@@ -377,18 +382,19 @@ public class HiveEndPoint {
     }
 
     private static String partSpecStr(List<FieldSchema> partKeys, ArrayList<String> partVals) {
-      if(partKeys.size()!=partVals.size()) {
-        throw new IllegalArgumentException("Partition values:" + partVals + ", does not match the partition Keys in table :" + partKeys );
+      if (partKeys.size()!=partVals.size()) {
+        throw new IllegalArgumentException("Partition values:" + partVals +
+                ", does not match the partition Keys in table :" + partKeys );
       }
       StringBuffer buff = new StringBuffer(partKeys.size()*20);
       buff.append(" ( ");
       int i=0;
-      for(FieldSchema schema : partKeys) {
+      for (FieldSchema schema : partKeys) {
         buff.append(schema.getName());
         buff.append("='");
         buff.append(partVals.get(i));
         buff.append("'");
-        if(i!=partKeys.size()-1) {
+        if (i!=partKeys.size()-1) {
           buff.append(",");
         }
         ++i;
@@ -400,7 +406,7 @@ public class HiveEndPoint {
     private static IMetaStoreClient getMetaStoreClient(HiveEndPoint endPoint, HiveConf conf)
             throws ConnectionError {
 
-      if(endPoint.metaStoreUri!= null) {
+      if (endPoint.metaStoreUri!= null) {
         conf.setVar(HiveConf.ConfVars.METASTOREURIS, endPoint.metaStoreUri);
       }
 
@@ -445,7 +451,7 @@ public class HiveEndPoint {
               , int numTxns, IMetaStoreClient msClient, RecordWriter recordWriter)
             throws StreamingException, TransactionBatchUnAvailable {
       try {
-        if( endPt.partitionVals!=null   &&   !endPt.partitionVals.isEmpty() ) {
+        if ( endPt.partitionVals!=null   &&   !endPt.partitionVals.isEmpty() ) {
           Table tableObj = msClient.getTable(endPt.database, endPt.table);
           List<FieldSchema> partKeys = tableObj.getPartitionKeys();
           partNameForLock = Warehouse.makePartName(partKeys, endPt.partitionVals);
@@ -468,10 +474,11 @@ public class HiveEndPoint {
 
     @Override
     public String toString() {
-      if(txnIds==null || txnIds.isEmpty()) {
+      if (txnIds==null || txnIds.isEmpty()) {
         return "{}";
       }
-      return "TxnIds=[" + txnIds.get(0) + "src/gen/thrift" + txnIds.get(txnIds.size()-1)  + "] on endPoint= " + endPt;
+      return "TxnIds=[" + txnIds.get(0) + "src/gen/thrift" + txnIds.get(txnIds.size()-1)
+              + "] on endPoint= " + endPt;
     }
 
     /**
@@ -481,7 +488,7 @@ public class HiveEndPoint {
     @Override
     public void beginNextTransaction() throws TransactionError, ImpersonationFailed,
             InterruptedException {
-      if(ugi==null) {
+      if (ugi==null) {
         beginNextTransactionImpl();
         return;
       }
@@ -502,14 +509,14 @@ public class HiveEndPoint {
     }
 
     private void beginNextTransactionImpl() throws TransactionError {
-      if( currentTxnIndex >= txnIds.size() )
+      if ( currentTxnIndex >= txnIds.size() )
         throw new InvalidTrasactionState("No more transactions available in" +
                 " current batch for end point : " + endPt);
       ++currentTxnIndex;
       lockRequest = createLockRequest(endPt, partNameForLock, proxyUser, getCurrentTxnId());
       try {
         LockResponse res = msClient.lock(lockRequest);
-        if(res.getState() != LockState.ACQUIRED) {
+        if (res.getState() != LockState.ACQUIRED) {
           throw new TransactionError("Unable to acquire lock on " + endPt);
         }
       } catch (TException e) {
@@ -544,7 +551,7 @@ public class HiveEndPoint {
      */
     @Override
     public int remainingTransactions() {
-      if(currentTxnIndex>=0) {
+      if (currentTxnIndex>=0) {
         return txnIds.size() - currentTxnIndex -1;
       }
       return txnIds.size();
@@ -563,8 +570,8 @@ public class HiveEndPoint {
     public void write(final byte[] record)
             throws StreamingException, InterruptedException,
             ImpersonationFailed {
-      if(ugi==null) {
-        writeImpl(record);
+      if (ugi==null) {
+        recordWriter.write(getCurrentTxnId(), record);
         return;
       }
       try {
@@ -572,7 +579,7 @@ public class HiveEndPoint {
             new PrivilegedExceptionAction<Void>() {
               @Override
               public Void run() throws StreamingException {
-                writeImpl(record);
+                recordWriter.write(getCurrentTxnId(), record);
                 return null;
               }
             }
@@ -582,11 +589,6 @@ public class HiveEndPoint {
                 "' when writing to endPoint :" + endPt + ". Transaction Id: "
                 + getCurrentTxnId(), e);
       }
-    }
-
-    public void writeImpl(byte[] record)
-            throws StreamingException {
-      recordWriter.write(getCurrentTxnId(), record);
     }
 
 
@@ -601,7 +603,7 @@ public class HiveEndPoint {
     public void write(final Collection<byte[]> records)
             throws StreamingException, InterruptedException,
             ImpersonationFailed {
-      if(ugi==null) {
+      if (ugi==null) {
         writeImpl(records);
         return;
       }
@@ -624,8 +626,8 @@ public class HiveEndPoint {
 
     private void writeImpl(Collection<byte[]> records)
             throws StreamingException {
-      for(byte[] record : records) {
-        writeImpl(record);
+      for (byte[] record : records) {
+        recordWriter.write(getCurrentTxnId(), record);
       }
     }
 
@@ -640,7 +642,7 @@ public class HiveEndPoint {
     @Override
     public void commit()  throws TransactionError, StreamingException,
            ImpersonationFailed, InterruptedException {
-      if(ugi==null) {
+      if (ugi==null) {
         commitImpl();
         return;
       }
@@ -686,7 +688,7 @@ public class HiveEndPoint {
     @Override
     public void abort() throws TransactionError, StreamingException
                       , ImpersonationFailed, InterruptedException {
-      if(ugi==null) {
+      if (ugi==null) {
         abortImpl();
         return;
       }
@@ -727,7 +729,7 @@ public class HiveEndPoint {
       Long last = txnIds.get(txnIds.size()-1);
       try {
         HeartbeatTxnRangeResponse resp = msClient.heartbeatTxnRange(first, last);
-        if(!resp.getAborted().isEmpty() || !resp.getNosuch().isEmpty()) {
+        if (!resp.getAborted().isEmpty() || !resp.getNosuch().isEmpty()) {
           throw new HeartBeatFailure(resp.getAborted(), resp.getNosuch());
         }
       } catch (TException e) {
@@ -742,7 +744,7 @@ public class HiveEndPoint {
      */
     @Override
     public void close() throws StreamingException, ImpersonationFailed, InterruptedException {
-      if(ugi==null) {
+      if (ugi==null) {
         state = TxnState.INACTIVE;
         recordWriter.closeBatch();
         return;
@@ -774,7 +776,7 @@ public class HiveEndPoint {
               .setDbName(hiveEndPoint.database)
               .setTableName(hiveEndPoint.table)
               .setShared();
-      if(partNameForLock!=null && !partNameForLock.isEmpty() ) {
+      if (partNameForLock!=null && !partNameForLock.isEmpty() ) {
           lockCompBuilder.setPartitionName(partNameForLock);
       }
       rqstBuilder.addLockComponent(lockCompBuilder.build());
@@ -789,7 +791,7 @@ public class HiveEndPoint {
             "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager");
     conf.setBoolVar(HiveConf.ConfVars.HIVE_SUPPORT_CONCURRENCY, true);
     conf.setBoolVar(HiveConf.ConfVars.METASTORE_EXECUTE_SET_UGI, true);
-    if(metaStoreUri!= null) {
+    if (metaStoreUri!= null) {
       conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreUri);
     }
     return conf;

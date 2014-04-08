@@ -49,7 +49,6 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.util.Shell;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -85,13 +84,6 @@ public class TestStreaming {
       return NAME;
     }
 
-    static String execCommand(File f, String... cmd) throws IOException {
-      String[] args = new String[cmd.length + 1];
-      System.arraycopy(cmd, 0, args, 0, cmd.length);
-      args[cmd.length] = f.getCanonicalPath();
-      String output = Shell.execCommand(args);
-      return output;
-    }
 
     @Override
     public FileStatus getFileStatus(Path path) throws IOException {
@@ -151,7 +143,7 @@ public class TestStreaming {
     conf = new HiveConf(this.getClass());
     conf.set("fs.raw.impl", RawFileSystem.class.getName());
     TxnDbUtil.setConfValues(conf);
-    if(metaStoreURI!=null) {
+    if (metaStoreURI!=null) {
       conf.setVar(HiveConf.ConfVars.METASTOREURIS, metaStoreURI);
     }
     conf.setBoolVar(HiveConf.ConfVars.METASTORE_EXECUTE_SET_UGI, true);
@@ -163,8 +155,6 @@ public class TestStreaming {
 
     //2) obtain metastore clients
     msClient = new HiveMetaStoreClient(conf);
-    //SessionState.start(new CliSessionState(conf));
-    //driver = new Driver(conf);
   }
 
   @Before
@@ -175,13 +165,6 @@ public class TestStreaming {
 
     dropDB(msClient, dbName2);
     createDbAndTable(msClient, dbName2, tblName2, partitionVals);
-  }
-
-  private void printResults(ArrayList<String> res) {
-    for(String s: res) {
-      System.out.println(s);
-    }
-    System.out.println("Total records: " + res.size());
   }
 
   private static List<FieldSchema> getPartitionKeys() {
@@ -225,7 +208,7 @@ public class TestStreaming {
 
     NullWritable key = rr.createKey();
     OrcStruct value = rr.createValue();
-    for(int i = 0; i < records.length; i++) {
+    for (int i = 0; i < records.length; i++) {
       Assert.assertEquals(true, rr.next(key, value));
       Assert.assertEquals(records[i], value.toString());
     }
@@ -438,7 +421,7 @@ public class TestStreaming {
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
     int batch=0;
     int initialCount = txnBatch.remainingTransactions();
-    while(txnBatch.remainingTransactions()>0) {
+    while (txnBatch.remainingTransactions()>0) {
       txnBatch.beginNextTransaction();
       Assert.assertEquals(--initialCount, txnBatch.remainingTransactions());
       for (int rec=0; rec<2; ++rec) {
@@ -461,7 +444,7 @@ public class TestStreaming {
     txnBatch =  connection.fetchTransactionBatch(10, writer);
     batch=0;
     initialCount = txnBatch.remainingTransactions();
-    while(txnBatch.remainingTransactions()>0) {
+    while (txnBatch.remainingTransactions()>0) {
       txnBatch.beginNextTransaction();
       Assert.assertEquals(--initialCount,txnBatch.remainingTransactions());
       for (int rec=0; rec<2; ++rec) {
@@ -667,18 +650,12 @@ public class TestStreaming {
       this.data = data;
     }
 
-    WriterThd(StreamingConnection conn, HiveEndPoint ep, DelimitedInputWriter writer, String data) {
-      this.conn = conn;
-      this.ep = ep;
-      this.writer = writer;
-      this.data = data;
-    }
     @Override
     public void run() {
       TransactionBatch txnBatch = null;
       try {
         txnBatch =  conn.fetchTransactionBatch(1000, writer);
-        while(txnBatch.remainingTransactions() > 0) {
+        while (txnBatch.remainingTransactions() > 0) {
           txnBatch.beginNextTransaction();
           txnBatch.write(data.getBytes());
           txnBatch.write(data.getBytes());
@@ -725,7 +702,7 @@ public class TestStreaming {
   // delete db and all tables in it
   public static void dropDB(IMetaStoreClient client, String databaseName) {
     try {
-      for(String table : client.listTableNamesByFilter(databaseName, "", (short)-1)) {
+      for (String table : client.listTableNamesByFilter(databaseName, "", (short)-1)) {
         client.dropTable(databaseName, table, true, true);
       }
       client.dropDatabase(databaseName);
@@ -784,25 +761,27 @@ public class TestStreaming {
     part.setDbName(tbl.getDbName());
     part.setTableName(tblName);
     StorageDescriptor sd = new StorageDescriptor(tbl.getSd());
-    sd.setLocation(sd.getLocation() + Path.SEPARATOR + makePartPath(tbl.getPartitionKeys(), partValues));
+    sd.setLocation(sd.getLocation() + Path.SEPARATOR + makePartPath(tbl.getPartitionKeys()
+            , partValues));
     part.setSd(sd);
     part.setValues(partValues);
     client.add_partition(part);
   }
 
   private static String makePartPath(List<FieldSchema> partKeys, List<String> partVals) {
-    if(partKeys.size()!=partVals.size()) {
-      throw new IllegalArgumentException("Partition values:" + partVals + ", does not match the partition Keys in table :" + partKeys );
+    if (partKeys.size()!=partVals.size()) {
+      throw new IllegalArgumentException("Partition values:" + partVals
+              + ", does not match the partition Keys in table :" + partKeys );
     }
     StringBuffer buff = new StringBuffer(partKeys.size()*20);
     buff.append(" ( ");
     int i=0;
-    for(FieldSchema schema : partKeys) {
+    for (FieldSchema schema : partKeys) {
       buff.append(schema.getName());
       buff.append("='");
       buff.append(partVals.get(i));
       buff.append("'");
-      if(i!=partKeys.size()-1) {
+      if (i!=partKeys.size()-1) {
         buff.append(Path.SEPARATOR);
       }
       ++i;

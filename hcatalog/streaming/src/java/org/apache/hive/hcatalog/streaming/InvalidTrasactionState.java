@@ -23,7 +23,4 @@ public class InvalidTrasactionState extends TransactionError {
     super(msg);
   }
 
-  public InvalidTrasactionState(String msg, Exception e) {
-    super(msg,e);
-  }
 }

@@ -22,8 +22,4 @@ public class PartitionCreationFailed extends StreamingException {
   public PartitionCreationFailed(HiveEndPoint endPoint, Exception cause) {
     super("Failed to create partition " + endPoint, cause);
   }
-
-  public PartitionCreationFailed(String msg, Exception cause) {
-    super(msg, cause);
-  }
 }
