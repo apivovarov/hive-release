@@ -60,7 +60,6 @@ public class HiveEndPoint {
   public final String database;
   public final String table;
   public final ArrayList<String> partitionVals;
-  public final HiveConf conf;
 
 
   static final private Log LOG = LogFactory.getLog(HiveEndPoint.class.getName());
@@ -90,8 +89,8 @@ public class HiveEndPoint {
     }
     this.partitionVals = partitionVals==null ? new ArrayList<String>()
                                              : new ArrayList<String>( partitionVals );
-    this.conf = createHiveConf(this.getClass(),metaStoreUri);
   }
+
 
   /**
    * Acquire a new connection to MetaStore for streaming
@@ -108,7 +107,26 @@ public class HiveEndPoint {
   public StreamingConnection newConnection(final boolean createPartIfNotExists)
           throws ConnectionError, InvalidPartition, InvalidTable, PartitionCreationFailed
           , ImpersonationFailed , InterruptedException {
-    return newConnection(null, createPartIfNotExists);
+    return newConnection(null, createPartIfNotExists, null);
+  }
+
+  /**
+   * Acquire a new connection to MetaStore for streaming
+   * @param createPartIfNotExists If true, the partition specified in the endpoint
+   *                              will be auto created if it does not exist
+   * @param conf HiveConf object, set it to null if not using advanced hive settings.
+   * @return
+   * @throws ConnectionError if problem connecting
+   * @throws InvalidPartition  if specified partition is not valid (createPartIfNotExists = false)
+   * @throws ImpersonationFailed  if not able to impersonate 'proxyUser'
+   * @throws IOException  if there was an I/O error when acquiring connection
+   * @throws PartitionCreationFailed if failed to create partition
+   * @throws InterruptedException
+   */
+  public StreamingConnection newConnection(final boolean createPartIfNotExists, HiveConf conf)
+          throws ConnectionError, InvalidPartition, InvalidTable, PartitionCreationFailed
+          , ImpersonationFailed , InterruptedException {
+    return newConnection(null, createPartIfNotExists, conf);
   }
 
   /**
@@ -128,11 +146,11 @@ public class HiveEndPoint {
    * @throws InterruptedException
    */
   private StreamingConnection newConnection(final String proxyUser,
-                                            final boolean createPartIfNotExists)
+                                            final boolean createPartIfNotExists, final HiveConf conf)
           throws ConnectionError, InvalidPartition,
                InvalidTable, PartitionCreationFailed, ImpersonationFailed , InterruptedException {
     if (proxyUser ==null || proxyUser.trim().isEmpty() ) {
-      return newConnectionImpl(System.getProperty("user.name"), null, createPartIfNotExists);
+      return newConnectionImpl(System.getProperty("user.name"), null, createPartIfNotExists, conf);
     }
     final UserGroupInformation ugi = getUserGroupInfo(proxyUser);
     try {
@@ -142,7 +160,7 @@ public class HiveEndPoint {
                 public StreamingConnection run()
                         throws ConnectionError, InvalidPartition, InvalidTable
                         , PartitionCreationFailed {
-                  return newConnectionImpl(proxyUser, ugi, createPartIfNotExists);
+                  return newConnectionImpl(proxyUser, ugi, createPartIfNotExists, conf);
                 }
               }
       );
@@ -152,8 +170,10 @@ public class HiveEndPoint {
     }
   }
 
+
+
   private StreamingConnection newConnectionImpl(String proxyUser, UserGroupInformation ugi,
-                                               boolean createPartIfNotExists)
+                                               boolean createPartIfNotExists, HiveConf conf)
           throws ConnectionError, InvalidPartition, InvalidTable
           , PartitionCreationFailed {
     return new ConnectionImpl(this, proxyUser, ugi, conf, createPartIfNotExists);
@@ -227,10 +247,10 @@ public class HiveEndPoint {
 
     /**
      *
-     * @param endPoint
+     * @param endPoint end point to connect to
      * @param proxyUser  can be null
      * @param ugi of prody user. If ugi is null, impersonation of proxy user will be disabled
-     * @param conf
+     * @param conf HiveConf object
      * @param createPart create the partition if it does not exist
      * @throws ConnectionError if there is trouble connecting
      * @throws InvalidPartition if specified partition does not exist (and createPart=false)
@@ -244,6 +264,9 @@ public class HiveEndPoint {
       this.proxyUser = proxyUser;
       this.endPt = endPoint;
       this.ugi = ugi;
+      if (conf==null) {
+        conf = HiveEndPoint.createHiveConf(this.getClass(),endPoint.metaStoreUri);
+      }
       this.msClient = getMetaStoreClient(endPoint, conf);
       if (createPart  &&  !endPoint.partitionVals.isEmpty()) {
         createPartitionIfNotExists(endPoint, msClient, conf);

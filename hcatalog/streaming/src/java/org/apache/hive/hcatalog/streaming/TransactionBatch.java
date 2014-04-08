@@ -18,7 +18,7 @@
 
 package org.apache.hive.hcatalog.streaming;
 
-import java.io.IOException;
+
 import java.util.Collection;
 
 /**
@@ -33,7 +33,8 @@ public interface TransactionBatch  {
 
   /**
    * Activate the next available transaction in the current transaction batch
-   * @throws StreamingException
+   * @throws StreamingException if not able to switch to next Txn
+   * @throws InterruptedException if call in interrupted
    */
   public void beginNextTransaction() throws StreamingException, InterruptedException;
 
@@ -50,19 +51,21 @@ public interface TransactionBatch  {
 
   /**
    * Commit the currently open transaction
-   * @throws StreamingException
+   * @throws StreamingException if there are errors committing
+   * @throws InterruptedException if call in interrupted
    */
   public void commit() throws StreamingException, InterruptedException;
 
   /**
    * Abort the currently open transaction
-   * @throws StreamingException
+   * @throws StreamingException if there are errors
+   * @throws InterruptedException if call in interrupted
    */
   public void abort() throws StreamingException, InterruptedException;
 
   /**
    * Remaining transactions are the ones that are not committed or aborted or open.
-   * Currently open transaction is not considered part of remaining txns.
+   * Current open transaction is not considered part of remaining txns.
    * @return number of transactions remaining this batch.
    */
   public int remainingTransactions();
@@ -71,18 +74,15 @@ public interface TransactionBatch  {
   /**
    *  Write record using RecordWriter
    * @param record  the data to be written
-   * @throws ConnectionError
-   * @throws IOException
-   * @throws StreamingException
+   * @throws StreamingException if there are errors when writing
+   * @throws InterruptedException if call in interrupted
    */
   public void write(byte[] record) throws StreamingException, InterruptedException;
 
   /**
    *  Write records using RecordWriter
-   * @param records collection of rows to be written
-   * @throws ConnectionError
-   * @throws IOException
-   * @throws StreamingException
+   * @throws StreamingException if there are errors when writing
+   * @throws InterruptedException if call in interrupted
    */
   public void write(Collection<byte[]> records) throws StreamingException, InterruptedException;
 
@@ -90,14 +90,14 @@ public interface TransactionBatch  {
   /**
    * Issues a heartbeat to hive metastore on the current and remaining txn ids
    * to keep them from expiring
-   * @throws StreamingException
-   * @throws HeartBeatFailure
+   * @throws StreamingException if there are errors
    */
-  public void heartbeat() throws StreamingException, HeartBeatFailure;
+  public void heartbeat() throws StreamingException;
 
   /**
    * Close the TransactionBatch
-   * @throws StreamingException
+   * @throws StreamingException if there are errors closing batch
+   * @throws InterruptedException if call in interrupted
    */
   public void close() throws StreamingException, InterruptedException;
 }

@@ -45,7 +45,20 @@ public class StrictJsonWriter extends AbstractRecordWriter {
    */
   public StrictJsonWriter(HiveEndPoint endPoint)
           throws ConnectionError, SerializationError, StreamingException {
-    super(endPoint);
+    super(endPoint, null);
+  }
+
+  /**
+   *
+   * @param endPoint the end point to write to
+   * @param conf a Hive conf object. Should be null if not using advanced Hive settings.
+   * @throws ConnectionError
+   * @throws SerializationError
+   * @throws StreamingException
+   */
+  public StrictJsonWriter(HiveEndPoint endPoint, HiveConf conf)
+          throws ConnectionError, SerializationError, StreamingException {
+    super(endPoint, conf);
   }
 
   @Override

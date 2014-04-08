@@ -229,12 +229,12 @@ public class TestStreaming {
     // 1) Basic
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName
             , partitionVals);
-    StreamingConnection connection = endPt.newConnection(false); //shouldn't throw
+    StreamingConnection connection = endPt.newConnection(false, null); //shouldn't throw
     connection.close();
 
     // 2) Leave partition unspecified
     endPt = new HiveEndPoint(metaStoreURI, dbName, tblName, null);
-    endPt.newConnection(false).close(); // should not throw
+    endPt.newConnection(false, null).close(); // should not throw
   }
 
   @Test
@@ -255,7 +255,7 @@ public class TestStreaming {
     }
 
     // Create partition
-    Assert.assertNotNull(endPt.newConnection(true));
+    Assert.assertNotNull(endPt.newConnection(true, null));
 
     // Ensure partition is present
     Partition p = msClient.getPartition(endPt.database, endPt.table, endPt.partitionVals);
@@ -268,9 +268,10 @@ public class TestStreaming {
     HiveEndPoint endPt = new HiveEndPoint(metaStoreURI, dbName, tblName,
             partitionVals);
     DelimitedInputWriter writer = new DelimitedInputWriter(fieldNames,",", endPt);
-    StreamingConnection connection = endPt.newConnection(false);
+    StreamingConnection connection = endPt.newConnection(false, null);
 
     TransactionBatch txnBatch =  connection.fetchTransactionBatch(10, writer);
+
     txnBatch.beginNextTransaction();
     txnBatch.commit();
     Assert.assertEquals(TransactionBatch.TxnState.COMMITTED
@@ -281,7 +282,7 @@ public class TestStreaming {
     // 2) To unpartitioned table
     endPt = new HiveEndPoint(metaStoreURI, dbName2, tblName2, null);
     writer = new DelimitedInputWriter(fieldNames2,",", endPt);
-    connection = endPt.newConnection(false);
+    connection = endPt.newConnection(false, null);
 
     txnBatch =  connection.fetchTransactionBatch(10, writer);
     txnBatch.beginNextTransaction();

@@ -21,7 +21,7 @@ package org.apache.hive.hcatalog.streaming;
 
 public interface RecordWriter {
 
-  /** Write using RecordUpdater
+  /** Writes using a hive RecordUpdater
    *
    * @param transactionId the ID of the Txn in which the write occurs
    * @param record the record to be written

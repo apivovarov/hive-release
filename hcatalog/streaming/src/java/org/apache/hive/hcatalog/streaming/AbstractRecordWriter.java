@@ -55,11 +55,11 @@ abstract class AbstractRecordWriter implements RecordWriter {
 
   final AcidOutputFormat<?> outf;
 
-  protected AbstractRecordWriter(HiveEndPoint endPoint)
+  protected AbstractRecordWriter(HiveEndPoint endPoint, HiveConf conf)
           throws ConnectionError, StreamingException {
     this.endPoint = endPoint;
-    conf = HiveEndPoint.createHiveConf(this.getClass(), endPoint.metaStoreUri);
-
+    this.conf = conf!=null ? conf
+                : HiveEndPoint.createHiveConf(DelimitedInputWriter.class, endPoint.metaStoreUri);
     try {
       msClient = new HiveMetaStoreClient(conf);
       this.tbl = msClient.getTable(endPoint.database, endPoint.table);
@@ -80,7 +80,11 @@ abstract class AbstractRecordWriter implements RecordWriter {
     } catch (ClassNotFoundException e) {
       throw new StreamingException(e.getMessage(), e);
     }
+  }
 
+  protected AbstractRecordWriter(HiveEndPoint endPoint)
+          throws ConnectionError, StreamingException {
+    this(endPoint, HiveEndPoint.createHiveConf(AbstractRecordWriter.class, endPoint.metaStoreUri) );
   }
 
   abstract SerDe getSerde() throws SerializationError;
