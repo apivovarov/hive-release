@@ -59,6 +59,7 @@ public class VectorizedOrcInputFormat extends FileInputFormat<NullWritable, Vect
     VectorizedOrcRecordReader(Reader file, Configuration conf,
         FileSplit fileSplit) throws IOException {
       List<OrcProto.Type> types = file.getTypes();
+      // TODO fix to work with ACID
       Reader.Options options = new Reader.Options();
       this.offset = fileSplit.getStart();
       this.length = fileSplit.getLength();
@@ -92,6 +93,7 @@ public class VectorizedOrcInputFormat extends FileInputFormat<NullWritable, Vect
           addPartitionCols = false;
         }
         reader.nextBatch(value);
+        rbCtx.convertRowBatchBlobToVectorizedBatch((Object) value, value.size, value);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -106,15 +108,13 @@ public class VectorizedOrcInputFormat extends FileInputFormat<NullWritable, Vect
 
     @Override
     public VectorizedRowBatch createValue() {
-      return createRowBatch(rbCtx);
-    }
-
-    static VectorizedRowBatch createRowBatch(VectorizedRowBatchCtx ctx) {
+      VectorizedRowBatch result = null;
       try {
-        return ctx.createVectorizedRowBatch();
+        result = rbCtx.createVectorizedRowBatch();
       } catch (HiveException e) {
         throw new RuntimeException("Error creating a batch", e);
       }
+      return result;
     }
 
     @Override
