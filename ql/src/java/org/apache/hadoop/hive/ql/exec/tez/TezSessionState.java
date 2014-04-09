@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,7 +76,8 @@ public class TezSessionState {
   private boolean defaultQueue = false;
   private String user;
 
-  private HashSet<String> additionalAmFiles = null;
+  private HashSet<String> additionalFilesNotFromConf = null;
+  private List<LocalResource> localizedResources;
 
   private static List<TezSessionState> openSessions
     = Collections.synchronizedList(new LinkedList<TezSessionState>());
@@ -129,7 +131,7 @@ public class TezSessionState {
    * @throws LoginException
    * @throws TezException
    */
-  public void open(HiveConf conf, List<LocalResource> additionalLr)
+  public void open(HiveConf conf, String[] additionalFiles)
     throws IOException, LoginException, IllegalArgumentException, URISyntaxException, TezException {
 
     this.conf = conf;
@@ -141,6 +143,11 @@ public class TezSessionState {
 
     // create the tez tmp dir
     tezScratchDir = createTezDir(sessionId);
+
+    String dir = tezScratchDir.toString();
+    // Localize resources to session scratch dir
+    localizedResources = utils.localizeTempFilesFromConf(dir, conf);
+    localizeAdditionalFiles(additionalFiles);
 
     // generate basic tez config
     TezConfiguration tezConfig = new TezConfiguration(conf);
@@ -154,12 +161,9 @@ public class TezSessionState {
     // configuration for the application master
     Map<String, LocalResource> commonLocalResources = new HashMap<String, LocalResource>();
     commonLocalResources.put(utils.getBaseName(appJarLr), appJarLr);
-    if (additionalLr != null) {
-      additionalAmFiles = new HashSet<String>();
-      for (LocalResource lr : additionalLr) {
-        String baseName = utils.getBaseName(lr);
-        additionalAmFiles.add(baseName);
-        commonLocalResources.put(baseName, lr);
+    if (localizedResources != null) {
+      for (LocalResource lr : localizedResources) {
+        commonLocalResources.put(utils.getBaseName(lr), lr);
       }
     }
 
@@ -173,9 +177,10 @@ public class TezSessionState {
     TezSessionConfiguration sessionConfig = new TezSessionConfiguration(amConfig, tezConfig);
 
     // and finally we're ready to create and start the session
-    session = new TezSession("HIVE-"+sessionId, sessionConfig);
+    session = new TezSession("HIVE-" + sessionId, sessionConfig);
 
-    LOG.info("Opening new Tez Session (id: "+sessionId+", scratch dir: "+tezScratchDir+")");
+    LOG.info("Opening new Tez Session (id: " + sessionId
+        + ", scratch dir: " + tezScratchDir + ")");
 
     session.start();
 
@@ -201,11 +206,28 @@ public class TezSessionState {
     openSessions.add(this);
   }
 
-  public boolean hasResources(List<LocalResource> lrs) {
-    if (lrs == null || lrs.isEmpty()) return true;
-    if (additionalAmFiles == null || additionalAmFiles.isEmpty()) return false;
-    for (LocalResource lr : lrs) {
-      if (!additionalAmFiles.contains(utils.getBaseName(lr))) return false;
+  public List<LocalResource> localizeAdditionalFiles(
+      String[] additionalFiles) throws IOException, LoginException {
+    String dir = tezScratchDir.toString();
+    List<LocalResource> handlerLr = utils.localizeTempFiles(dir, conf, additionalFiles);
+    if (handlerLr == null) return null;
+    if (localizedResources == null) {
+      localizedResources = handlerLr;
+    } else {
+      localizedResources.addAll(handlerLr);
+    }
+    additionalFilesNotFromConf = new HashSet<String>();
+    for (String originalFile : additionalFiles) {
+      additionalFilesNotFromConf.add(originalFile);
+    }
+    return handlerLr;
+  }
+
+  public boolean hasResources(String[] localAmResources) {
+    if (localAmResources == null || localAmResources.length == 0) return true;
+    if (additionalFilesNotFromConf == null || additionalFilesNotFromConf.isEmpty()) return false;
+    for (String s : localAmResources) {
+      if (!additionalFilesNotFromConf.contains(s)) return false;
     }
     return true;
   }
@@ -237,7 +259,8 @@ public class TezSessionState {
     tezScratchDir = null;
     conf = null;
     appJarLr = null;
-    additionalAmFiles = null;
+    additionalFilesNotFromConf = null;
+    localizedResources = null;
   }
 
   public void cleanupScratchDir () throws IOException {
@@ -391,6 +414,10 @@ public class TezSessionState {
 
   public HiveConf getConf() {
     return conf;
+  }
+
+  public List<LocalResource> getLocalizedResources() {
+    return localizedResources;
   }
 
   public String getUser() {

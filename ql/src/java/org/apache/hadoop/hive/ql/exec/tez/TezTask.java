@@ -115,7 +115,7 @@ public class TezTask extends Task<TezWork> {
       // Need to remove this static hack. But this is the way currently to get a session.
       SessionState ss = SessionState.get();
       session = ss.getTezSession();
-      session = TezSessionPoolManager.getInstance().getSession(session, conf, canReloc);
+      session = TezSessionPoolManager.getInstance().getSession(session, conf, false);
       ss.setTezSession(session);
 
       // jobConf will hold all the configuration for hadoop, tez, and hive
@@ -129,31 +129,27 @@ public class TezTask extends Task<TezWork> {
       Path scratchDir = ctx.getMRScratchDir();
       utils.createTezDir(scratchDir, conf);
 
-      // we need to get the user specified local resources for this dag
-      String hiveJarDir = utils.getHiveJarDirectory(conf);
-      List<LocalResource> additionalLr = utils.localizeTempFilesFromConf(hiveJarDir, conf);
-      List<LocalResource> handlerLr = utils.localizeTempFiles(hiveJarDir, conf, inputOutputJars);
-      if (handlerLr != null) {
-        additionalLr.addAll(handlerLr);
-      }
-
+      boolean hasResources = session.hasResources(inputOutputJars);
       // If we have any jars from input format, we need to restart the session because
       // AM will need them; so, AM has to be restarted. What a mess...
-      if (!canReloc && !session.hasResources(handlerLr)) {
-        if (session.isOpen()) {
-          LOG.info("Tez session being reopened to pass custom jars to AM");
-          session.close(false);
-          session = TezSessionPoolManager.getInstance().getSession(null, conf, false);
-          ss.setTezSession(session);
-        }
-        session.open(conf, additionalLr);
+      if (!canReloc && !hasResources && session.isOpen()) {
+        LOG.info("Tez session being closed and reopened to pass custom jars to AM");
+        session.close(false);
+        session = TezSessionPoolManager.getInstance().getSession(null, conf, false);
+        ss.setTezSession(session);
       }
+
+      List<LocalResource> amResourcesToRelocalize = null;
       if (!session.isOpen()) {
         // can happen if the user sets the tez flag after the session was
-        // established
+        // established, or if the session was closed above.
         LOG.info("Tez session hasn't been created yet. Opening session");
-        session.open(conf);
+        session.open(conf, inputOutputJars);
+      } else if (canReloc && !hasResources) {
+        // The session is open. We need to upload inputOutputJars so we could relocalize.
+        amResourcesToRelocalize = session.localizeAdditionalFiles(inputOutputJars);
       }
+      List<LocalResource> additionalLr = session.getLocalizedResources();
 
       // unless already installed on all the cluster nodes, we'll have to
       // localize hive-exec.jar as well.
@@ -162,8 +158,9 @@ public class TezTask extends Task<TezWork> {
       // next we translate the TezWork to a Tez DAG
       DAG dag = build(jobConf, work, scratchDir, appJarLr, additionalLr, ctx);
 
+// TODO#: here
       // submit will send the job to the cluster and start executing
-      client = submit(jobConf, dag, scratchDir, appJarLr, canReloc ? handlerLr : null, session);
+      client = submit(jobConf, dag, scratchDir, appJarLr, amResourcesToRelocalize, session);
 
       // finally monitor will print progress until the job is done
       TezJobMonitor monitor = new TezJobMonitor();
