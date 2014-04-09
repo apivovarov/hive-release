@@ -34,6 +34,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestHiveServer2 {
@@ -59,6 +60,7 @@ public class TestHiveServer2 {
   }
 
   @Test
+  @Ignore
   public void testConnection() throws Exception {
     String tabName = "testTab1";
     CLIServiceClient serviceClient = miniHS2.getServiceClient();
