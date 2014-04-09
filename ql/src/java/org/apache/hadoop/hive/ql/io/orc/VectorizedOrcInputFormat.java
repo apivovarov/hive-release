@@ -106,12 +106,8 @@ public class VectorizedOrcInputFormat extends FileInputFormat<NullWritable, Vect
 
     @Override
     public VectorizedRowBatch createValue() {
-      return createRowBatch(rbCtx);
-    }
-
-    static VectorizedRowBatch createRowBatch(VectorizedRowBatchCtx ctx) {
       try {
-        return ctx.createVectorizedRowBatch();
+        return rbCtx.createVectorizedRowBatch();
       } catch (HiveException e) {
         throw new RuntimeException("Error creating a batch", e);
       }

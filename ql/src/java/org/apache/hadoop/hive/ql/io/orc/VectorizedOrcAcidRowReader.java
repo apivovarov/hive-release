@@ -19,12 +19,6 @@
 package org.apache.hadoop.hive.ql.io.orc;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.common.type.HiveDecimal;
-import org.apache.hadoop.hive.ql.exec.vector.BytesColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.ColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.DecimalColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.DoubleColumnVector;
-import org.apache.hadoop.hive.ql.exec.vector.LongColumnVector;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedBatchUtil;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatch;
 import org.apache.hadoop.hive.ql.exec.vector.VectorizedRowBatchCtx;
@@ -32,22 +26,13 @@ import org.apache.hadoop.hive.ql.io.AcidInputFormat;
 import org.apache.hadoop.hive.ql.io.RecordIdentifier;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.io.ByteWritable;
-import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.hive.serde2.io.ShortWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
-import org.apache.hadoop.io.BooleanWritable;
-import org.apache.hadoop.io.FloatWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.NullWritable;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.*;
 
 import java.io.IOException;
-import java.sql.Date;
-import java.sql.Timestamp;
 
 /**
  * Implement a RecordReader that stitches together base and delta files to
@@ -64,6 +49,7 @@ class VectorizedOrcAcidRowReader
   private final VectorizedRowBatchCtx rowBatchCtx;
   private final ObjectInspector objectInspector;
   private boolean needToSetPartition = true;
+  private final DataOutputBuffer buffer = new DataOutputBuffer();
 
   VectorizedOrcAcidRowReader(AcidInputFormat.RowReader<OrcStruct> inner,
                              Configuration conf,
@@ -93,6 +79,7 @@ class VectorizedOrcAcidRowReader
                       VectorizedRowBatch vectorizedRowBatch
                       ) throws IOException {
     vectorizedRowBatch.reset();
+    buffer.reset();
     if (!innerReader.next(key, value)) {
       return false;
     }
@@ -105,14 +92,14 @@ class VectorizedOrcAcidRowReader
       needToSetPartition = false;
     }
     try {
-      VectorizedBatchUtil.AddRowToBatch(value,
+      VectorizedBatchUtil.addRowToBatch(value,
           (StructObjectInspector) objectInspector,
-          vectorizedRowBatch.size++, vectorizedRowBatch);
+          vectorizedRowBatch.size++, vectorizedRowBatch, buffer);
       while (vectorizedRowBatch.size < vectorizedRowBatch.selected.length &&
           innerReader.next(key, value)) {
-        VectorizedBatchUtil.AddRowToBatch(value,
+        VectorizedBatchUtil.addRowToBatch(value,
             (StructObjectInspector) objectInspector,
-            vectorizedRowBatch.size++, vectorizedRowBatch);
+            vectorizedRowBatch.size++, vectorizedRowBatch, buffer);
       }
     } catch (HiveException he) {
       throw new IOException("error iterating", he);
@@ -127,8 +114,11 @@ class VectorizedOrcAcidRowReader
 
   @Override
   public VectorizedRowBatch createValue() {
-    return VectorizedOrcInputFormat.VectorizedOrcRecordReader
-        .createRowBatch(rowBatchCtx);
+    try {
+      return rowBatchCtx.createVectorizedRowBatch();
+    } catch (HiveException e) {
+      throw new RuntimeException("Error creating a batch", e);
+    }
   }
 
   @Override
