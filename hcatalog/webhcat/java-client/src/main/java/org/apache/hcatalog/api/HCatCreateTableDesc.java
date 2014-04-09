@@ -97,7 +97,10 @@ public class HCatCreateTableDesc {
 
   Table toHiveTable(HiveConf conf) throws HCatException {
 
-    Table newTable = new Table();
+    /*
+     * get the same defaults as are set when a Table is created via the Hive Driver.
+     */
+    Table newTable = org.apache.hadoop.hive.ql.metadata.Table.getEmptyTable(dbName, tableName);
     newTable.setDbName(dbName);
     newTable.setTableName(tableName);
     if (tblProps != null) {
