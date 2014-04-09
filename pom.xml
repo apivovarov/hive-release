@@ -1058,9 +1058,6 @@
         <test.hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop.cmd</test.hadoop.bin.path>
        <test.hadoop.classpath>${project.build.directory}/deplibs/*</test.hadoop.classpath>
       </properties>
-      <systemPropertyVariables>
-        <log4j.configuration>file:/${test.tmp.dir}/conf/hive-log4j.properties</log4j.configuration>
-      </systemPropertyVariables>
     </profile>
 
     <profile>
