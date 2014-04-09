@@ -65,6 +65,7 @@
     <test.warehouse.scheme>pfile://</test.warehouse.scheme>
     <test.hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop</test.hadoop.bin.path>
     <test.hadoop.classpath>${maven.test.classpath}</test.hadoop.classpath>
+    <test.log4j.scheme>file://</test.log4j.scheme>
 
     <!-- Plugin and Plugin Dependency Versions -->
     <ant.contrib.version>1.0b3</ant.contrib.version>
@@ -752,7 +753,7 @@
             <!-- required for hive-exec jar path and tests which reference a jar -->
             <maven.local.repository>${maven.repo.local}</maven.local.repository>
             <mapred.job.tracker>local</mapred.job.tracker>
-            <log4j.configuration>file://${test.tmp.dir}/conf/hive-log4j.properties</log4j.configuration>
+            <log4j.configuration>${test.log4j.scheme}${test.tmp.dir}/conf/hive-log4j.properties</log4j.configuration>
             <log4j.debug>true</log4j.debug>
             <!-- don't diry up /tmp -->
             <java.io.tmpdir>${test.tmp.dir}</java.io.tmpdir>
@@ -1057,6 +1058,7 @@
       <properties>
         <test.hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop.cmd</test.hadoop.bin.path>
        <test.hadoop.classpath>${project.build.directory}/deplibs/*</test.hadoop.classpath>
+       <test.log4j.scheme>file:/</test.log4j.scheme>
       </properties>
     </profile>
 
