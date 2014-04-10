@@ -42,8 +42,7 @@ public class TestRevisionManagerEndpoint extends SkeletonHBaseTest {
     // test case specific mini cluster settings
     testConf = new Configuration(false);
     testConf.setStrings(CoprocessorHost.REGION_COPROCESSOR_CONF_KEY,
-      "org.apache.hcatalog.hbase.snapshot.RevisionManagerEndpoint",
-      "org.apache.hadoop.hbase.coprocessor.GenericEndpoint");
+      "org.apache.hcatalog.hbase.snapshot.RevisionManagerEndpoint");
     testConf.set(RMConstants.REVISION_MGR_ENDPOINT_IMPL_CLASS, MockRM.class.getName());
     setupSkeletonHBaseTest();
   }

@@ -248,9 +248,9 @@ public class ManyMiniCluster {
     final int numRegionServers = 1;
 
     try {
-      hbaseDir = new File(workDir, "hbase").toString();
+      hbaseDir = new File(workDir, "hbase").getCanonicalPath();
       hbaseDir = hbaseDir.replaceAll("\\\\", "/");
-      hbaseRoot = "file://" + hbaseDir;
+      hbaseRoot = "file:///" + hbaseDir;
 
       if (hbaseConf == null)
         hbaseConf = HBaseConfiguration.create();
