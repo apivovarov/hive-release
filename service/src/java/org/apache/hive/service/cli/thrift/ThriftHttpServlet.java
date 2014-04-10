@@ -20,7 +20,6 @@ package org.apache.hive.service.cli.thrift;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
-
 import java.util.Map;
 import java.util.Set;
 
@@ -84,7 +83,6 @@ public class ThriftHttpServlet extends TServlet {
         if (doAsQueryParam != null) {
           SessionManager.setProxyUserName(doAsQueryParam);
         }
-
       }
       else {
         clientUserName = doPasswdAuth(request, authType);
@@ -92,12 +90,12 @@ public class ThriftHttpServlet extends TServlet {
       LOG.debug("Client username: " + clientUserName);
       // Set the thread local username to be used for doAs if true
       SessionManager.setUserName(clientUserName);
-      
+
       clientIpAddress = request.getRemoteAddr();
       LOG.debug("Client IP Address: " + clientIpAddress);
       // Set the thread local ip address
       SessionManager.setIpAddress(clientIpAddress);
-      
+
       super.doPost(request, response);
     }
     catch (HttpAuthenticationException e) {

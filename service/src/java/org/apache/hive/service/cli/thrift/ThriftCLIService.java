@@ -596,6 +596,5 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
     return cliService.getHiveConf().getVar(ConfVars.HIVE_SERVER2_AUTHENTICATION)
         .equals(HiveAuthFactory.AuthTypes.KERBEROS.toString());
   }
-
 }
 

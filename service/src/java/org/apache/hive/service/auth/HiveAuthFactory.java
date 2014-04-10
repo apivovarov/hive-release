@@ -52,7 +52,8 @@ public class HiveAuthFactory {
     NONE("NONE"),
     LDAP("LDAP"),
     KERBEROS("KERBEROS"),
-    CUSTOM("CUSTOM");
+    CUSTOM("CUSTOM"),
+    PAM("PAM");
 
     private String authType;
 
@@ -128,6 +129,8 @@ public class HiveAuthFactory {
       transportFactory = PlainSaslHelper.getPlainTransportFactory(authTypeStr);
     } else if (authTypeStr.equalsIgnoreCase(AuthTypes.LDAP.getAuthName())) {
       transportFactory = PlainSaslHelper.getPlainTransportFactory(authTypeStr);
+    } else if (authTypeStr.equalsIgnoreCase(AuthTypes.PAM.getAuthName())) {
+      transportFactory = PlainSaslHelper.getPlainTransportFactory(authTypeStr);
     } else if (authTypeStr.equalsIgnoreCase(AuthTypes.NOSASL.getAuthName())) {
       transportFactory = new TTransportFactory();
     } else if (authTypeStr.equalsIgnoreCase(AuthTypes.CUSTOM.getAuthName())) {
@@ -161,7 +164,7 @@ public class HiveAuthFactory {
   }
 
   public String getIpAddress() {
-    if(saslServer != null && saslServer.getRemoteAddress() != null) {
+    if (saslServer != null && saslServer.getRemoteAddress() != null) {
       return saslServer.getRemoteAddress().getHostAddress();
     } else {
       return null;
