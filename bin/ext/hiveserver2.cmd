@@ -21,6 +21,32 @@ for /f %%a IN ('dir /b hive-service-*.jar') do (
 )
 popd
 
+if defined HBASE_HOME (
+  if exist %HBASE_HOME%\lib (
+    pushd %HBASE_HOME%\lib
+    set HIVE_HBASE_PATH=
+    for /f %%a IN ('dir /b hbase-server-**-hadoop2.jar') do (
+      call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
+    )
+    for /f %%a IN ('dir /b hbase-client-**-hadoop2.jar') do (
+      call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
+    )
+    for /f %%a IN ('dir /b hbase-protocol-**-hadoop2.jar') do (
+      call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
+    ) 
+    for /f %%a IN ('dir /b htrace-core-**.jar') do (
+      call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
+    ) 
+    for /f %%a IN ('dir /b hbase-common-**-hadoop2.jar') do (
+      call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
+    ) 
+    popd
+    if exist %HBASE_CONF_DIR% (
+      call :AddToHiveHbasePath  %HBASE_CONF_DIR%
+    )
+  )
+)
+
 if [%1]==[hiveserver2_help] goto :hiveserver2_help
 
 if [%1]==[hiveserver2_catservice] goto :hiveserver2_catservice
@@ -43,6 +69,15 @@ goto :EOF
 @echo   ^<name^>HiveServer2^</name^>
 @echo   ^<description^>Hadoop HiveServer2 Service^</description^>
 @echo   ^<executable^>%JAVA_HOME%\bin\java^</executable^>
-@echo   ^<arguments^>%JAVA_HEAP_MAX% %HADOOP_OPTS% -classpath %CLASSPATH% %CLASS% -hiveconf hive.hadoop.classpath=%HIVE_LIB%\* %HIVE_OPTS%^</arguments^>
+@echo   ^<arguments^>%JAVA_HEAP_MAX% %HADOOP_OPTS% -classpath %CLASSPATH%;%HIVE_HBASE_PATH% %CLASS% -hiveconf hive.hadoop.classpath=%HIVE_LIB%\* %HIVE_OPTS%^</arguments^>
 @echo ^</service^>
+goto :EOF
+
+:AddToHiveHbasePath
+if not defined HIVE_HBASE_PATH (
+   set HIVE_HBASE_PATH=%1
+   ) else (
+   set HIVE_HBASE_PATH=%HIVE_HBASE_PATH%;%1
+   )
+)
 goto :EOF
