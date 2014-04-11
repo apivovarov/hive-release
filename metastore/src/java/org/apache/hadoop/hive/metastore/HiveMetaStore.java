@@ -5222,6 +5222,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
           try {
             Thread.sleep(1000);
           } catch (InterruptedException e) {
+            LOG.warn("Signalling thread was interuppted: " + e.getMessage());
           }
         } while (!server.isServing());
         startLock.lock();

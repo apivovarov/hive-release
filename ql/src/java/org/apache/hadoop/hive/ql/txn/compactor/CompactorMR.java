@@ -117,7 +117,7 @@ public class CompactorMR {
     job.setOutputCommitter(CompactorOutputCommitter.class);
 
     job.set(FINAL_LOCATION, sd.getLocation());
-    job.set(TMP_LOCATION, sd.getLocation() + "/" + TMPDIR);
+    job.set(TMP_LOCATION, sd.getLocation() + "/" + TMPDIR + "_" + UUID.randomUUID().toString());
     job.set(INPUT_FORMAT_CLASS_NAME, sd.getInputFormat());
     job.set(OUTPUT_FORMAT_CLASS_NAME, sd.getOutputFormat());
     job.setBoolean(IS_MAJOR, isMajor);
