@@ -1,1 +1,4 @@
 baikal-GA-0.13.0 is branched from stinger3-beta (SHA1 8c3967f60452665a843214ef6e774655e09c63d3) @ git@github.com:hortonworks/hive.git
+
+BUG Fixes:
+HIVE-6890 Streaming API bug causes hive-site.xml to be required on client
