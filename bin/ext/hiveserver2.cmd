@@ -72,7 +72,7 @@ goto :EOF
 @echo   ^<name^>HiveServer2^</name^>
 @echo   ^<description^>Hadoop HiveServer2 Service^</description^>
 @echo   ^<executable^>%JAVA_HOME%\bin\java^</executable^>
-@echo   ^<arguments^>%JAVA_HEAP_MAX% %HADOOP_OPTS% -classpath %CLASSPATH%;%HIVE_HBASE_PATH% %CLASS% -hiveconf hive.hadoop.classpath=%HIVE_LIB%\* hiveconf hive.metastore.uris=" " %HIVE_OPTS%^</arguments^>
+@echo   ^<arguments^>%JAVA_HEAP_MAX% %HADOOP_OPTS% -classpath %CLASSPATH%;%HIVE_HBASE_PATH% %CLASS% -hiveconf hive.hadoop.classpath=%HIVE_LIB%\* -hiveconf hive.metastore.uris=" " %HIVE_OPTS%^</arguments^>
 @echo ^</service^>
 goto :EOF
 
