@@ -40,6 +40,9 @@ if defined HBASE_HOME (
     for /f %%a IN ('dir /b hbase-common-**-hadoop2.jar') do (
       call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
     ) 
+    for /f %%a IN ('dir /b hbase-hadoop-compat-**-hadoop2.jar') do (
+      call :AddToHiveHbasePath  %HBASE_HOME%\lib\%%a
+    ) 
     popd
     if exist %HBASE_CONF_DIR% (
       call :AddToHiveHbasePath  %HBASE_CONF_DIR%
@@ -69,7 +72,7 @@ goto :EOF
 @echo   ^<name^>HiveServer2^</name^>
 @echo   ^<description^>Hadoop HiveServer2 Service^</description^>
 @echo   ^<executable^>%JAVA_HOME%\bin\java^</executable^>
-@echo   ^<arguments^>%JAVA_HEAP_MAX% %HADOOP_OPTS% -classpath %CLASSPATH%;%HIVE_HBASE_PATH% %CLASS% -hiveconf hive.hadoop.classpath=%HIVE_LIB%\* %HIVE_OPTS%^</arguments^>
+@echo   ^<arguments^>%JAVA_HEAP_MAX% %HADOOP_OPTS% -classpath %CLASSPATH%;%HIVE_HBASE_PATH% %CLASS% -hiveconf hive.hadoop.classpath=%HIVE_LIB%\* hiveconf hive.metastore.uris=" " %HIVE_OPTS%^</arguments^>
 @echo ^</service^>
 goto :EOF
 
