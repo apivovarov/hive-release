@@ -166,7 +166,7 @@
 
 <property>
   <name>hive.orc.splits.include.file.footer</name>
-  <value>true</value>
+  <value>false</value>
 </property>
 
 <property>
@@ -181,12 +181,12 @@
 
 <property>
   <name>hive.convert.join.bucket.mapjoin.tez</name>
-  <value>true</value>
+  <value>false</value>
 </property>
 
 <property>
   <name>hive.stats.dbclass</name>
-  <value>counter</value>
+  <value>fs</value>
 </property>
 
 <property>

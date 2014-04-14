@@ -1244,8 +1244,8 @@
 
 <property>
   <name>hive.stats.dbclass</name>
-  <value>counter</value>
-  <description>The storage that stores temporary Hive statistics. Currently, jdbc, hbase, counter and custom type are supported.</description>
+  <value>fs</value>
+  <description>The storage that stores temporary Hive statistics. Currently, jdbc, hbase, counter, fs and custom type are supported.</description>
 </property>
 
 <property>
