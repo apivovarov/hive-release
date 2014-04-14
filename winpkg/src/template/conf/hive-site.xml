@@ -178,12 +178,67 @@
   <name>hive.vectorized.execution.enabled</name>
   <value>true</value>
 </property>
+    
+<property>
+  <name>hive.vectorized.groupby.flush.percent</name>
+  <value>1.0</value>
+</property>
+    
+<property>
+  <name>hive.vectorized.groupby.checkinterval</name>
+  <value>1024</value>
+</property>
+    
+<property>
+  <name>hive.vectorized.groupby.maxentries</name>
+  <value>1024</value>
+</property>
+
+<property>
+  <name>hive.optimize.bucketmapjoin.sortedmerge</name>
+  <value>false</value>
+</property>
+    
+<property>
+  <name>hive.optimize.bucketmapjoin</name>
+  <value>true</value>
+</property>
+        
+<property>
+  <name>hive.enforce.sortmergebucketmapjoin</name>
+  <value>true</value>
+</property>
 
 <property>
   <name>hive.convert.join.bucket.mapjoin.tez</name>
   <value>false</value>
 </property>
 
+<property>
+  <name>hive.auto.convert.sortmerge.join</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.auto.convert.sortmerge.join.noconditionaltask</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>hive.server2.tez.sessions.per.default.queue</name>
+  <value>1</value>
+</property>
+
+<property>
+  <name>hive.server2.tez.initialize.default.sessions</name>
+  <value>false</value>
+</property>
+
+<property>
+  <name>hive.server2.tez.default.queues</name>
+  <value>default</value>
+</property>
+            
 <property>
   <name>hive.stats.dbclass</name>
   <value>fs</value>
