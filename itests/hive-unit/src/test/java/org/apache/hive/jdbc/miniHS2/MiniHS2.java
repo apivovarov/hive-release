@@ -75,7 +75,7 @@ public class MiniHS2 extends AbstractHiveService {
       baseDfsDir =  new Path(new Path(fs.getUri()), "/base");
     } else {
       fs = FileSystem.getLocal(hiveConf);
-      baseDfsDir = new Path("file://"+ baseDir.getPath());
+      baseDfsDir = new Path("file:///"+ baseDir.getPath());
     }
     String metaStoreURL =  "jdbc:derby:" + baseDir.getAbsolutePath() + File.separator + "test_metastore-" +
         hs2Counter.incrementAndGet() + ";create=true";

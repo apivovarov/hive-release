@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -97,7 +98,7 @@ public class TestSSL {
     DriverManager.setLoginTimeout(4);
     try {
       hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() + ";ssl=true;sslTrustStore=" +
-          dataFileDir + File.separator + TRUST_STORE_NAME + ";trustStorePassword=" +
+           URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" +
           KEY_STORE_PASSWORD, System.getProperty("user.name"), "bar");
       fail("SSL connection should fail with NON-SSL server");
     } catch (SQLException e) {
@@ -124,8 +125,7 @@ public class TestSSL {
     miniHS2.start(confOverlay);
     try {
       hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() +
-          ";ssl=true;sslTrustStore=" + dataFileDir + File.separator +
-          TRUST_STORE_NAME + ";trustStorePassword=" + KEY_STORE_PASSWORD +
+          ";ssl=true;sslTrustStore=" +  URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" + KEY_STORE_PASSWORD +
           "?hive.server2.transport.mode=" + HS2_HTTP_MODE +
           ";hive.server2.thrift.http.path=" + HS2_HTTP_ENDPOINT,
           System.getProperty("user.name"), "bar");
@@ -170,8 +170,7 @@ public class TestSSL {
     miniHS2.start(confOverlay);
     try {
       hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() +
-          ";ssl=false;sslTrustStore=" + dataFileDir + File.separator +
-          TRUST_STORE_NAME + ";trustStorePassword=" + KEY_STORE_PASSWORD +
+          ";ssl=false;sslTrustStore=" +  URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" + KEY_STORE_PASSWORD +
           "?hive.server2.transport.mode=" + HS2_HTTP_MODE +
           ";hive.server2.thrift.http.path=" + HS2_HTTP_ENDPOINT,
           System.getProperty("user.name"), "bar");
@@ -196,8 +195,7 @@ public class TestSSL {
     miniHS2.start(confOverlay);
 
     // make SSL connection
-    hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() + ";ssl=true;sslTrustStore=" +
-        dataFileDir + File.separator + TRUST_STORE_NAME + ";trustStorePassword=" +
+    hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() + ";ssl=true;sslTrustStore=" + URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" +
         KEY_STORE_PASSWORD, System.getProperty("user.name"), "bar");
     hs2Conn.close();
     miniHS2.stop();
@@ -207,8 +205,7 @@ public class TestSSL {
     miniHS2.start(confOverlay);
     // make SSL connection
     hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() +
-        ";ssl=true;sslTrustStore=" + dataFileDir + File.separator +
-        TRUST_STORE_NAME + ";trustStorePassword=" + KEY_STORE_PASSWORD +
+        ";ssl=true;sslTrustStore=" + URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" + KEY_STORE_PASSWORD +
         "?hive.server2.transport.mode=" + HS2_HTTP_MODE +
         ";hive.server2.thrift.http.path=" + HS2_HTTP_ENDPOINT,
         System.getProperty("user.name"), "bar");
@@ -263,7 +260,7 @@ public class TestSSL {
 
     // make SSL connection
     hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() + ";ssl=true;sslTrustStore=" +
-        dataFileDir + File.separator + TRUST_STORE_NAME + ";trustStorePassword=" +
+         URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" +
         KEY_STORE_PASSWORD, System.getProperty("user.name"), "bar");
 
     // Set up test data
@@ -298,8 +295,7 @@ public class TestSSL {
 
     // make SSL connection
     hs2Conn = DriverManager.getConnection(miniHS2.getJdbcURL() +
-        ";ssl=true;sslTrustStore=" + dataFileDir + File.separator +
-        TRUST_STORE_NAME + ";trustStorePassword=" + KEY_STORE_PASSWORD +
+        ";ssl=true;sslTrustStore=" +  URLEncoder.encode(dataFileDir + File.separator + TRUST_STORE_NAME,  "UTF-8" ) + ";trustStorePassword=" + KEY_STORE_PASSWORD +
         "?hive.server2.transport.mode=" + HS2_HTTP_MODE +
         ";hive.server2.thrift.http.path=" + HS2_HTTP_ENDPOINT,
         System.getProperty("user.name"), "bar");

@@ -66,6 +66,7 @@
     <test.hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop</test.hadoop.bin.path>
     <test.hadoop.classpath>${maven.test.classpath}</test.hadoop.classpath>
     <test.log4j.scheme>file://</test.log4j.scheme>
+    <test.extra.path></test.extra.path>
 
     <!-- Plugin and Plugin Dependency Versions -->
     <ant.contrib.version>1.0b3</ant.contrib.version>
@@ -737,6 +738,7 @@
             <LANG>en_US.UTF-8</LANG>
             <HADOOP_CLASSPATH>${test.tmp.dir}/conf:${basedir}/${hive.path.to.root}/conf</HADOOP_CLASSPATH>
             <HIVE_HADOOP_TEST_CLASSPATH>${test.hadoop.classpath}</HIVE_HADOOP_TEST_CLASSPATH>
+            <PATH>${env.PATH}${test.extra.path}</PATH>
           </environmentVariables>
           <systemPropertyVariables>
             <build.dir>${project.build.directory}</build.dir>
@@ -1059,6 +1061,7 @@
         <test.hadoop.bin.path>${basedir}/${hive.path.to.root}/testutils/hadoop.cmd</test.hadoop.bin.path>
        <test.hadoop.classpath>${project.build.directory}/deplibs/*</test.hadoop.classpath>
        <test.log4j.scheme>file:/</test.log4j.scheme>
+       <test.extra.path>;${env.HADOOP_HOME}/bin</test.extra.path>
       </properties>
     </profile>
 
