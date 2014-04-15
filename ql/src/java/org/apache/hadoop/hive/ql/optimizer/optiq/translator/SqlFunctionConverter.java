@@ -169,7 +169,7 @@ public class SqlFunctionConverter {
       registerFunction("and", SqlStdOperatorTable.AND, hToken(HiveParser.KW_AND, "and"));
       registerFunction("or", SqlStdOperatorTable.OR, hToken(HiveParser.KW_OR, "or"));
       registerFunction("=", SqlStdOperatorTable.EQUALS, hToken(HiveParser.EQUAL, "="));
-      numericFunction("==");
+//      numericFunction("==");
       numericFunction("<=>");
       numericFunction("!=");
 
