@@ -184,6 +184,64 @@ public class TestOrcFile {
     fs.delete(testFilePath, false);
   }
 
+
+  @Test
+  public void testStripeLevelStats() throws Exception {
+    ObjectInspector inspector;
+    synchronized (TestOrcFile.class) {
+      inspector = ObjectInspectorFactory.getReflectionObjectInspector
+          (InnerStruct.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
+    }
+    Writer writer = OrcFile.createWriter(fs, testFilePath, conf, inspector,
+        100000, CompressionKind.ZLIB, 10000, 10000);
+    for (int i = 0; i < 11000; i++) {
+      if (i >= 5000) {
+        if (i >= 10000) {
+          writer.addRow(new InnerStruct(3, "three"));
+        } else {
+          writer.addRow(new InnerStruct(2, "two"));
+        }
+      } else {
+        writer.addRow(new InnerStruct(1, "one"));
+      }
+    }
+
+    writer.close();
+    Reader reader = OrcFile.createReader(fs, testFilePath);
+    Metadata metadata = reader.getMetadata();
+    int numStripes = metadata.getStripeStatistics().size();
+    assertEquals(3, numStripes);
+    StripeStatistics ss1 = metadata.getStripeStatistics().get(0);
+    StripeStatistics ss2 = metadata.getStripeStatistics().get(1);
+    StripeStatistics ss3 = metadata.getStripeStatistics().get(2);
+    assertEquals(5000, ss1.getColumnStatistics()[0].getNumberOfValues());
+    assertEquals(5000, ss2.getColumnStatistics()[0].getNumberOfValues());
+    assertEquals(1000, ss3.getColumnStatistics()[0].getNumberOfValues());
+
+    assertEquals(5000, ((IntegerColumnStatistics)ss1.getColumnStatistics()[1]).getNumberOfValues());
+    assertEquals(5000, ((IntegerColumnStatistics)ss2.getColumnStatistics()[1]).getNumberOfValues());
+    assertEquals(1000, ((IntegerColumnStatistics)ss3.getColumnStatistics()[1]).getNumberOfValues());
+    assertEquals(1, ((IntegerColumnStatistics)ss1.getColumnStatistics()[1]).getMinimum());
+    assertEquals(2, ((IntegerColumnStatistics)ss2.getColumnStatistics()[1]).getMinimum());
+    assertEquals(3, ((IntegerColumnStatistics)ss3.getColumnStatistics()[1]).getMinimum());
+    assertEquals(1, ((IntegerColumnStatistics)ss1.getColumnStatistics()[1]).getMaximum());
+    assertEquals(2, ((IntegerColumnStatistics)ss2.getColumnStatistics()[1]).getMaximum());
+    assertEquals(3, ((IntegerColumnStatistics)ss3.getColumnStatistics()[1]).getMaximum());
+    assertEquals(5000, ((IntegerColumnStatistics)ss1.getColumnStatistics()[1]).getSum());
+    assertEquals(10000, ((IntegerColumnStatistics)ss2.getColumnStatistics()[1]).getSum());
+    assertEquals(3000, ((IntegerColumnStatistics)ss3.getColumnStatistics()[1]).getSum());
+
+    assertEquals(5000, ((StringColumnStatistics)ss1.getColumnStatistics()[2]).getNumberOfValues());
+    assertEquals(5000, ((StringColumnStatistics)ss2.getColumnStatistics()[2]).getNumberOfValues());
+    assertEquals(1000, ((StringColumnStatistics)ss3.getColumnStatistics()[2]).getNumberOfValues());
+    assertEquals("one", ((StringColumnStatistics)ss1.getColumnStatistics()[2]).getMinimum());
+    assertEquals("two", ((StringColumnStatistics)ss2.getColumnStatistics()[2]).getMinimum());
+    assertEquals("three", ((StringColumnStatistics)ss3.getColumnStatistics()[2]).getMinimum());
+    assertEquals("one", ((StringColumnStatistics)ss1.getColumnStatistics()[2]).getMaximum());
+    assertEquals("two", ((StringColumnStatistics)ss2.getColumnStatistics()[2]).getMaximum());
+    assertEquals("three", ((StringColumnStatistics)ss3.getColumnStatistics()[2]).getMaximum());
+  }
+
   @Test
   public void test1() throws Exception {
     ObjectInspector inspector;
@@ -205,6 +263,8 @@ public class TestOrcFile {
         map(inner(5,"chani"), inner(1,"mauddib"))));
     writer.close();
     Reader reader = OrcFile.createReader(fs, testFilePath);
+
+    Metadata metadata = reader.getMetadata();
 
     // check the stats
     ColumnStatistics[] stats = reader.getStatistics();
@@ -228,6 +288,12 @@ public class TestOrcFile {
     assertEquals("count: 2 min: 9223372036854775807 max: 9223372036854775807",
         stats[5].toString());
 
+    StripeStatistics ss = metadata.getStripeStatistics().get(0);
+    assertEquals(2, ss.getColumnStatistics()[0].getNumberOfValues());
+    assertEquals(1, ((BooleanColumnStatistics) ss.getColumnStatistics()[1]).getTrueCount());
+    assertEquals(1024, ((IntegerColumnStatistics) ss.getColumnStatistics()[3]).getMinimum());
+    assertEquals(2048, ((IntegerColumnStatistics) ss.getColumnStatistics()[3]).getMaximum());
+    assertEquals(3072, ((IntegerColumnStatistics) ss.getColumnStatistics()[3]).getSum());
     assertEquals(-15.0, ((DoubleColumnStatistics) stats[7]).getMinimum());
     assertEquals(-5.0, ((DoubleColumnStatistics) stats[7]).getMaximum());
     assertEquals(-20.0, ((DoubleColumnStatistics) stats[7]).getSum(), 0.00001);
@@ -563,6 +629,9 @@ public class TestOrcFile {
       }
     }
     assertEquals(3, i);
+    Metadata metadata = reader.getMetadata();
+    int numStripes = metadata.getStripeStatistics().size();
+    assertEquals(1, numStripes);
   }
 
   /**

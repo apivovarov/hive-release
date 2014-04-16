@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.ql.io.orc.OrcProto.StripeStatistics;
 import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -53,6 +54,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspe
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.TimestampObjectInspector;
 import org.apache.hadoop.io.BytesWritable;
 
+import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.CodedOutputStream;
 
@@ -338,12 +340,14 @@ class WriterImpl implements Writer, MemoryManager.Callback {
     protected final ObjectInspector inspector;
     private final BitFieldWriter isPresent;
     protected final ColumnStatisticsImpl indexStatistics;
+    protected final ColumnStatisticsImpl stripeColStatistics;
     private final ColumnStatisticsImpl fileStatistics;
     protected TreeWriter[] childrenWriters;
     protected final RowIndexPositionRecorder rowIndexPosition;
     private final OrcProto.RowIndex.Builder rowIndex;
     private final OrcProto.RowIndexEntry.Builder rowIndexEntry;
     private final PositionedOutputStream rowIndexStream;
+    private final List<StripeStatistics.Builder> stripeStatsBuilders;
 
     /**
      * Create a tree writer.
@@ -365,11 +369,13 @@ class WriterImpl implements Writer, MemoryManager.Callback {
         isPresent = null;
       }
       indexStatistics = ColumnStatisticsImpl.create(inspector);
+      stripeColStatistics = ColumnStatisticsImpl.create(inspector);
       fileStatistics = ColumnStatisticsImpl.create(inspector);
       childrenWriters = new TreeWriter[0];
       rowIndex = OrcProto.RowIndex.newBuilder();
       rowIndexEntry = OrcProto.RowIndexEntry.newBuilder();
       rowIndexPosition = new RowIndexPositionRecorder(rowIndexEntry);
+      stripeStatsBuilders = Lists.newArrayList();
       if (streamFactory.buildIndex()) {
         rowIndexStream = streamFactory.createStream(id,
             OrcProto.Stream.Kind.ROW_INDEX);
@@ -380,6 +386,10 @@ class WriterImpl implements Writer, MemoryManager.Callback {
 
     protected OrcProto.RowIndex.Builder getRowIndex() {
       return rowIndex;
+    }
+
+    protected ColumnStatisticsImpl getStripeStatistics() {
+      return stripeColStatistics;
     }
 
     protected ColumnStatisticsImpl getFileStatistics() {
@@ -419,6 +429,12 @@ class WriterImpl implements Writer, MemoryManager.Callback {
       if (isPresent != null) {
         isPresent.flush();
       }
+      // merge stripe-level column statistics to file statistics and write it to
+      // stripe statistics
+      OrcProto.StripeStatistics.Builder stripeStatsBuilder = OrcProto.StripeStatistics.newBuilder();
+      writeStripeStatistics(stripeStatsBuilder, this);
+      stripeStatsBuilders.add(stripeStatsBuilder);
+
       builder.addColumns(getEncoding());
       if (rowIndexStream != null) {
         if (rowIndex.getEntryCount() != requiredIndexEntries) {
@@ -431,6 +447,16 @@ class WriterImpl implements Writer, MemoryManager.Callback {
       }
       rowIndex.clear();
       rowIndexEntry.clear();
+    }
+
+    private void writeStripeStatistics(OrcProto.StripeStatistics.Builder builder,
+        TreeWriter treeWriter) {
+      treeWriter.fileStatistics.merge(treeWriter.stripeColStatistics);
+      builder.addColStats(treeWriter.stripeColStatistics.serialize().build());
+      treeWriter.stripeColStatistics.reset();
+      for (TreeWriter child : treeWriter.getChildrenWriters()) {
+        writeStripeStatistics(builder, child);
+      }
     }
 
     TreeWriter[] getChildrenWriters() {
@@ -454,7 +480,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
      * @throws IOException
      */
     void createRowIndexEntry() throws IOException {
-      fileStatistics.merge(indexStatistics);
+      stripeColStatistics.merge(indexStatistics);
       rowIndexEntry.setStatistics(indexStatistics.serialize());
       indexStatistics.reset();
       rowIndex.addEntry(rowIndexEntry);
@@ -811,7 +837,7 @@ class WriterImpl implements Writer, MemoryManager.Callback {
      * @throws IOException
      */
     void createRowIndexEntry() throws IOException {
-      getFileStatistics().merge(indexStatistics);
+      getStripeStatistics().merge(indexStatistics);
       OrcProto.RowIndexEntry.Builder rowIndexEntry = getRowIndexEntry();
       rowIndexEntry.setStatistics(indexStatistics.serialize());
       indexStatistics.reset();
@@ -1399,6 +1425,21 @@ class WriterImpl implements Writer, MemoryManager.Callback {
     }
   }
 
+  private int writeMetadata(long bodyLength) throws IOException {
+    ensureWriter();
+    OrcProto.Metadata.Builder builder = OrcProto.Metadata.newBuilder();
+    for(OrcProto.StripeStatistics.Builder ssb : treeWriter.stripeStatsBuilders) {
+      builder.addStripeStats(ssb.build());
+    }
+
+    long startPosn = rawWriter.getPos();
+    OrcProto.Metadata metadata = builder.build();
+    metadata.writeTo(protobufWriter);
+    protobufWriter.flush();
+    writer.flush();
+    return (int) (rawWriter.getPos() - startPosn);
+  }
+
   private int writeFooter(long bodyLength) throws IOException {
     ensureWriter();
     OrcProto.Footer.Builder builder = OrcProto.Footer.newBuilder();
@@ -1426,11 +1467,12 @@ class WriterImpl implements Writer, MemoryManager.Callback {
     return (int) (rawWriter.getPos() - startPosn);
   }
 
-  private int writePostScript(int footerLength) throws IOException {
+  private int writePostScript(int footerLength, int metadataLength) throws IOException {
     OrcProto.PostScript.Builder builder =
       OrcProto.PostScript.newBuilder()
         .setCompression(writeCompressionKind(compress))
-        .setFooterLength(footerLength);
+        .setFooterLength(footerLength)
+        .setMetadataLength(metadataLength);
     if (compress != CompressionKind.NONE) {
       builder.setCompressionBlockSize(bufferSize);
     }
@@ -1482,8 +1524,9 @@ class WriterImpl implements Writer, MemoryManager.Callback {
     // actually close the file
     synchronized (this) {
       flushStripe();
-      int footerLength = writeFooter(rawWriter.getPos());
-      rawWriter.writeByte(writePostScript(footerLength));
+      int metadataLength = writeMetadata(rawWriter.getPos());
+      int footerLength = writeFooter(rawWriter.getPos() - metadataLength);
+      rawWriter.writeByte(writePostScript(footerLength, metadataLength));
       rawWriter.close();
     }
   }

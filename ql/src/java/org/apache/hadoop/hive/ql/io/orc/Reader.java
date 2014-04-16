@@ -94,6 +94,13 @@ public interface Reader {
   ColumnStatistics[] getStatistics();
 
   /**
+  * Get the metadata information like stripe level column statistics etc.
+  * @return the information about the column
+  * @throws IOException
+  */
+  Metadata getMetadata() throws IOException;
+
+  /**
    * Get the list of types contained in the file. The root type is the first
    * type in the list.
    * @return the list of flattened types
