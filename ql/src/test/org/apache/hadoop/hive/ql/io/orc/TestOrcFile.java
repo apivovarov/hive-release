@@ -193,7 +193,7 @@ public class TestOrcFile {
           (InnerStruct.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
     }
     Writer writer = OrcFile.createWriter(fs, testFilePath, conf, inspector,
-        100000, CompressionKind.ZLIB, 10000, 10000);
+        100000, CompressionKind.NONE, 10000, 10000);
     for (int i = 0; i < 11000; i++) {
       if (i >= 5000) {
         if (i >= 10000) {
@@ -240,6 +240,24 @@ public class TestOrcFile {
     assertEquals("one", ((StringColumnStatistics)ss1.getColumnStatistics()[2]).getMaximum());
     assertEquals("two", ((StringColumnStatistics)ss2.getColumnStatistics()[2]).getMaximum());
     assertEquals("three", ((StringColumnStatistics)ss3.getColumnStatistics()[2]).getMaximum());
+
+
+    RecordReaderImpl recordReader = (RecordReaderImpl) reader.rows(null);
+    OrcProto.RowIndex[] index = recordReader.readRowIndex(0);
+    assertEquals(3, index.length);
+    List<OrcProto.RowIndexEntry> items = index[1].getEntryList();
+    assertEquals(1, items.size());
+    assertEquals(5, items.get(0).getPositionsCount());
+    assertEquals(0, items.get(0).getPositions(0));
+    assertEquals(0, items.get(0).getPositions(1));
+    assertEquals(0, items.get(0).getPositions(2));
+    assertEquals(1,
+        items.get(0).getStatistics().getIntStatistics().getMinimum());
+    index = recordReader.readRowIndex(1);
+    assertEquals(3, index.length);
+    items = index[1].getEntryList();
+    assertEquals(2,
+        items.get(0).getStatistics().getIntStatistics().getMaximum());
   }
 
   @Test

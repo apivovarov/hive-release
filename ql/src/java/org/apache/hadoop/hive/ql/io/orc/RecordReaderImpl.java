@@ -1257,8 +1257,17 @@ class RecordReaderImpl implements RecordReader {
     throw new IllegalArgumentException("Seek after the end of reader range");
   }
 
-  private void readRowIndex() throws IOException {
-    long offset = stripes.get(currentStripe).getOffset();
+  OrcProto.RowIndex[] readRowIndex(int stripeIndex) throws IOException {
+    long offset = stripes.get(stripeIndex).getOffset();
+    OrcProto.StripeFooter stripeFooter;
+    OrcProto.RowIndex[] indexes;
+    if (stripeIndex == currentStripe) {
+      stripeFooter = this.stripeFooter;
+      indexes = this.indexes;
+    } else {
+      stripeFooter = readStripeFooter(stripes.get(stripeIndex));
+      indexes = new OrcProto.RowIndex[this.indexes.length];
+    }
     for(OrcProto.Stream stream: stripeFooter.getStreamsList()) {
       if (stream.getKind() == OrcProto.Stream.Kind.ROW_INDEX) {
         int col = stream.getColumn();
@@ -1272,6 +1281,7 @@ class RecordReaderImpl implements RecordReader {
       }
       offset += stream.getLength();
     }
+    return indexes;
   }
 
   private void seekToRowEntry(int rowEntry) throws IOException {
@@ -1292,7 +1302,7 @@ class RecordReaderImpl implements RecordReader {
       currentStripe = rightStripe;
       readStripe();
     }
-    readRowIndex();
+    readRowIndex(currentStripe);
     rowInStripe = rowNumber - rowBaseInStripe - firstRow;
     if (rowIndexStride != 0) {
       long entry = rowInStripe / rowIndexStride;
