@@ -84,6 +84,8 @@ $GLOBALS['serde_CONSTANTS']['LIST_COLUMNS'] = "columns";
 
 $GLOBALS['serde_CONSTANTS']['LIST_COLUMN_TYPES'] = "columns.types";
 
+$GLOBALS['serde_CONSTANTS']['TABLE_PROP_PREFIX'] = "table.";
+
 $GLOBALS['serde_CONSTANTS']['PrimitiveTypes'] = array(
   "void" => true,
   "boolean" => true,

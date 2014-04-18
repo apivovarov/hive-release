@@ -43,6 +43,7 @@ STRUCT_TYPE_NAME = "struct"
 UNION_TYPE_NAME = "uniontype"
 LIST_COLUMNS = "columns"
 LIST_COLUMN_TYPES = "columns.types"
+TABLE_PROP_PREFIX = "table."
 PrimitiveTypes = set([
   "void",
   "boolean",

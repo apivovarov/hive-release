@@ -75,6 +75,8 @@ LIST_COLUMNS = %q"columns"
 
 LIST_COLUMN_TYPES = %q"columns.types"
 
+TABLE_PROP_PREFIX = %q"table."
+
 PrimitiveTypes = Set.new([
   %q"void",
   %q"boolean",

@@ -79,6 +79,8 @@ serdeConstants::serdeConstants() {
 
   LIST_COLUMN_TYPES = "columns.types";
 
+  TABLE_PROP_PREFIX = "table.";
+
   PrimitiveTypes.insert("void");
   PrimitiveTypes.insert("boolean");
   PrimitiveTypes.insert("tinyint");

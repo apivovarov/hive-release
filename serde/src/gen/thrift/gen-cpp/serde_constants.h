@@ -49,6 +49,7 @@ class serdeConstants {
   std::string UNION_TYPE_NAME;
   std::string LIST_COLUMNS;
   std::string LIST_COLUMN_TYPES;
+  std::string TABLE_PROP_PREFIX;
   std::set<std::string>  PrimitiveTypes;
   std::set<std::string>  CollectionTypes;
 };

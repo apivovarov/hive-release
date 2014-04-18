@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -71,6 +72,11 @@ public class FetchOperator implements Serializable {
 
   static Log LOG = LogFactory.getLog(FetchOperator.class.getName());
   static LogHelper console = new LogHelper(LOG);
+
+  public static final String FETCH_OPERATOR_TABLE_CALL_ID =
+      "hive.fetchoperator.table.call.id";
+  public static final String FETCH_OPERATOR_DIRECTORY_LIST =
+      "hive.complete.dir.list";
 
   private boolean isNativeTable;
   private FetchWork work;
@@ -325,10 +331,9 @@ public class FetchOperator implements Serializable {
         }
         return;
       } else {
-        iterPath = FetchWork.convertStringToPathArray(work.getPartDir()).iterator();
-        job.set("hive.complete.dir.list",
-                org.apache.hadoop.util.StringUtils.join("\t",
-                                                        work.getPartDir()));
+        iterPath = 
+          FetchWork.convertStringToPathArray(work.getPartDir()).iterator();
+        setFetchOperatorContext(job, work.getPartDir());
         iterPartDesc = work.getPartDesc().iterator();
       }
     }
@@ -353,6 +358,29 @@ public class FetchOperator implements Serializable {
         }
       }
     }
+  }
+
+  /**
+   * Set context for this fetch operator in to the jobconf.
+   * This helps InputFormats make decisions based on the scope of the complete
+   * operation.
+   * @param conf the configuration to modify
+   * @param partDirs the list of partition directories
+   */
+  static void setFetchOperatorContext(JobConf conf,
+                                      ArrayList<String> partDirs) {
+    conf.set(FETCH_OPERATOR_TABLE_CALL_ID, UUID.randomUUID().toString());
+    StringBuilder buff = new StringBuilder();
+    boolean first = true;
+    for(Path p: partDirs) {
+      if (first) {
+        first = false;
+      } else {
+        buff.append('\t');
+      }
+      buff.append(p);
+    }
+    conf.set(FETCH_OPERATOR_DIRECTORY_LIST, buff.toString());
   }
 
   private RecordReader<WritableComparable, Writable> getRecordReader() throws Exception {

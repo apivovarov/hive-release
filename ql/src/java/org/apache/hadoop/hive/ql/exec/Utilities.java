@@ -1716,6 +1716,11 @@ public final class Utilities {
    *          configuration which receives configured properties
    */
   public static void copyTableJobPropertiesToConf(TableDesc tbl, JobConf job) {
+    Properties tblProperties = tbl.getProperties();
+    for(String name: tblProperties.stringPropertyNames()) {
+      job.set(serdeConstants.TABLE_PROP_PREFIX + name,
+          (String) tblProperties.get(name));
+    }
     Map<String, String> jobProperties = tbl.getJobProperties();
     if (jobProperties == null) {
       return;
