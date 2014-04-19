@@ -372,7 +372,7 @@ public class FetchOperator implements Serializable {
     conf.set(FETCH_OPERATOR_TABLE_CALL_ID, UUID.randomUUID().toString());
     StringBuilder buff = new StringBuilder();
     boolean first = true;
-    for(Path p: partDirs) {
+    for(String p: partDirs) {
       if (first) {
         first = false;
       } else {
