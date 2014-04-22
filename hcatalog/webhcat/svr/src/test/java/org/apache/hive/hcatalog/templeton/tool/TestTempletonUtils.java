@@ -312,4 +312,22 @@ public class TestTempletonUtils {
     }
   }
 
+  @Test
+  public void testPropertiesParsing() throws Exception {
+    String[] props = {"hive.metastore.uris=thrift://localhost:9933\\,thrift://127.0.0.1:9933",
+      "hive.metastore.sasl.enabled=false",
+    "hive.some.fake.path=C:\\foo\\bar.txt\\"};
+    StringBuilder input = new StringBuilder();
+    for(String prop : props) {
+      if(input.length() > 0) {
+        input.append(',');
+      }
+      input.append(prop);
+    }
+    String[] newProps = StringUtils.split(input.toString());
+    for(int i = 0; i < newProps.length; i++) {
+      Assert.assertEquals("Pre/post split values don't match",
+        TempletonUtils.unEscape(props[i]), TempletonUtils.unEscape(newProps[i]));
+    }
+  }
 }
