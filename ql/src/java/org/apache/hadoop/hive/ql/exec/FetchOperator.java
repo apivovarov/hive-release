@@ -370,17 +370,19 @@ public class FetchOperator implements Serializable {
   static void setFetchOperatorContext(JobConf conf,
                                       ArrayList<String> partDirs) {
     conf.set(FETCH_OPERATOR_TABLE_CALL_ID, UUID.randomUUID().toString());
-    StringBuilder buff = new StringBuilder();
-    boolean first = true;
-    for(String p: partDirs) {
-      if (first) {
-        first = false;
-      } else {
-        buff.append('\t');
+    if (partDirs != null) {
+      StringBuilder buff = new StringBuilder();
+      boolean first = true;
+      for(String p: partDirs) {
+        if (first) {
+          first = false;
+        } else {
+          buff.append('\t');
+        }
+        buff.append(p);
       }
-      buff.append(p);
+      conf.set(FETCH_OPERATOR_DIRECTORY_LIST, buff.toString());
     }
-    conf.set(FETCH_OPERATOR_DIRECTORY_LIST, buff.toString());
   }
 
   private RecordReader<WritableComparable, Writable> getRecordReader() throws Exception {
