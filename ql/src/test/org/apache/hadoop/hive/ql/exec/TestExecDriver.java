@@ -61,6 +61,7 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.mapred.TextInputFormat;
+import org.apache.hadoop.util.Shell;
 
 /**
  * Mimics the actual query compiler in generating end to end plans and testing
@@ -71,9 +72,9 @@ public class TestExecDriver extends TestCase {
 
   static HiveConf conf;
 
-  private static final String tmpdir = System.getProperty("test.tmp.dir");
+  private static final String tmpdir;
   private static final Log LOG = LogFactory.getLog(TestExecDriver.class);
-  private static final Path tmppath = new Path(tmpdir);
+  private static final Path tmppath;
   private static Hive db;
   private static FileSystem fs;
 
@@ -83,7 +84,11 @@ public class TestExecDriver extends TestCase {
       SessionState.start(conf);
 
       //convert possible incompatible Windows path in config
-      WindowsPathUtil.convertPathsFromWindowsToHdfs(conf);
+      if (Shell.WINDOWS) {
+        WindowsPathUtil.convertPathsFromWindowsToHdfs(conf);
+      }
+      tmpdir = System.getProperty("test.tmp.dir");
+      tmppath = new Path(tmpdir);
 
       fs = FileSystem.get(conf);
       if (fs.exists(tmppath) && !fs.getFileStatus(tmppath).isDir()) {

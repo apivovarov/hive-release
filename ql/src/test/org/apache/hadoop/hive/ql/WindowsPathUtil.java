@@ -24,22 +24,27 @@ import org.apache.hadoop.util.Shell;
 public class WindowsPathUtil {
 
   public static void convertPathsFromWindowsToHdfs(HiveConf conf){
-    if(Shell.WINDOWS){
-      String orgWarehouseDir = conf.getVar(HiveConf.ConfVars.METASTOREWAREHOUSE);
-      conf.setVar(HiveConf.ConfVars.METASTOREWAREHOUSE, getHdfsUriString(orgWarehouseDir));
+    // Following local paths are used as HDFS paths in unit tests.
+    // It works well in Unix as the path notation in Unix and HDFS is more or less same.
+    // But when it comes to Windows, drive letter separator ':' & backslash '\" are invalid
+    // characters in HDFS so we need to converts these local paths to HDFS paths before using them
+    // in unit tests.
 
-      String orgTestTempDir = System.getProperty("test.tmp.dir");
-      System.setProperty("test.tmp.dir", getHdfsUriString(orgTestTempDir));
+    String orgWarehouseDir = conf.getVar(HiveConf.ConfVars.METASTOREWAREHOUSE);
+    conf.setVar(HiveConf.ConfVars.METASTOREWAREHOUSE, getHdfsUriString(orgWarehouseDir));
 
-      String orgTestDataDir = System.getProperty("test.src.data.dir");
-      System.setProperty("test.src.data.dir", getHdfsUriString(orgTestDataDir));
 
-      String orgScratchDir = conf.getVar(HiveConf.ConfVars.SCRATCHDIR);
-      conf.setVar(HiveConf.ConfVars.SCRATCHDIR, getHdfsUriString(orgScratchDir));
-    }
+    String orgTestTempDir = System.getProperty("test.tmp.dir");
+    System.setProperty("test.tmp.dir", getHdfsUriString(orgTestTempDir));
+
+    String orgTestWarehouseDir = System.getProperty("test.warehouse.dir");
+    System.setProperty("test.warehouse.dir", getHdfsUriString(orgTestWarehouseDir));
+
+    String orgScratchDir = conf.getVar(HiveConf.ConfVars.SCRATCHDIR);
+    conf.setVar(HiveConf.ConfVars.SCRATCHDIR, getHdfsUriString(orgScratchDir));
   }
 
-  private static String getHdfsUriString(String uriStr) {
+  public static String getHdfsUriString(String uriStr) {
     assert uriStr != null;
     if(Shell.WINDOWS) {
       // If the URI conversion is from Windows to HDFS then replace the '\' with '/'

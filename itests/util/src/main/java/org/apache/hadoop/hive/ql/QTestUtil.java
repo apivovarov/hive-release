@@ -259,7 +259,7 @@ public class QTestUtil {
       mr.setupConfiguration(conf);
 
       // set fs.default.name to the uri of mini-dfs
-      String dfsUriString = getHdfsUriString(dfs.getFileSystem().getUri().toString());
+      String dfsUriString = WindowsPathUtil.getHdfsUriString(dfs.getFileSystem().getUri().toString());
       conf.setVar(HiveConf.ConfVars.HADOOPFS, dfsUriString);
       // hive.metastore.warehouse.dir needs to be set relative to the mini-dfs
       conf.setVar(HiveConf.ConfVars.METASTOREWAREHOUSE,
@@ -270,44 +270,8 @@ public class QTestUtil {
     // Windows paths should be converted after MiniMrShim.setupConfiguration()
     // since setupConfiguration may overwrite configuration values.
     if (Shell.WINDOWS) {
-      convertPathsFromWindowsToHdfs();
+      WindowsPathUtil.convertPathsFromWindowsToHdfs(conf);
     }
-  }
-
-  private void convertPathsFromWindowsToHdfs() {
-    // Following local paths are used as HDFS paths in unit tests.
-    // It works well in Unix as the path notation in Unix and HDFS is more or less same.
-    // But when it comes to Windows, drive letter separator ':' & backslash '\" are invalid
-    // characters in HDFS so we need to converts these local paths to HDFS paths before using them
-    // in unit tests.
-
-    // hive.exec.scratchdir needs to be set relative to the mini-dfs
-    String orgWarehouseDir = conf.getVar(HiveConf.ConfVars.METASTOREWAREHOUSE);
-    conf.setVar(HiveConf.ConfVars.METASTOREWAREHOUSE, getHdfsUriString(orgWarehouseDir));
-
-    String orgTestTempDir = System.getProperty("test.tmp.dir");
-    System.setProperty("test.tmp.dir", getHdfsUriString(orgTestTempDir));
-
-    String orgScratchDir = conf.getVar(HiveConf.ConfVars.SCRATCHDIR);
-    conf.setVar(HiveConf.ConfVars.SCRATCHDIR, getHdfsUriString(orgScratchDir));
-
-    if (miniMr) {
-      String orgAuxJarFolder = conf.getAuxJars();
-      conf.setAuxJars(getHdfsUriString("file://" + orgAuxJarFolder));
-    }
-  }
-
-  private String getHdfsUriString(String uriStr) {
-    assert uriStr != null;
-    if(Shell.WINDOWS) {
-      // If the URI conversion is from Windows to HDFS then replace the '\' with '/'
-      // and remove the windows single drive letter & colon from absolute path.
-      return uriStr.replace('\\', '/')
-        .replaceFirst("/[c-zC-Z]:", "/")
-        .replaceFirst("^[c-zC-Z]:", "");
-    }
-
-    return uriStr;
   }
 
   public enum MiniClusterType {
@@ -362,13 +326,14 @@ public class QTestUtil {
     if (clusterType != MiniClusterType.none) {
       dfs = shims.getMiniDfs(conf, numberOfDataNodes, true, null);
       FileSystem fs = dfs.getFileSystem();
+      String uriString = WindowsPathUtil.getHdfsUriString(fs.getUri().toString());
       if (clusterType == MiniClusterType.tez) {
         if (!(shims instanceof Hadoop23Shims)) {
           throw new Exception("Cannot run tez on hadoop-1, Version: "+this.hadoopVer);
         }
-        mr = ((Hadoop23Shims)shims).getMiniTezCluster(conf, 4, getHdfsUriString(fs.getUri().toString()), 1);
+        mr = ((Hadoop23Shims)shims).getMiniTezCluster(conf, 4, uriString, 1);
       } else {
-        mr = shims.getMiniMrCluster(conf, 4, getHdfsUriString(fs.getUri().toString()), 1);
+        mr = shims.getMiniMrCluster(conf, 4, uriString, 1);
       }
     }
 
