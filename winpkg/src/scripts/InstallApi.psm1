@@ -293,7 +293,7 @@ function Uninstall(
 
         Write-Log "Uninstalling Apache hcatalog $FinalName"
         ### $installToDir: the directory that contains the application, after unzipping
-        $installToDir = Join-Path  $env:HIVE_HOME "$FinalName"
+        $installToDir = Join-Path "$nodeInstallRoot" "$FinalName"
         Write-Log "installToDir: $installToDir"
 
         ###
