@@ -19,6 +19,7 @@
 package org.apache.hcatalog.api;
 
 import java.math.BigInteger;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -132,7 +133,7 @@ public class TestHCatClient {
       .getProperty("test.warehouse.dir", "/user/hive/warehouse");
     String expectedDir = org.apache.hive.hcatalog.api.TestHCatClient.fixPath(warehouseDir).
             replaceFirst("pfile:///", "pfile:/");
-    assertEquals(expectedDir + "/" + db + ".db", testDb.getLocation());
+    assertPathEquals(expectedDir + "/" + db + ".db", testDb.getLocation());
     ArrayList<HCatFieldSchema> cols = new ArrayList<HCatFieldSchema>();
     cols.add(new HCatFieldSchema("id", Type.INT, "id comment"));
     cols.add(new HCatFieldSchema("value", Type.STRING, "value comment"));
@@ -167,7 +168,7 @@ public class TestHCatClient {
       TextInputFormat.class.getName()));
     assertTrue(table2.getOutputFileFormat().equalsIgnoreCase(
       HiveIgnoreKeyTextOutputFormat.class.getName()));
-    assertEquals((expectedDir + "/" + db + ".db/" + tableTwo).toLowerCase(), table2.getLocation().toLowerCase());
+    assertPathEquals((expectedDir + "/" + db + ".db/" + tableTwo).toLowerCase(), table2.getLocation().toLowerCase());
 
     HCatCreateTableDesc tableDesc3 = HCatCreateTableDesc.create(db,
       tableThree, cols).fileFormat("orcfile").build();
@@ -200,6 +201,14 @@ public class TestHCatClient {
     client.dropTable(db, tableFour, true);
 
     client.close();
+  }
+
+  // Helper method that converts path strings to URIs to compare
+  // paths directly and ignore scheme insertions
+  private void assertPathEquals(String path1, String path2) throws Exception {
+    URI u1 = new URI(path1);
+    URI u2 = new URI(path2);
+    assertEquals(u1.getPath(), u2.getPath());
   }
 
   @Test
