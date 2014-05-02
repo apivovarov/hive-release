@@ -177,7 +177,18 @@ public class Server {
   }
 
   /**
-   * Get version of hive software being run by this WebHCat server
+   * Get version of sqoop software being run by this WebHCat server
+   */
+  @GET
+  @Path("version/sqoop")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response sqoopVersion()  throws IOException {
+    VersionDelegator d = new VersionDelegator(appConf);
+    return d.getVersion("sqoop");
+  }
+
+  /**
+   * Get version of pig software being run by this WebHCat server
    */
   @GET
   @Path("version/pig")
@@ -769,7 +780,7 @@ public class Server {
   @Path("sqoop")
   @Produces({MediaType.APPLICATION_JSON})
   public EnqueueBean sqoop(@FormParam("command") String command,
-          @FormParam("file") String optionsFile,
+          @FormParam("optionsfile") String optionsFile,
           @FormParam("files") String otherFiles,
           @FormParam("statusdir") String statusdir,
           @FormParam("callback") String callback,
@@ -778,15 +789,14 @@ public class Server {
     ExecuteException, IOException, InterruptedException {
     verifyUser();
     if (command == null && optionsFile == null)
-      throw new BadParam("Must define Sqoop command or a file contains Sqoop command to run Sqoop job");
-    if (enablelog == true && !TempletonUtils.isset(statusdir))
-      throw new BadParam("enablelog is only applicable when statusdir is set");
-
+      throw new BadParam("Must define Sqoop command or a optionsfile contains Sqoop command to run Sqoop job");
+    checkEnableLogPrerequisite(enablelog, statusdir);
+    
     //add all function arguments to a map
     Map<String, Object> userArgs = new HashMap<String, Object>();
     userArgs.put("user.name", getUser());
     userArgs.put("command", command);
-    userArgs.put("file", optionsFile);
+    userArgs.put("optionsfile", optionsFile);
     userArgs.put("files", otherFiles);
     userArgs.put("statusdir", statusdir);
     userArgs.put("callback", callback);
