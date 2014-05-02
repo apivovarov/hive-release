@@ -790,6 +790,8 @@ public class Server {
     verifyUser();
     if (command == null && optionsFile == null)
       throw new BadParam("Must define Sqoop command or a optionsfile contains Sqoop command to run Sqoop job");
+    if (enablelog == true && !TempletonUtils.isset(statusdir))
+      throw new BadParam("enablelog is only applicable when statusdir is set");
     checkEnableLogPrerequisite(enablelog, statusdir);
     
     //add all function arguments to a map
