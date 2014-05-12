@@ -992,8 +992,7 @@ public class HiveConf extends Configuration {
 
 
     HIVE_TYPE_CHECK_ON_INSERT("hive.typecheck.on.insert", true),
-    HIVE_HADOOP_CLASSPATH("hive.hadoop.classpath", null),
-
+    
     // Whether to send the query plan via local resource or RPC
     HIVE_RPC_QUERY_PLAN("hive.rpc.query.plan", false),
 
