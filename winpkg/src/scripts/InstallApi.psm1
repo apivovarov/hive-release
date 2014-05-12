@@ -23,7 +23,7 @@
 ###
 $ScriptDir = Resolve-Path (Split-Path $MyInvocation.MyCommand.Path)
 $FinalName = "@final.name@"
-$DefaultRoles = @("hiveclient","hwi","Derbyserver", "hiveserver2", "metastore")
+$DefaultRoles = @("hiveclient", "Derbyserver", "hiveserver2", "metastore")
 $WaitingTime = 10000
 
 ###############################################################################

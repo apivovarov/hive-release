@@ -80,7 +80,7 @@ function Main( $scriptDir )
 
 
     if ("$ENV:IS_HIVE_SERVER" -eq "yes" ) {
-      $hiveRoles = "$hiveRoles"+" "+"hiveclient hwi hiveserver2 metastore"
+      $hiveRoles = "$hiveRoles"+" "+"hiveclient hiveserver2 metastore"
     }
     if ("$ENV:IS_DERBY_SERVER" -eq "yes" ) {
       $hiveRoles = "$hiveRoles"+" "+"derbyserver"
