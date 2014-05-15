@@ -2243,8 +2243,8 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
 
     String tblName = getUnescapedName((ASTNode) ast.getChild(0));
     // get table metadata
-    List<PartitionSpec> partSpecs = getFullPartitionSpecs(ast);
     Table tab = getTable(tblName, true);
+    List<PartitionSpec> partSpecs = getFullPartitionSpecs(ast, tab);
     validateAlterTableType(tab, AlterTableTypes.DROPPARTITION, expectView);
     inputs.add(new ReadEntity(tab));
 
@@ -2622,10 +2622,13 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
    *         key to operator and value.
    * @throws SemanticException
    */
-  private List<PartitionSpec> getFullPartitionSpecs(CommonTree ast)
+  private List<PartitionSpec> getFullPartitionSpecs(CommonTree ast, Table tab)
       throws SemanticException {
     List<PartitionSpec> partSpecList = new ArrayList<PartitionSpec>();
-
+    Set<String> partColNames = new HashSet<String>();
+    for (FieldSchema fs : tab.getPartitionKeys()) {
+      partColNames.add(fs.getName().toLowerCase());
+    }
     for (int childIndex = 1; childIndex < ast.getChildCount(); childIndex++) {
       Tree partSpecTree = ast.getChild(childIndex);
       if (partSpecTree.getType() == HiveParser.TOK_PARTSPEC) {
@@ -2635,6 +2638,9 @@ public class DDLSemanticAnalyzer extends BaseSemanticAnalyzer {
           CommonTree partSpecSingleKey = (CommonTree) partSpecTree.getChild(i);
           assert (partSpecSingleKey.getType() == HiveParser.TOK_PARTVAL);
           String key = partSpecSingleKey.getChild(0).getText().toLowerCase();
+          if (!partColNames.contains(key)) {
+            throw new SemanticException("Column " + key + " not found");
+          }
           String operator = partSpecSingleKey.getChild(1).getText();
           String val = partSpecSingleKey.getChild(2).getText();
           partSpec.addPredicate(key, operator, val);
