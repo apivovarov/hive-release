@@ -239,9 +239,9 @@ if defined HBASE_HOME (
   )
   if defined HBASE_CONF_DIR (
     if defined HADOOP_CLASSPATH (
-      set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HBASE_CONF_DIR%\*
+      set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HBASE_CONF_DIR%
     ) else (
-      set HADOOP_CLASSPATH=%HBASE_CONF_DIR%\*
+      set HADOOP_CLASSPATH=%HBASE_CONF_DIR%
     )
   )
   if exist %HBASE_HOME%\lib (
