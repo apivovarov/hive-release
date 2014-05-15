@@ -230,6 +230,29 @@ if defined HIVE_CLASSPATH (
   set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HIVE_CLASSPATH%
 )
 
+@rem set hbase components
+if defined HBASE_HOME (
+  if not defined HBASE_CONF_DIR (
+    if exist %HBASE_HOME%\conf (
+      set HBASE_CONF_DIR=%HBASE_HOME%\conf
+    )
+  )
+  if defined HBASE_CONF_DIR (
+    if defined HADOOP_CLASSPATH (
+      set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HBASE_CONF_DIR%\*
+    ) else (
+      set HADOOP_CLASSPATH=%HBASE_CONF_DIR%\*
+    )
+  )
+  if exist %HBASE_HOME%\lib (
+    if defined HADOOP_CLASSPATH (
+      set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HBASE_HOME%\lib\*
+    ) else (
+      set HADOOP_CLASSPATH=%HBASE_HOME\lib\*
+    )    
+  ) 
+)
+
 if defined AUX_PARAM (
         set HIVE_OPTS=%HIVE_OPTS% -hiveconf hive.aux.jars.path="%AUX_PARAM%"
 	set AUX_JARS_CMD_LINE="-libjars %AUX_PARAM%"
