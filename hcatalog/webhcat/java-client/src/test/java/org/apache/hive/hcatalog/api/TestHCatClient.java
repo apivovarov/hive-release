@@ -19,7 +19,6 @@
 package org.apache.hive.hcatalog.api;
 
 import java.math.BigInteger;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -136,7 +135,7 @@ public class TestHCatClient {
     String warehouseDir = System
       .getProperty("test.warehouse.dir", "/user/hive/warehouse");
     String expectedDir = fixPath(warehouseDir).replaceFirst("pfile:///", "pfile:/");
-    assertPathEquals(expectedDir + "/" + db + ".db", testDb.getLocation());
+    assertEquals(expectedDir + "/" + db + ".db", testDb.getLocation());
     ArrayList<HCatFieldSchema> cols = new ArrayList<HCatFieldSchema>();
     cols.add(new HCatFieldSchema("id", Type.INT, "id comment"));
     cols.add(new HCatFieldSchema("value", Type.STRING, "value comment"));
@@ -186,16 +185,8 @@ public class TestHCatClient {
     assertEquals("checking " + serdeConstants.SERIALIZATION_NULL_FORMAT, Character.toString('\006'),
       table2.getSerdeParams().get(serdeConstants.SERIALIZATION_NULL_FORMAT));
     
-    assertPathEquals((expectedDir + "/" + db + ".db/" + tableTwo).toLowerCase(), table2.getLocation().toLowerCase());
+    assertEquals((expectedDir + "/" + db + ".db/" + tableTwo).toLowerCase(), table2.getLocation().toLowerCase());
     client.close();
-  }
-
-  // Helper method that converts path strings to URIs to compare
-  // paths directly and ignore scheme insertions
-  private void assertPathEquals(String path1, String path2) throws Exception {
-    URI u1 = new URI(path1);
-    URI u2 = new URI(path2);
-    assertEquals(u1.getPath(), u2.getPath());
   }
 
   /**
