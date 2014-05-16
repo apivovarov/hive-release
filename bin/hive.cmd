@@ -237,19 +237,11 @@ if defined HBASE_HOME (
       set HBASE_CONF_DIR=%HBASE_HOME%\conf
     )
   )
-  if defined HBASE_CONF_DIR (
-    if defined HADOOP_CLASSPATH (
-      set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HBASE_CONF_DIR%
-    ) else (
-      set HADOOP_CLASSPATH=%HBASE_CONF_DIR%
-    )
-  )
+  if exist %HBASE_CONF_DIR% (
+    call :AddToHadoopClassPath %HBASE_CONF_DIR%	
+  ) 
   if exist %HBASE_HOME%\lib (
-    if defined HADOOP_CLASSPATH (
-      set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%HBASE_HOME%\lib\*
-    ) else (
-      set HADOOP_CLASSPATH=%HBASE_HOME\lib\*
-    )    
+    call :AddToHadoopClassPath %HBASE_HOME%\lib\*
   ) 
 )
 
@@ -373,3 +365,13 @@ if not defined AUX_PARAM (
 	)
 )
 goto :EOF
+
+:AddToHadoopClassPath
+if defined HADOOP_CLASSPATH (
+   set HADOOP_CLASSPATH=%HADOOP_CLASSPATH%;%1
+   ) else (
+   set HADOOP_CLASSPATH=%1
+   )  
+)
+goto :EOF
+
