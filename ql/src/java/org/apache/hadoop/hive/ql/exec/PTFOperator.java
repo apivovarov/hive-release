@@ -53,7 +53,7 @@ public class PTFOperator extends Operator<PTFDesc> implements Serializable {
 	transient KeyWrapperFactory keyWrapperFactory;
 	protected transient KeyWrapper currentKeys;
 	protected transient KeyWrapper newKeys;
-	transient HiveConf hiveConf;
+	transient Configuration hiveConf;
 
 
 	/*
@@ -64,14 +64,13 @@ public class PTFOperator extends Operator<PTFDesc> implements Serializable {
 	 */
 	@Override
 	protected void initializeOp(Configuration jobConf) throws HiveException {
-		hiveConf = new HiveConf(jobConf, PTFOperator.class);
-		// if the parent is ExtractOperator, this invocation is from reduce-side
+		hiveConf = jobConf;
+    // if the parent is ExtractOperator, this invocation is from reduce-side
 		Operator<? extends OperatorDesc> parentOp = getParentOperators().get(0);
 		isMapOperator = conf.isMapSide();
 
 		reconstructQueryDef(hiveConf);
-    inputPart = createFirstPartitionForChain(
-        inputObjInspectors[0], hiveConf, isMapOperator);
+    inputPart = createFirstPartitionForChain(inputObjInspectors[0], isMapOperator);
 
 		if (isMapOperator) {
 			PartitionedTableFunctionDef tDef = conf.getStartOfChain();
@@ -145,7 +144,7 @@ public class PTFOperator extends Operator<PTFDesc> implements Serializable {
 	 * @param hiveConf
 	 * @throws HiveException
 	 */
-	protected void reconstructQueryDef(HiveConf hiveConf) throws HiveException {
+	protected void reconstructQueryDef(Configuration hiveConf) throws HiveException {
 
 	  PTFDeserializer dS =
 	      new PTFDeserializer(conf, (StructObjectInspector)inputObjInspectors[0], hiveConf);
@@ -265,9 +264,8 @@ public class PTFOperator extends Operator<PTFDesc> implements Serializable {
    * @throws HiveException
    */
   public PTFPartition createFirstPartitionForChain(ObjectInspector oi,
-      HiveConf hiveConf, boolean isMapSide) throws HiveException {
+    boolean isMapSide) throws HiveException {
     PartitionedTableFunctionDef tabDef = conf.getStartOfChain();
-    TableFunctionEvaluator tEval = tabDef.getTFunction();
 
     PTFPartition part = null;
     SerDe serde = isMapSide ? tabDef.getInput().getOutputShape().getSerde() :
