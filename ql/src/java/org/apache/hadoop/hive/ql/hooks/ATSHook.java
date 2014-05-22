@@ -46,34 +46,40 @@ import static org.apache.hadoop.hive.ql.hooks.HookContext.HookType.*;
 public class ATSHook implements ExecuteWithHookContext {
 
   private static final Log LOG = LogFactory.getLog(ATSHook.class.getName());
-  private final ExecutorService executor;
-  private final TimelineClient timelineClient;
+  private static final Object LOCK = new Object();
+  private static ExecutorService executor;
+  private static TimelineClient timelineClient;
   private enum EntityTypes { HIVE_QUERY_ID };
   private enum EventTypes { QUERY_SUBMITTED, QUERY_COMPLETED };
   private enum OtherInfoTypes { query, status, tez, mapred };
   private enum PrimaryFilterTypes { user };
-  private YarnConfiguration yarnConf;
   private static final int WAIT_TIME = 3;
 
   public ATSHook() {
-    yarnConf = new YarnConfiguration();
-    timelineClient = TimelineClient.createTimelineClient();
-    timelineClient.init(yarnConf);
-    timelineClient.start();
+    synchronized(LOCK) {
+      if (executor == null) {
 
-    executor = Executors.newSingleThreadExecutor(
-         new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build());
+        executor = Executors.newSingleThreadExecutor(
+           new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build());
 
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-        @Override
-        public void run() {
-          try {
-            executor.shutdown();
-            executor.awaitTermination(WAIT_TIME, TimeUnit.SECONDS);
-          } catch(InterruptedException ie) { /* ignore */ }
-          timelineClient.stop();
-        }
-      });
+        YarnConfiguration yarnConf = new YarnConfiguration();
+        timelineClient = TimelineClient.createTimelineClient();
+        timelineClient.init(yarnConf);
+        timelineClient.start();
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+          @Override
+          public void run() {
+            try {
+              executor.shutdown();
+              executor.awaitTermination(WAIT_TIME, TimeUnit.SECONDS);
+              executor = null;
+            } catch(InterruptedException ie) { /* ignore */ }
+            timelineClient.stop();
+          }
+        });
+      }
+    }
 
     LOG.info("Created ATS Hook");
   }
@@ -169,7 +175,7 @@ public class ATSHook implements ExecuteWithHookContext {
     return atsEntity;
   }
   
-  void fireAndForget(Configuration conf, TimelineEntity entity) throws Exception {
+  synchronized void fireAndForget(Configuration conf, TimelineEntity entity) throws Exception {
     timelineClient.putEntities(entity);
   }
 }
