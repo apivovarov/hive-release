@@ -3410,11 +3410,9 @@ public final class Utilities {
     return createDirsWithPermission(conf, mkdir, fsPermission, recursive);
   }
 
-  public static boolean createDirsWithPermission(Configuration conf, Path mkdirPath,
+  public static boolean createDirsWithPermission(Configuration conf, Path mkdir,
       FsPermission fsPermission, boolean recursive) throws IOException {
     String origUmask = null;
-    LOG.info("Create dirs " + mkdirPath + " with permission " + fsPermission + " recursive " +
-        recursive);
 
     if (recursive) {
       origUmask = conf.get("fs.permissions.umask-mode");
@@ -3423,8 +3421,9 @@ public final class Utilities {
       conf.set("fs.permissions.umask-mode", "000");
     }
 
-    FileSystem fs = FileSystem.newInstance(conf);
-    boolean retval = fs.mkdirs(mkdirPath, fsPermission);
+    FileSystem fs = mkdir.getFileSystem(conf);
+    boolean retval = fs.mkdirs(mkdir, fsPermission);
+
     if (recursive) {
       if (origUmask != null) {
         conf.set("fs.permissions.umask-mode", origUmask);
