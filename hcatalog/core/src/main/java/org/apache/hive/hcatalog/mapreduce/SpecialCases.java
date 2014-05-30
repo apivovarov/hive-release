@@ -94,7 +94,11 @@ public class SpecialCases {
    */
   public static void addSpecialCasesParametersForHCatLoader(
       Configuration conf, HCatTableInfo tableInfo) {
-    if (tableInfo.getStorerInfo().getStorageHandlerClass().equals("org.apache.hadoop.hive.hbase.HBaseStorageHandler")){
+    if ((tableInfo == null) || (tableInfo.getStorerInfo() == null)){
+      return;
+    }
+    String shClass = tableInfo.getStorerInfo().getStorageHandlerClass();
+    if ((shClass != null) && shClass.equals("org.apache.hadoop.hive.hbase.HBaseStorageHandler")){
       // NOTE: The reason we use a string name of the hive hbase handler here is
       // because we do not want to introduce a compile-dependency on the hive-hbase-handler
       // module from within hive-hcatalog.
@@ -102,7 +106,6 @@ public class SpecialCases {
       conf.set("pig.noSplitCombination", "true");
     }
   }
-
 
 
 }
