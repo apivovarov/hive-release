@@ -63,6 +63,7 @@ public class ATSHook implements ExecuteWithHookContext {
            new ThreadFactoryBuilder().setDaemon(true).setNameFormat("ATS Logger %d").build());
 
         YarnConfiguration yarnConf = new YarnConfiguration();
+        yarnConf.setBoolean(YarnConfiguration.TIMELINE_SERVICE_ENABLED, true);
         timelineClient = TimelineClient.createTimelineClient();
         timelineClient.init(yarnConf);
         timelineClient.start();
