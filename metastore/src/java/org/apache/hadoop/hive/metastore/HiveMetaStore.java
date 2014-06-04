@@ -47,6 +47,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+import javax.jdo.JDOException;
+
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -521,18 +523,36 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
       try {
         createDefaultDB_core(getMS());
+      } catch (JDOException e) {
+        LOG.warn("Retrying creating default database after error: " + e.getMessage(), e);
+        try {
+          createDefaultDB_core(getMS());
+        } catch (InvalidObjectException e1) {
+          throw new MetaException(e1.getMessage());
+        }
       } catch (InvalidObjectException e) {
         throw new MetaException(e.getMessage());
-      } catch (MetaException e) {
-        throw e;
       } catch (Exception e) {
         assert (e instanceof RuntimeException);
         throw (RuntimeException) e;
       }
     }
 
-
+    /**
+     * create default roles if they don't exist
+     *
+     * @throws MetaException
+     */
     private void createDefaultRoles() throws MetaException {
+      try {
+        createDefaultRoles_core();
+      } catch (JDOException e) {
+        LOG.warn("Retrying creating default roles after error: " + e.getMessage(), e);
+        createDefaultRoles_core();
+      }
+    }
+    
+    private void createDefaultRoles_core() throws MetaException {
 
       if(defaultRolesCreated) {
         LOG.debug("Admin role already created previously.");
@@ -576,7 +596,21 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       defaultRolesCreated = true;
     }
 
+    /**
+     * add admin users if they don't exist
+     *
+     * @throws MetaException
+     */
     private void addAdminUsers() throws MetaException {
+      try {
+        addAdminUsers_core();
+      } catch (JDOException e) {
+        LOG.warn("Retrying adding admin users after error: " + e.getMessage(), e);
+        addAdminUsers_core();
+      } 
+    }
+    
+    private void addAdminUsers_core() throws MetaException {
 
       if(adminUsersAdded) {
         LOG.debug("Admin users already added.");
