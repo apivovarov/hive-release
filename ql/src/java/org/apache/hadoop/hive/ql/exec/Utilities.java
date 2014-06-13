@@ -3285,7 +3285,19 @@ public final class Utilities {
     return false;
   }
 
-    public static void clearWorkMap() {
+  public static void clearWorkMapForConf(Configuration conf) {
+    // Remove cached query plans for the current query only
+    Path mapPath = getPlanPath(conf, MAP_PLAN_NAME);
+    Path reducePath = getPlanPath(conf, REDUCE_PLAN_NAME);
+    if (mapPath != null) {
+      gWorkMap.remove(mapPath);
+    }
+    if (reducePath != null) {
+      gWorkMap.remove(reducePath);
+    }
+  }
+
+  public static void clearWorkMap() {
     gWorkMap.clear();
   }
 
