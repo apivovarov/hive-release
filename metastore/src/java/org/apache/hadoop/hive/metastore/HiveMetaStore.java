@@ -94,7 +94,6 @@ import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
 import org.apache.hadoop.hive.metastore.api.Index;
-import org.apache.hadoop.hive.metastore.api.IndexAlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.InvalidInputException;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
@@ -150,6 +149,7 @@ import org.apache.hadoop.hive.metastore.events.LoadPartitionDoneEvent;
 import org.apache.hadoop.hive.metastore.events.PreAddPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.PreAlterPartitionEvent;
 import org.apache.hadoop.hive.metastore.events.PreAlterTableEvent;
+import org.apache.hadoop.hive.metastore.events.PreAuthorizationCallEvent;
 import org.apache.hadoop.hive.metastore.events.PreCreateDatabaseEvent;
 import org.apache.hadoop.hive.metastore.events.PreCreateTableEvent;
 import org.apache.hadoop.hive.metastore.events.PreDropDatabaseEvent;
@@ -195,6 +195,11 @@ import com.google.common.collect.Lists;
  */
 public class HiveMetaStore extends ThriftHiveMetastore {
   public static final Log LOG = LogFactory.getLog(HiveMetaStore.class);
+
+  // boolean that tells if the HiveMetaStore (remote) server is being used.
+  // Can be used to determine if the calls to metastore api (HMSHandler) are being made with
+  // embedded metastore or a remote one
+  private static boolean isMetaStoreRemote = false;
 
   /** A fixed date format to be used for hive partition column values. */
   public static final DateFormat PARTITION_DATE_FORMAT;
@@ -658,7 +663,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       logAuditEvent(m);
     }
 
-    public String startFunction(String function, String extraLogInfo) {
+    private String startFunction(String function, String extraLogInfo) {
       incrementCounter(function);
       logInfo((getIpAddress() == null ? "" : "source:" + getIpAddress() + " ") +
           function + extraLogInfo);
@@ -671,26 +676,26 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return function;
     }
 
-    public String startFunction(String function) {
+    private String startFunction(String function) {
       return startFunction(function, "");
     }
 
-    public String startTableFunction(String function, String db, String tbl) {
+    private String startTableFunction(String function, String db, String tbl) {
       return startFunction(function, " : db=" + db + " tbl=" + tbl);
     }
 
-    public String startMultiTableFunction(String function, String db, List<String> tbls) {
+    private String startMultiTableFunction(String function, String db, List<String> tbls) {
       String tableNames = join(tbls, ",");
       return startFunction(function, " : db=" + db + " tbls=" + tableNames);
     }
 
-    public String startPartitionFunction(String function, String db, String tbl,
+    private String startPartitionFunction(String function, String db, String tbl,
         List<String> partVals) {
       return startFunction(function, " : db=" + db + " tbl=" + tbl
           + "[" + join(partVals, ",") + "]");
     }
 
-    public String startPartitionFunction(String function, String db, String tbl,
+    private String startPartitionFunction(String function, String db, String tbl,
         Map<String, String> partName) {
       return startFunction(function, " : db=" + db + " tbl=" + tbl + "partition=" + partName);
     }
@@ -698,12 +703,12 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     private void endFunction(String function, boolean successful, Exception e) {
       endFunction(function, successful, e, null);
     }
-    public void endFunction(String function, boolean successful, Exception e,
+    private void endFunction(String function, boolean successful, Exception e,
                             String inputTableName) {
       endFunction(function, new MetaStoreEndFunctionContext(successful, e, inputTableName));
     }
 
-    public void endFunction(String function, MetaStoreEndFunctionContext context) {
+    private void endFunction(String function, MetaStoreEndFunctionContext context) {
       try {
         Metrics.endScope(function);
       } catch (IOException e) {
@@ -1688,13 +1693,6 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         endFunction("get_table_names_by_filter", tables != null, ex, join(tables, ","));
       }
       return tables;
-    }
-
-    public boolean set_table_parameters(String dbname, String name,
-        Map<String, String> params) throws NoSuchObjectException, MetaException {
-      endFunction(startTableFunction("set_table_parameters", dbname, name), false, null, name);
-      // TODO Auto-generated method stub
-      return false;
     }
 
     private Partition append_partition_common(RawStore ms, String dbName, String tableName,
@@ -2757,13 +2755,6 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         endFunction("alter_partition", oldParts != null, ex, tbl_name);
       }
       return;
-    }
-
-    public boolean create_index(Index index_def)
-        throws IndexAlreadyExistsException, MetaException {
-      endFunction(startFunction("create_index"), false, null);
-      // TODO Auto-generated method stub
-      throw new MetaException("Not yet implemented");
     }
 
     @Override
@@ -3860,6 +3851,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public PrincipalPrivilegeSet get_privilege_set(HiveObjectRef hiveObject,
         String userName, List<String> groupNames) throws MetaException,
         TException {
+      firePreEvent(new PreAuthorizationCallEvent(this));
       if (hiveObject.getObjectType() == HiveObjectType.COLUMN) {
         String partName = getPartName(hiveObject);
         return this.get_column_privilege_set(hiveObject.getDbName(), hiveObject
@@ -3897,7 +3889,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return partName;
     }
 
-    public PrincipalPrivilegeSet get_column_privilege_set(final String dbName,
+    private PrincipalPrivilegeSet get_column_privilege_set(final String dbName,
         final String tableName, final String partName, final String columnName,
         final String userName, final List<String> groupNames) throws MetaException,
         TException {
@@ -3915,7 +3907,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_db_privilege_set(final String dbName,
+    private PrincipalPrivilegeSet get_db_privilege_set(final String dbName,
         final String userName, final List<String> groupNames) throws MetaException,
         TException {
       incrementCounter("get_db_privilege_set");
@@ -3931,7 +3923,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_partition_privilege_set(
+    private PrincipalPrivilegeSet get_partition_privilege_set(
         final String dbName, final String tableName, final String partName,
         final String userName, final List<String> groupNames)
         throws MetaException, TException {
@@ -3949,7 +3941,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_table_privilege_set(final String dbName,
+    private PrincipalPrivilegeSet get_table_privilege_set(final String dbName,
         final String tableName, final String userName,
         final List<String> groupNames) throws MetaException, TException {
       incrementCounter("get_table_privilege_set");
@@ -3972,6 +3964,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         final String grantor, final PrincipalType grantorType, final boolean grantOption)
         throws MetaException, TException {
       incrementCounter("add_role_member");
+      firePreEvent(new PreAuthorizationCallEvent(this));
       if (PUBLIC.equals(roleName)) {
         throw new MetaException("No user can be added to " + PUBLIC +". Since all users implictly"
         + " belong to " + PUBLIC + " role.");
@@ -4024,7 +4017,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public List<Role> list_roles(final String principalName,
         final PrincipalType principalType) throws MetaException, TException {
       incrementCounter("list_roles");
-
+      firePreEvent(new PreAuthorizationCallEvent(this));
       List<Role> result = new ArrayList<Role>();
       try {
         List<MRoleMap> roleMaps = getMS().listRoles(principalName, principalType);
@@ -4049,7 +4042,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public boolean create_role(final Role role)
         throws MetaException, TException {
       incrementCounter("create_role");
-
+      firePreEvent(new PreAuthorizationCallEvent(this));
       if (PUBLIC.equals(role.getRoleName())) {
          throw new MetaException(PUBLIC + " role implictly exists. It can't be created.");
       }
@@ -4068,6 +4061,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public boolean drop_role(final String roleName)
         throws MetaException, TException {
       incrementCounter("drop_role");
+      firePreEvent(new PreAuthorizationCallEvent(this));
       if (ADMIN.equals(roleName) || PUBLIC.equals(roleName)) {
         throw new MetaException(PUBLIC + "/" + ADMIN +" role can't be dropped.");
       }
@@ -4085,7 +4079,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     @Override
     public List<String> get_role_names() throws MetaException, TException {
       incrementCounter("get_role_names");
-
+      firePreEvent(new PreAuthorizationCallEvent(this));
       List<String> ret = null;
       try {
         ret = getMS().listRoleNames();
@@ -4101,6 +4095,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public boolean grant_privileges(final PrivilegeBag privileges) throws MetaException,
         TException {
       incrementCounter("grant_privileges");
+      firePreEvent(new PreAuthorizationCallEvent(this));
       Boolean ret = null;
       try {
         ret = getMS().grantPrivileges(privileges);
@@ -4116,7 +4111,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public boolean revoke_role(final String roleName, final String userName,
         final PrincipalType principalType) throws MetaException, TException {
       incrementCounter("remove_role_member");
-
+      firePreEvent(new PreAuthorizationCallEvent(this));
       if (PUBLIC.equals(roleName)) {
         throw new MetaException(PUBLIC + " role can't be revoked.");
       }
@@ -4137,6 +4132,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
     public boolean revoke_privileges(final PrivilegeBag privileges)
         throws MetaException, TException {
       incrementCounter("revoke_privileges");
+      firePreEvent(new PreAuthorizationCallEvent(this));
       Boolean ret = null;
       try {
         ret = getMS().revokePrivileges(privileges);
@@ -4148,10 +4144,9 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalPrivilegeSet get_user_privilege_set(final String userName,
+    private PrincipalPrivilegeSet get_user_privilege_set(final String userName,
         final List<String> groupNames) throws MetaException, TException {
       incrementCounter("get_user_privilege_set");
-
       PrincipalPrivilegeSet ret = null;
       try {
         ret = getMS().getUserPrivilegeSet(userName, groupNames);
@@ -4163,14 +4158,11 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return ret;
     }
 
-    public PrincipalType getPrincipalType(String principalType) {
-      return PrincipalType.valueOf(principalType);
-    }
-
     @Override
     public List<HiveObjectPrivilege> list_privileges(String principalName,
         PrincipalType principalType, HiveObjectRef hiveObject)
         throws MetaException, TException {
+      firePreEvent(new PreAuthorizationCallEvent(this));
       if (hiveObject.getObjectType() == null) {
         return getAllPrivileges(principalName, principalType);
       }
@@ -4215,7 +4207,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       return privs;
     }
 
-    public List<HiveObjectPrivilege> list_table_column_privileges(
+    private List<HiveObjectPrivilege> list_table_column_privileges(
         final String principalName, final PrincipalType principalType,
         final String dbName, final String tableName, final String columnName)
         throws MetaException, TException {
@@ -4255,7 +4247,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
     }
 
-    public List<HiveObjectPrivilege> list_partition_column_privileges(
+    private List<HiveObjectPrivilege> list_partition_column_privileges(
         final String principalName, final PrincipalType principalType,
         final String dbName, final String tableName, final List<String> partValues,
         final String columnName) throws MetaException, TException {
@@ -4296,7 +4288,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
     }
 
-    public List<HiveObjectPrivilege> list_db_privileges(final String principalName,
+    private List<HiveObjectPrivilege> list_db_privileges(final String principalName,
         final PrincipalType principalType, final String dbName)
         throws MetaException, TException {
       incrementCounter("list_security_db_grant");
@@ -4333,7 +4325,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
     }
 
-    public List<HiveObjectPrivilege> list_partition_privileges(
+    private List<HiveObjectPrivilege> list_partition_privileges(
         final String principalName, final PrincipalType principalType,
         final String dbName, final String tableName, final List<String> partValues)
         throws MetaException, TException {
@@ -4375,7 +4367,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
     }
 
-    public List<HiveObjectPrivilege> list_table_privileges(
+    private List<HiveObjectPrivilege> list_table_privileges(
         final String principalName, final PrincipalType principalType,
         final String dbName, final String tableName) throws MetaException,
         TException {
@@ -4413,7 +4405,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       }
     }
 
-    public List<HiveObjectPrivilege> list_global_privileges(
+    private List<HiveObjectPrivilege> list_global_privileges(
         final String principalName, final PrincipalType principalType)
         throws MetaException, TException {
       incrementCounter("list_security_user_grant");
@@ -4909,6 +4901,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         throws MetaException, TException {
 
       incrementCounter("get_principals_in_role");
+      firePreEvent(new PreAuthorizationCallEvent(this));
       Exception ex = null;
       List<MRoleMap> roleMaps = null;
       try {
@@ -4929,6 +4922,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
         GetRoleGrantsForPrincipalRequest request) throws MetaException, TException {
 
       incrementCounter("get_role_grants_for_principal");
+      firePreEvent(new PreAuthorizationCallEvent(this));
       Exception ex = null;
       List<MRoleMap> roleMaps = null;
       try {
@@ -4999,6 +4993,13 @@ public class HiveMetaStore extends ThriftHiveMetastore {
   public static String getDelegationToken(String owner, String renewer)
       throws IOException, InterruptedException {
     return saslServer.getDelegationToken(owner, renewer);
+  }
+
+  /**
+   * @return true if remote metastore has been created
+   */
+  public static boolean isMetaStoreRemote() {
+    return isMetaStoreRemote;
   }
 
   /**
@@ -5162,7 +5163,7 @@ public class HiveMetaStore extends ThriftHiveMetastore {
       HiveConf conf, Lock startLock, Condition startCondition,
       MetaStoreThread.BooleanPointer startedServing) throws Throwable {
     try {
-
+      isMetaStoreRemote = true;
       // Server will create new threads up to max as necessary. After an idle
       // period, it will destory threads to keep the number of threads in the
       // pool to min.
