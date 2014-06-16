@@ -1248,6 +1248,23 @@ public class VectorizationContext {
 
     // prepare arguments for createVectorExpression
     List<ExprNodeDesc> childrenAfterNot = foldConstantsForUnaryExprs(castChildren);
+    
+    // Consider the query: SELECT * FROM T1 WHERE C1 BETWEEN 100 AND 200;
+    // The childrenAfterNot list has 3 elements :
+    // 1. expression on which the 'between' filter in performed. (C1 in the above example)
+    // 2. The start value of 'between' (100 in the above example)
+    // 3. The end value of 'between' (200 in the above example)
+    
+    // 1. and 2. in the above example should be constant expression nodes.
+    // Else, vectorization cannot be performed. 
+    if (!(childrenAfterNot.get(1) instanceof ExprNodeConstantDesc) ||
+        !(childrenAfterNot.get(2) instanceof ExprNodeConstantDesc)) {
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Disabling vectorization since the between clause has a non-constant child: " +
+            childrenAfterNot.get(1).getClass() + ", " + childrenAfterNot.get(2).getClass());
+      }
+      return null;
+    }
 
     // determine class
     Class<?> cl = null;
