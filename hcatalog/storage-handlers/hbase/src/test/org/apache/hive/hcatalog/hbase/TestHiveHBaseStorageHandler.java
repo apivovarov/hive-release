@@ -193,6 +193,8 @@ public class TestHiveHBaseStorageHandler extends SkeletonHBaseTest {
   @Test
   public void testTableCreateExternal() throws Exception {
 
+    Initialize();
+    
     String tableName = "testTable";
     HBaseAdmin hAdmin = new HBaseAdmin(getHbaseConf());
 
