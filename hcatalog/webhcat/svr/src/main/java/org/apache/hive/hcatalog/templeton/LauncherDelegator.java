@@ -28,9 +28,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.shims.HadoopShimsSecure;
-import org.apache.hadoop.hive.shims.ShimLoader;
-import org.apache.hadoop.hive.shims.HadoopShims.WebHCatJTShim;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.hadoop.util.ToolRunner;
@@ -49,7 +46,6 @@ public class LauncherDelegator extends TempletonDelegator {
   protected String runAs = null;
   static public enum JobType {JAR, STREAMING, PIG, HIVE, SQOOP}
   private boolean secureMeatastoreAccess = false;
-  private final String HIVE_SHIMS_FILENAME_PATTERN = ".*hive-shims.*";
 
   public LauncherDelegator(AppConfig appConf) {
     super(appConf);
@@ -122,11 +118,7 @@ public class LauncherDelegator extends TempletonDelegator {
     ArrayList<String> args = new ArrayList<String>();
 
     args.add("-libjars");
-
-    // Include shim and admin specified libjars
-    String libJars = String.format("%s,%s", getShimLibjars(), appConf.libJars());
-    args.add(libJars);
-
+    args.add(appConf.libJars());
     addCacheFiles(args, appConf);
 
     // Hadoop vars
@@ -144,8 +136,6 @@ public class LauncherDelegator extends TempletonDelegator {
       Boolean.toString(enablelog));
     addDef(args, TempletonControllerJob.JOB_TYPE,
       jobType.toString());
-    addDef(args, TempletonControllerJob.TEMPLETON_JOB_LAUNCH_TIME_NAME,
-      Long.toString(System.currentTimeMillis()));
 
     // Hadoop queue information
     addDef(args, "mapred.job.queue.name", appConf.hadoopQueueName());
@@ -155,32 +145,6 @@ public class LauncherDelegator extends TempletonDelegator {
     addCompletionVars(args, completedUrl);
 
     return args;
-  }
-
-  /**
-   * Dynamically determine the list of hive shim jars that need to be added
-   * to the Templeton launcher job classpath.
-   */
-  private String getShimLibjars() {
-    WebHCatJTShim shim = null;
-    try {
-      shim = ShimLoader.getHadoopShims().getWebHCatShim(appConf, UserGroupInformation.getCurrentUser());
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to get WebHCatShim", e);
-    }
-
-    // Besides the HiveShims jar which is Hadoop version dependent we also
-    // always need to include hive shims common jars.
-    Path shimCommonJar = new Path(
-        TempletonUtils.findContainingJar(ShimLoader.class, HIVE_SHIMS_FILENAME_PATTERN));
-    Path shimCommonSecureJar = new Path(
-        TempletonUtils.findContainingJar(HadoopShimsSecure.class, HIVE_SHIMS_FILENAME_PATTERN));
-    Path shimJar = new Path(
-        TempletonUtils.findContainingJar(shim.getClass(), HIVE_SHIMS_FILENAME_PATTERN));
-
-    return String.format(
-        "%s,%s,%s",
-        shimCommonJar.toString(), shimCommonSecureJar.toString(), shimJar.toString());
   }
 
   // Storage vars
