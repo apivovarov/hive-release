@@ -808,7 +808,14 @@ public class DagUtils {
     FileSystem destFS = dest.getFileSystem(conf);
     FileSystem sourceFS = src.getFileSystem(conf);
     if (destFS.exists(dest)) {
-      return (sourceFS.getFileStatus(src).getLen() == destFS.getFileStatus(dest).getLen());
+      if (sourceFS.getFileStatus(src).getLen() == destFS.getFileStatus(dest).getLen()) {
+        if (destFS instanceof DistributedFileSystem) {
+          DistributedFileSystem dfs = (DistributedFileSystem) destFS;
+          return dfs.recoverLease(dest);
+        } else {
+          return true;
+        }
+      }
     }
     return false;
   }
