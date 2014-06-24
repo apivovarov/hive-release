@@ -490,6 +490,8 @@ public abstract class BaseSemanticAnalyzer {
 
     Character enclosure = null;
 
+    boolean isWinPath = false;
+    
     // Some of the strings can be passed in as unicode. For example, the
     // delimiter can be passed in as \002 - So, we first check if the
     // string is a unicode number, else go back to the old behavior
@@ -497,6 +499,10 @@ public abstract class BaseSemanticAnalyzer {
     for (int i = 0; i < b.length(); i++) {
 
       char currentChar = b.charAt(i);
+      
+      if (currentChar == ':' && i == 2)
+        isWinPath = true;
+      
       if (enclosure == null) {
         if (currentChar == '\'' || b.charAt(i) == '\"') {
           enclosure = currentChar;
@@ -538,7 +544,7 @@ public abstract class BaseSemanticAnalyzer {
         }
       }
 
-      if (currentChar == '\\' && (i + 2 < b.length())) {
+      if (currentChar == '\\' && (i + 2 < b.length()) && !isWinPath) {
         char n = b.charAt(i + 1);
         switch (n) {
         case '0':
