@@ -134,7 +134,7 @@ public class TezTask extends Task<TezWork> {
       // AM will need them; so, AM has to be restarted. What a mess...
       if (!canReloc && !hasResources && session.isOpen()) {
         LOG.info("Tez session being closed and reopened to pass custom jars to AM");
-        TezSessionPoolManager.getInstance().close(session);
+        TezSessionPoolManager.getInstance().close(session, false);
         session = TezSessionPoolManager.getInstance().getSession(null, conf,
             false, true);
         ss.setTezSession(session);
@@ -319,7 +319,7 @@ public class TezTask extends Task<TezWork> {
       console.printInfo("Tez session was closed. Reopening...");
 
       // close the old one, but keep the tmp files around
-      TezSessionPoolManager.getInstance().closeAndOpen(sessionState, this.conf);
+      TezSessionPoolManager.getInstance().closeAndOpen(sessionState, this.conf, true);
       console.printInfo("Session re-established.");
 
       dagClient = sessionState.getSession().submitDAG(dag, additionalAmResources);

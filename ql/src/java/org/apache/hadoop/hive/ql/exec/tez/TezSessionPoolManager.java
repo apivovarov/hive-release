@@ -18,6 +18,7 @@
 
 package org.apache.hadoop.hive.ql.exec.tez;
 
+import java.util.Arrays;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -168,10 +169,10 @@ public class TezSessionPoolManager {
     // session in the SessionState
   }
 
-  public void close(TezSessionState tezSessionState) throws Exception {
+  public void close(TezSessionState tezSessionState, boolean keepTmpDir) throws Exception {
     LOG.info("Closing tez session default? " + tezSessionState.isDefault());
     if (!tezSessionState.isDefault()) {
-      tezSessionState.close(false);
+      tezSessionState.close(keepTmpDir);
     }
   }
 
@@ -262,19 +263,19 @@ public class TezSessionPoolManager {
     }
 
     if (session != null) {
-      close(session);
+      close(session, false);
     }
 
     return getSession(conf, doOpen, forceCreate);
   }
 
-  public void closeAndOpen(TezSessionState sessionState, HiveConf conf)
+  public void closeAndOpen(TezSessionState sessionState, HiveConf conf, boolean keepTmpDir)
       throws Exception {
     HiveConf sessionConf = sessionState.getConf();
     if (sessionConf.get("tez.queue.name") != null) {
       conf.set("tez.queue.name", sessionConf.get("tez.queue.name"));
     }
-    close(sessionState);
-    sessionState.open(conf);
+    close(sessionState, keepTmpDir);
+    sessionState.open(conf, null);
   }
 }
