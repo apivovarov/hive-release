@@ -62,8 +62,13 @@ public class TimestampWritable implements WritableComparable<TimestampWritable> 
   private static final int NO_DECIMAL_MASK = 0x7FFFFFFF;
   private static final int HAS_DECIMAL_MASK = 0x80000000;
 
-  private static final DateFormat dateFormat =
-    new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private static final ThreadLocal<DateFormat> threadLocalDateFormat =
+      new ThreadLocal<DateFormat>() {
+        @Override
+        protected synchronized DateFormat initialValue() {
+          return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        }
+      };
 
   private Timestamp timestamp = new Timestamp(0);
 
@@ -320,18 +325,31 @@ public class TimestampWritable implements WritableComparable<TimestampWritable> 
     if (timestampEmpty) {
       populateTimestamp();
     }
-
-    String timestampString = timestamp.toString();
-    if (timestampString.length() > 19) {
-      if (timestampString.length() == 21) {
-        if (timestampString.substring(19).compareTo(".0") == 0) {
-          return dateFormat.format(timestamp);
-        }
-      }
-      return dateFormat.format(timestamp) + timestampString.substring(19);
+    DateFormat format = threadLocalDateFormat.get();
+    String formatted = format.format(timestamp);
+    int nanos = getNanos();
+    if (nanos != 0) {
+      formatted += "." + getNanoString(nanos);
     }
+    return formatted;
+  }
 
-    return dateFormat.format(timestamp);
+  private static final String zeros = "000000000";
+
+  // copied from Timestamp.toString()
+  private String getNanoString(int nanos) {
+    String nanosString = Integer.toString(nanos);
+    // Add leading zeros
+    nanosString = zeros.substring(0, 9 - nanosString.length()) + nanosString;
+
+    // Truncate trailing zeros
+    char[] nanosChar = new char[nanosString.length()];
+    nanosString.getChars(0, nanosString.length(), nanosChar, 0);
+    int truncIndex = 8;
+    while (nanosChar[truncIndex] == '0') {
+      truncIndex--;
+    }
+    return new String(nanosChar, 0, truncIndex + 1);
   }
 
   @Override
